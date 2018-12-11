@@ -140,46 +140,46 @@ func TestObjectService_Options(t *testing.T) {
 
 }
 
-func TestObjectService_Append(t *testing.T) {
-	setup()
-	defer teardown()
+// func TestObjectService_Append(t *testing.T) {
+// 	setup()
+// 	defer teardown()
 
-	opt := &ObjectPutOptions{
-		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
-			ContentType: "text/html",
-		},
-		ACLHeaderOptions: &ACLHeaderOptions{
-			XCosACL: "private",
-		},
-	}
-	name := "test/hello.txt"
-	position := 0
+// 	opt := &ObjectPutOptions{
+// 		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+// 			ContentType: "text/html",
+// 		},
+// 		ACLHeaderOptions: &ACLHeaderOptions{
+// 			XCosACL: "private",
+// 		},
+// 	}
+// 	name := "test/hello.txt"
+// 	position := 0
 
-	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
-		vs := values{
-			"append":   "",
-			"position": "0",
-		}
-		testFormValues(t, r, vs)
+// 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+// 		vs := values{
+// 			"append":   "",
+// 			"position": "0",
+// 		}
+// 		testFormValues(t, r, vs)
 
-		testMethod(t, r, http.MethodPost)
-		testHeader(t, r, "x-cos-acl", "private")
-		testHeader(t, r, "Content-Type", "text/html")
+// 		testMethod(t, r, http.MethodPost)
+// 		testHeader(t, r, "x-cos-acl", "private")
+// 		testHeader(t, r, "Content-Type", "text/html")
 
-		b, _ := ioutil.ReadAll(r.Body)
-		v := string(b)
-		want := "hello"
-		if !reflect.DeepEqual(v, want) {
-			t.Errorf("Object.Append request body: %#v, want %#v", v, want)
-		}
-	})
+// 		b, _ := ioutil.ReadAll(r.Body)
+// 		v := string(b)
+// 		want := "hello"
+// 		if !reflect.DeepEqual(v, want) {
+// 			t.Errorf("Object.Append request body: %#v, want %#v", v, want)
+// 		}
+// 	})
 
-	r := bytes.NewReader([]byte("hello"))
-	_, err := client.Object.Append(context.Background(), name, position, r, opt)
-	if err != nil {
-		t.Fatalf("Object.Append returned error: %v", err)
-	}
-}
+// 	r := bytes.NewReader([]byte("hello"))
+// 	_, err := client.Object.Append(context.Background(), name, position, r, opt)
+// 	if err != nil {
+// 		t.Fatalf("Object.Append returned error: %v", err)
+// 	}
+// }
 
 func TestObjectService_DeleteMulti(t *testing.T) {
 	setup()
