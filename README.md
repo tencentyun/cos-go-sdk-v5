@@ -78,7 +78,6 @@ Bucket API:
 
 Object API:
 
-* [x] Append Object（使用示例：[object/append.go](./example/object/append.go)）
 * [x] Get Object（使用示例：[object/get.go](./example/object/get.go)）
 * [x] Get Object ACL（使用示例：[object/getACL.go](./example/object/getACL.go)）
 * [x] Put Object（使用示例：[object/put.go](./example/object/put.go)）
