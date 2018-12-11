@@ -121,7 +121,6 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	var reader io.Reader
 	contentType := ""
 	contentMD5 := ""
-	xsha1 := ""
 	if body != nil {
 		// 上传文件
 		if r, ok := body.(io.Reader); ok {
@@ -134,7 +133,6 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 			contentType = contentTypeXML
 			reader = bytes.NewReader(b)
 			contentMD5 = base64.StdEncoding.EncodeToString(calMD5Digest(b))
-			//xsha1 = base64.StdEncoding.EncodeToString(calSHA1Digest(b))
 		}
 	} else {
 		contentType = contentTypeXML
@@ -155,9 +153,6 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 
 	if contentMD5 != "" {
 		req.Header["Content-MD5"] = []string{contentMD5}
-	}
-	if xsha1 != "" {
-		req.Header.Set("x-cos-sha1", xsha1)
 	}
 	if c.UserAgent != "" {
 		req.Header.Set("User-Agent", c.UserAgent)
