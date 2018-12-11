@@ -169,8 +169,8 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 		optHeader: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
-	if (resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable") {
-		resp.Header.Add("x-cos-next-append-position",resp.Header["Content-Length"][0])
+	if resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
+		resp.Header.Add("x-cos-next-append-position", resp.Header["Content-Length"][0])
 	}
 
 	return resp, err
@@ -200,6 +200,7 @@ func (s *ObjectService) Options(ctx context.Context, name string, opt *ObjectOpt
 }
 
 // Append ...
+// TODO Append 接口在优化未开放使用
 //
 // Append请求可以将一个文件（Object）以分块追加的方式上传至 Bucket 中。使用Append Upload的文件必须事前被设定为Appendable。
 // 当Appendable的文件被执行Put Object的操作以后，文件被覆盖，属性改变为Normal。
@@ -214,21 +215,21 @@ func (s *ObjectService) Options(ctx context.Context, name string, opt *ObjectOpt
 // 当 r 不是 bytes.Buffer/bytes.Reader/strings.Reader 时，必须指定 opt.ObjectPutHeaderOptions.ContentLength
 //
 // https://www.qcloud.com/document/product/436/7741
-func (s *ObjectService) Append(ctx context.Context, name string, position int, r io.Reader, opt *ObjectPutOptions) (*Response, error) {
-	u := fmt.Sprintf("/%s?append&position=%d", encodeURIComponent(name), position)
-	if position != 0{
-		opt = nil
-	}
-	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       u,
-		method:    http.MethodPost,
-		optHeader: opt,
-		body:      r,
-	}
-	resp, err := s.client.send(ctx, &sendOpt)
-	return resp, err
-}
+// func (s *ObjectService) Append(ctx context.Context, name string, position int, r io.Reader, opt *ObjectPutOptions) (*Response, error) {
+// 	u := fmt.Sprintf("/%s?append&position=%d", encodeURIComponent(name), position)
+// 	if position != 0{
+// 		opt = nil
+// 	}
+// 	sendOpt := sendOptions{
+// 		baseURL:   s.client.BaseURL.BucketURL,
+// 		uri:       u,
+// 		method:    http.MethodPost,
+// 		optHeader: opt,
+// 		body:      r,
+// 	}
+// 	resp, err := s.client.send(ctx, &sendOpt)
+// 	return resp, err
+// }
 
 // ObjectDeleteMultiOptions ...
 type ObjectDeleteMultiOptions struct {
@@ -283,7 +284,7 @@ type Object struct {
 }
 
 type MultiUploadOptions struct {
-	OptIni *InitiateMultipartUploadOptions
+	OptIni   *InitiateMultipartUploadOptions
 	PartSize int
 }
 
@@ -294,45 +295,47 @@ type MultiUploadOptions struct {
 //
 
 func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reader, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
-	
+
 	optini := opt.OptIni
 	res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
-	if err != nil{panic(err)}
+	if err != nil {
+		panic(err)
+	}
 	uploadID := res.UploadID
- 	bufSize := opt.PartSize *  1024 *1024
- 	buffer := make([]byte,bufSize)  
+	bufSize := opt.PartSize * 1024 * 1024
+	buffer := make([]byte, bufSize)
 	optcom := &CompleteMultipartUploadOptions{}
-	
+
 	PartUpload := func(ch chan *Response, ctx context.Context, name string, uploadId string, partNumber int, data io.Reader, opt *ObjectUploadPartOptions) {
-		
-    defer func(){
+
+		defer func() {
 			if err := recover(); err != nil {
 				fmt.Println(err)
 			}
 		}()
 		resp, err := s.UploadPart(context.Background(), name, uploadId, partNumber, data, nil)
-		if err!=nil{
+		if err != nil {
 			panic(err)
 		}
 		ch <- resp
 	}
-	
+
 	chs := make([]chan *Response, 10000)
-	PartNumber := 0 
-    for i := 1 ;true; i++ { 
-        bytesread,err := r.Read(buffer)  
-        if err != nil {  
-            if err != io.EOF {  
-                panic(err)
-			} 
+	PartNumber := 0
+	for i := 1; true; i++ {
+		bytesread, err := r.Read(buffer)
+		if err != nil {
+			if err != io.EOF {
+				panic(err)
+			}
 			PartNumber = i
-            break  
-		}  
+			break
+		}
 		chs[i] = make(chan *Response)
 		go PartUpload(chs[i], context.Background(), name, uploadID, i, strings.NewReader(string(buffer[:bytesread])), nil)
 	}
 
-	for  i := 1; i < PartNumber; i++ { 
+	for i := 1; i < PartNumber; i++ {
 		resp := <-chs[i]
 		etag := resp.Header.Get("ETag")
 		optcom.Parts = append(optcom.Parts, Object{
