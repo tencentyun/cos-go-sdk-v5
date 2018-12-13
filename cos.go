@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	// Version ...
+	// Version current go sdk version
 	Version               = "0.7.3"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
@@ -65,7 +65,7 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 	return u
 }
 
-// A Client manages communication with the COS API.
+// Client is a client manages communication with the COS API.
 type Client struct {
 	client *http.Client
 
@@ -295,14 +295,14 @@ func addHeaderOptions(header http.Header, opt interface{}) (http.Header, error) 
 	return header, nil
 }
 
-// Owner ...
+// Owner defines Bucket/Object's owner
 type Owner struct {
 	UIN         string `xml:"uin,omitempty"`
 	ID          string `xml:",omitempty"`
 	DisplayName string `xml:",omitempty"`
 }
 
-// Initiator ...
+// Initiator same to the Owner struct
 type Initiator Owner
 
 // Response API 响应
@@ -316,7 +316,7 @@ func newResponse(resp *http.Response) *Response {
 	}
 }
 
-// ACLHeaderOptions ...
+// ACLHeaderOptions is the option of ACLHeader
 type ACLHeaderOptions struct {
 	XCosACL              string `header:"x-cos-acl,omitempty" url:"-" xml:"-"`
 	XCosGrantRead        string `header:"x-cos-grant-read,omitempty" url:"-" xml:"-"`
@@ -324,7 +324,7 @@ type ACLHeaderOptions struct {
 	XCosGrantFullControl string `header:"x-cos-grant-full-control,omitempty" url:"-" xml:"-"`
 }
 
-// ACLGrantee ...
+// ACLGrantee is the param of ACLGrant
 type ACLGrantee struct {
 	Type        string `xml:"type,attr"`
 	UIN         string `xml:"uin,omitempty"`
@@ -333,13 +333,13 @@ type ACLGrantee struct {
 	SubAccount  string `xml:"Subaccount,omitempty"`
 }
 
-// ACLGrant ...
+// ACLGrant is the param of ACLXml
 type ACLGrant struct {
 	Grantee    *ACLGrantee
 	Permission string
 }
 
-// ACLXml ...
+// ACLXml is the ACL body struct
 type ACLXml struct {
 	XMLName           xml.Name `xml:"AccessControlPolicy"`
 	Owner             *Owner

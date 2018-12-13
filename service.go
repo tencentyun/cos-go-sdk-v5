@@ -6,12 +6,10 @@ import (
 	"net/http"
 )
 
-// ServiceService ...
-//
 // Service 相关 API
 type ServiceService service
 
-// ServiceGetResult ...
+// ServiceGetResult is the result of Get Service
 type ServiceGetResult struct {
 	XMLName xml.Name `xml:"ListAllMyBucketsResult"`
 	Owner   *Owner   `xml:"Owner"`

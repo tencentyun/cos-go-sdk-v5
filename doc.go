@@ -1,16 +1,6 @@
 /*
-Package cos 腾讯云对象存储服务 COS(Cloud Object Storage) Go SDK。
-
-
-COS API Version
-
-封装了 V5 版本的 XML API 。
-
-
-Usage
-
+Package cos 腾讯云对象存储服务 COS(Cloud Object Storage) Go SDK, 封装了 V5 版本的 XML API。
 在项目的 example 目录下有各个 API 的使用示例 。
-
 
 Authentication
 
@@ -18,12 +8,12 @@ Authentication
 
 比如, 使用内置的 AuthorizationTransport 来为请求增加 Authorization Header 签名信息:
 
-	client := cos.NewClient(b, &http.Client{
-			Transport: &cos.AuthorizationTransport{
-				SecretID:  "COS_SECRETID",
-				SecretKey: "COS_SECRETKEY",
-			},
-		})
+client := cos.NewClient(b, &http.Client{
+	Transport: &cos.AuthorizationTransport{
+		SecretID:  "COS_SECRETID",
+		SecretKey: "COS_SECRETKEY",
+	},
+})
 
 */
 package cos

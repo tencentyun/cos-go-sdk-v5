@@ -9,12 +9,10 @@ import (
 	"strings"
 )
 
-// ObjectService ...
-//
-// Object 相关 API
+// ObjectService 相关 API
 type ObjectService service
 
-// ObjectGetOptions ...
+// ObjectGetOptions is the option of GetObject
 type ObjectGetOptions struct {
 	ResponseContentType        string `url:"response-content-type,omitempty" header:"-"`
 	ResponseContentLanguage    string `url:"response-content-language,omitempty" header:"-"`
@@ -43,7 +41,7 @@ func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOpti
 	return resp, err
 }
 
-// ObjectPutHeaderOptions ...
+// ObjectPutHeaderOptions the options of header of the put object
 type ObjectPutHeaderOptions struct {
 	CacheControl       string `header:"Cache-Control,omitempty" url:"-"`
 	ContentDisposition string `header:"Content-Disposition,omitempty" url:"-"`
@@ -60,7 +58,7 @@ type ObjectPutHeaderOptions struct {
 	//XCosObjectType string `header:"x-cos-object-type,omitempty" url:"-"`
 }
 
-// ObjectPutOptions ...
+// ObjectPutOptions the options of put object
 type ObjectPutOptions struct {
 	*ACLHeaderOptions       `header:",omitempty" url:"-" xml:"-"`
 	*ObjectPutHeaderOptions `header:",omitempty" url:"-" xml:"-"`
@@ -83,7 +81,7 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, opt *
 	return resp, err
 }
 
-// ObjectCopyHeaderOptions ...
+// ObjectCopyHeaderOptions is the head option of the Copy
 type ObjectCopyHeaderOptions struct {
 	XCosMetadataDirective           string `header:"x-cos-metadata-directive,omitempty" url:"-" xml:"-"`
 	XCosCopySourceIfModifiedSince   string `header:"x-cos-copy-source-If-Modified-Since,omitempty" url:"-" xml:"-"`
@@ -96,21 +94,20 @@ type ObjectCopyHeaderOptions struct {
 	XCosCopySource string       `header:"x-cos-copy-source" url:"-" xml:"-"`
 }
 
-// ObjectCopyOptions ...
+// ObjectCopyOptions is the option of Copy, choose header or body
 type ObjectCopyOptions struct {
 	*ObjectCopyHeaderOptions `header:",omitempty" url:"-" xml:"-"`
 	*ACLHeaderOptions        `header:",omitempty" url:"-" xml:"-"`
 }
 
-// ObjectCopyResult ...
+// ObjectCopyResult is the result of Copy
 type ObjectCopyResult struct {
 	XMLName      xml.Name `xml:"CopyObjectResult"`
 	ETag         string   `xml:"ETag,omitempty"`
 	LastModified string   `xml:"LastModified,omitempty"`
 }
 
-// Copy ...
-// Put Object Copy 请求实现将一个文件从源路径复制到目标路径。建议文件大小 1M 到 5G，
+// Copy 调用 PutObjectCopy 请求实现将一个文件从源路径复制到目标路径。建议文件大小 1M 到 5G，
 // 超过 5G 的文件请使用分块上传 Upload - Copy。在拷贝的过程中，文件元属性和 ACL 可以被修改。
 //
 // 用户可以通过该接口实现文件移动，文件重命名，修改文件属性和创建副本。
@@ -153,7 +150,7 @@ func (s *ObjectService) Delete(ctx context.Context, name string) (*Response, err
 	return resp, err
 }
 
-// ObjectHeadOptions ...
+// ObjectHeadOptions is the option of HeadObject
 type ObjectHeadOptions struct {
 	IfModifiedSince string `url:"-" header:"If-Modified-Since,omitempty"`
 }
@@ -176,7 +173,7 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 	return resp, err
 }
 
-// ObjectOptionsOptions ...
+// ObjectOptionsOptions is the option of object options
 type ObjectOptionsOptions struct {
 	Origin                      string `url:"-" header:"Origin"`
 	AccessControlRequestMethod  string `url:"-" header:"Access-Control-Request-Method"`
@@ -199,7 +196,6 @@ func (s *ObjectService) Options(ctx context.Context, name string, opt *ObjectOpt
 	return resp, err
 }
 
-// Append ...
 // TODO Append 接口在优化未开放使用
 //
 // Append请求可以将一个文件（Object）以分块追加的方式上传至 Bucket 中。使用Append Upload的文件必须事前被设定为Appendable。
@@ -231,7 +227,7 @@ func (s *ObjectService) Options(ctx context.Context, name string, opt *ObjectOpt
 // 	return resp, err
 // }
 
-// ObjectDeleteMultiOptions ...
+// ObjectDeleteMultiOptions is the option of DeleteMulti
 type ObjectDeleteMultiOptions struct {
 	XMLName xml.Name `xml:"Delete" header:"-"`
 	Quiet   bool     `xml:"Quiet" header:"-"`
@@ -239,7 +235,7 @@ type ObjectDeleteMultiOptions struct {
 	//XCosSha1 string `xml:"-" header:"x-cos-sha1"`
 }
 
-// ObjectDeleteMultiResult ...
+// ObjectDeleteMultiResult is the result of DeleteMulti
 type ObjectDeleteMultiResult struct {
 	XMLName        xml.Name `xml:"DeleteResult"`
 	DeletedObjects []Object `xml:"Deleted,omitempty"`
@@ -250,14 +246,9 @@ type ObjectDeleteMultiResult struct {
 	} `xml:"Error,omitempty"`
 }
 
-// DeleteMulti ...
-//
-// Delete Multiple Object请求实现批量删除文件，最大支持单次删除1000个文件。
+// DeleteMulti 请求实现批量删除文件，最大支持单次删除1000个文件。
 // 对于返回结果，COS提供Verbose和Quiet两种结果模式。Verbose模式将返回每个Object的删除结果；
 // Quiet模式只返回报错的Object信息。
-//
-// 此请求必须携带x-cos-sha1用来校验Body的完整性。
-//
 // https://www.qcloud.com/document/product/436/8289
 func (s *ObjectService) DeleteMulti(ctx context.Context, opt *ObjectDeleteMultiOptions) (*ObjectDeleteMultiResult, *Response, error) {
 	var res ObjectDeleteMultiResult
@@ -272,7 +263,7 @@ func (s *ObjectService) DeleteMulti(ctx context.Context, opt *ObjectDeleteMultiO
 	return &res, resp, err
 }
 
-// Object ...
+// Object is the meta info of the object
 type Object struct {
 	Key          string `xml:",omitempty"`
 	ETag         string `xml:",omitempty"`
