@@ -12,5 +12,4 @@
 // 		SecretKey: "COS_SECRETKEY",
 // 	},
 // })
-
 package cos
