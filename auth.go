@@ -219,8 +219,7 @@ type AuthorizationTransport struct {
 	SessionToken string
 	rwLocker     sync.RWMutex
 	// 签名多久过期
-	Expire time.Duration
-
+	Expire    time.Duration
 	Transport http.RoundTripper
 }
 

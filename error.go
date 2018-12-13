@@ -20,14 +20,14 @@ type ErrorResponse struct {
 	TraceID   string `xml:"TraceId,omitempty"`
 }
 
-// Error ...
+// Error returns the error msg
 func (r *ErrorResponse) Error() string {
 	RequestID := r.RequestID
-	if (RequestID == "") {
+	if RequestID == "" {
 		RequestID = r.Response.Header["X-Cos-Request-Id"][0]
 	}
 	TraceID := r.TraceID
-	if (TraceID == "") {
+	if TraceID == "" {
 		TraceID = r.Response.Header["X-Cos-Trace-Id"][0]
 	}
 	return fmt.Sprintf("%v %v: %d %v(Message: %v, RequestId: %v, TraceId: %v)",

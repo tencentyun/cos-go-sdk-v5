@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// ListMultipartUploadsResult ...
+// ListMultipartUploadsResult is the result of ListMultipartUploads
 type ListMultipartUploadsResult struct {
 	XMLName            xml.Name `xml:"ListMultipartUploadsResult"`
 	Bucket             string   `xml:"Bucket"`
@@ -30,7 +30,7 @@ type ListMultipartUploadsResult struct {
 	CommonPrefixes []string `xml:"CommonPrefixs>Prefix,omitempty"`
 }
 
-// ListMultipartUploadsOptions ...
+// ListMultipartUploadsOptions is the option of ListMultipartUploads
 type ListMultipartUploadsOptions struct {
 	Delimiter      string `url:"delimiter,omitempty"`
 	EncodingType   string `url:"encoding-type,omitempty"`
@@ -40,9 +40,7 @@ type ListMultipartUploadsOptions struct {
 	UploadIDMarker string `url:"upload-id-marker,omitempty"`
 }
 
-// ListMultipartUploads ...
-//
-// List Multipart Uploads用来查询正在进行中的分块上传。单次最多列出1000个正在进行中的分块上传。
+// ListMultipartUploads 用来查询正在进行中的分块上传。单次最多列出1000个正在进行中的分块上传。
 //
 // https://www.qcloud.com/document/product/436/7736
 func (s *BucketService) ListMultipartUploads(ctx context.Context, opt *ListMultipartUploadsOptions) (*ListMultipartUploadsResult, *Response, error) {

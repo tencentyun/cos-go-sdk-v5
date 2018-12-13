@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// ObjectGetACLResult ...
+// ObjectGetACLResult is the result of GetObjectACL
 type ObjectGetACLResult ACLXml
 
 // GetACL Get Object ACL接口实现使用API读取Object的ACL表，只有所有者有权操作。
@@ -23,7 +23,7 @@ func (s *ObjectService) GetACL(ctx context.Context, name string) (*ObjectGetACLR
 	return &res, resp, err
 }
 
-// ObjectPutACLOptions ...
+// ObjectPutACLOptions the options of put object acl
 type ObjectPutACLOptions struct {
 	Header *ACLHeaderOptions `url:"-" xml:"-"`
 	Body   *ACLXml           `url:"-" header:"-"`

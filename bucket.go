@@ -6,12 +6,10 @@ import (
 	"net/http"
 )
 
-// BucketService ...
-//
-// Bucket 相关 API
+// BucketService 相关 API
 type BucketService service
 
-// BucketGetResult ...
+// BucketGetResult is the result of GetBucket
 type BucketGetResult struct {
 	XMLName        xml.Name `xml:"ListBucketResult"`
 	Name           string
@@ -26,7 +24,7 @@ type BucketGetResult struct {
 	EncodingType   string   `xml:"Encoding-Type,omitempty"`
 }
 
-// BucketGetOptions ...
+// BucketGetOptions is the option of GetBucket
 type BucketGetOptions struct {
 	Prefix       string `url:"prefix,omitempty"`
 	Delimiter    string `url:"delimiter,omitempty"`
@@ -51,7 +49,7 @@ func (s *BucketService) Get(ctx context.Context, opt *BucketGetOptions) (*Bucket
 	return &res, resp, err
 }
 
-// BucketPutOptions ...
+// BucketPutOptions is same to the ACLHeaderOptions
 type BucketPutOptions ACLHeaderOptions
 
 // Put Bucket请求可以在指定账号下创建一个Bucket。
@@ -98,9 +96,9 @@ func (s *BucketService) Head(ctx context.Context) (*Response, error) {
 	return resp, err
 }
 
-// Bucket ...
+// Bucket is the meta info of Bucket
 type Bucket struct {
-	Name       string
-	Region     string `xml:"Location,omitempty"`
+	Name         string
+	Region       string `xml:"Location,omitempty"`
 	CreationDate string `xml:",omitempty"`
 }

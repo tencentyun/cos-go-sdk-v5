@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// BucketGetACLResult ...
+// BucketGetACLResult is same to the ACLXml
 type BucketGetACLResult ACLXml
 
 // GetACL 使用API读取Bucket的ACL表，只有所有者有权操作。
@@ -23,7 +23,7 @@ func (s *BucketService) GetACL(ctx context.Context) (*BucketGetACLResult, *Respo
 	return &res, resp, err
 }
 
-// BucketPutACLOptions ...
+// BucketPutACLOptions is the option of PutBucketACL
 type BucketPutACLOptions struct {
 	Header *ACLHeaderOptions `url:"-" xml:"-"`
 	Body   *ACLXml           `url:"-" header:"-"`
