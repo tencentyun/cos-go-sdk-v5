@@ -134,8 +134,6 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 			reader = bytes.NewReader(b)
 			contentMD5 = base64.StdEncoding.EncodeToString(calMD5Digest(b))
 		}
-	} else {
-		contentType = contentTypeXML
 	}
 
 	req, err = http.NewRequest(method, urlStr, reader)
