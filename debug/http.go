@@ -30,7 +30,7 @@ func (t *DebugRequestTransport) RoundTrip(req *http.Request) (*http.Response, er
 	}
 
 	if t.RequestHeader {
-		a, _ := httputil.DumpRequestOut(req, t.RequestBody)
+		a, _ := httputil.DumpRequest(req, t.RequestBody)
 		fmt.Fprintf(w, "%s\n\n", string(a))
 	}
 
