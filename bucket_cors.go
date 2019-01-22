@@ -37,7 +37,7 @@ func (s *BucketService) GetCORS(ctx context.Context) (*BucketGetCORSResult, *Res
 	return &res, resp, err
 }
 
-// BucketPutCORSOptions is the option of PutBucketCORS 
+// BucketPutCORSOptions is the option of PutBucketCORS
 type BucketPutCORSOptions struct {
 	XMLName xml.Name         `xml:"CORSConfiguration"`
 	Rules   []BucketCORSRule `xml:"CORSRule,omitempty"`

@@ -48,13 +48,13 @@ func TestServiceService_Get(t *testing.T) {
 		},
 		Buckets: []Bucket{
 			{
-				Name:       "huadong-1253846586",
-				Region:     "ap-shanghai",
+				Name:         "huadong-1253846586",
+				Region:       "ap-shanghai",
 				CreationDate: "2017-06-16T13:08:28Z",
 			},
 			{
-				Name:       "huanan-1253846586",
-				Region:     "ap-guangzhou",
+				Name:         "huanan-1253846586",
+				Region:       "ap-guangzhou",
 				CreationDate: "2017-06-10T09:00:07Z",
 			},
 		},
