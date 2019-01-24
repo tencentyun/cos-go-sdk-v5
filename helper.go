@@ -52,7 +52,7 @@ func encodeURIComponent(s string) string {
 		c := s[i]
 
 		switch c {
-		case '-', '_', '.', '!', '~', '*', '\'', '(', ')':
+		case '-', '_', '.', '!', '~', '*', '\'', '(', ')', '/':
 			continue
 		default:
 			// Unreserved according to RFC 3986 sec 2.3
