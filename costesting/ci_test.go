@@ -94,7 +94,7 @@ func (s *CosTestSuite) TestGetService() {
 // Bucket API
 func (s *CosTestSuite) TestPutHeadDeleteBucket() {
 	// Notic sometimes the bucket host can not analyis, may has i/o timeout problem
-	u := "http://gosdkbuckettest-" + time.Now().Format(time.RFC3339) + "-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
+	u := "http://gosdkbuckettest-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
 	iu, _ := url.Parse(u)
 	ib := &cos.BaseURL{BucketURL: iu}
 	client := cos.NewClient(ib, &http.Client{
@@ -118,10 +118,10 @@ func (s *CosTestSuite) TestPutHeadDeleteBucket() {
 
 	_, err = client.Bucket.Head(context.Background())
 	assert.Nil(s.T(), err, "HeadBucket Failed")
-
-	_, err = client.Bucket.Delete(context.Background())
-	assert.Nil(s.T(), err, "DeleteBucket Failed")
-
+	if err == nil {
+		_, err = client.Bucket.Delete(context.Background())
+		assert.Nil(s.T(), err, "DeleteBucket Failed")
+	}
 }
 
 func (s *CosTestSuite) TestPutBucketACLIllegal() {
