@@ -17,4 +17,6 @@ lint:
 
 .PHONY: example
 example:
-	cd examples && sh test.sh
+	cd example && sh test.sh
+ci-test:
+	cd costesting && go test -v 

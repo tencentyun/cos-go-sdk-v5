@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function run() {
+run() {
     go run "$@"
 
     if [ $? -ne 0 ]

@@ -28,6 +28,7 @@ func main() {
 		},
 	})
 
+	// Case1 normal put object
 	name := "test/objectPut.go"
 	f := strings.NewReader("test")
 
@@ -36,6 +37,7 @@ func main() {
 		panic(err)
 	}
 
+	// Case2 put object with the options
 	name = "test/put_option.go"
 	f = strings.NewReader("test xxx")
 	opt := &cos.ObjectPutOptions{
@@ -51,4 +53,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Case3 put object by local file
+	_, err = c.Object.PutFromFile(context.Background(), name, "./test10M", nil)
+	if err != nil {
+		panic(err)
+	}
+
 }

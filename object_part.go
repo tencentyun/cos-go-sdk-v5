@@ -121,6 +121,22 @@ type CompleteMultipartUploadResult struct {
 	ETag     string
 }
 
+// ObjectList can used for sort the parts which needs in complete upload part
+// sort.Sort(cos.ObjectList(opt.Parts))
+type ObjectList []Object
+
+func (o ObjectList) Len() int {
+	return len(o)
+}
+
+func (o ObjectList) Swap(i, j int) {
+	o[i], o[j] = o[j], o[i]
+}
+
+func (o ObjectList) Less(i, j int) bool { // rewrite the Less method from small to big
+	return o[i].PartNumber < o[j].PartNumber
+}
+
 // CompleteMultipartUpload 用来实现完成整个分块上传。当您已经使用Upload Parts上传所有块以后，你可以用该API完成上传。
 // 在使用该API时，您必须在Body中给出每一个块的PartNumber和ETag，用来校验块的准确性。
 //
