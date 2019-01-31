@@ -1,6 +1,5 @@
 language: go
 go:
-- '1.6'
 - '1.7'
 - '1.8'
 - '1.9'
@@ -9,17 +8,17 @@ go:
 sudo: false
 before_install:
 - go get github.com/mattn/goveralls
+  go get github.com/stretchr/testify
 install:
 - go get
 - go build
 script:
 - make test
 - make ci-test
-- go test -coverprofile=cover.out github.com/tencentyun/cos-go-sdk-v5
-- "$HOME/gopath/bin/goveralls -service=travis-ci -coverprofile=cover.out"
+- go test -coverprofile=cover.out github.com/toranger/cos-go-sdk-v5
+- "${TRAVIS_HOME}/gopath/bin/goveralls -service=travis-ci -coverprofile=cover.out"
 matrix:
   allow_failures:
-  - go: 1.6
   - go: 1.7
   - go: master
 env:
