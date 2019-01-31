@@ -93,7 +93,7 @@ func (s *CosTestSuite) TestGetService() {
 
 // Bucket API
 func (s *CosTestSuite) TestPutHeadDeleteBucket() {
-	u := "http://gosdkbuckettest-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
+	u := "http://gosdkbuckettest-" + time.Now().Format(time.RFC3339) + "-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
 	iu, _ := url.Parse(u)
 	ib := &cos.BaseURL{BucketURL: iu}
 	client := cos.NewClient(ib, &http.Client{
@@ -110,6 +110,7 @@ func (s *CosTestSuite) TestPutHeadDeleteBucket() {
 	}
 
 	time.Sleep(3 * time.Second)
+
 	_, err = client.Bucket.Head(context.Background())
 	assert.Nil(s.T(), err, "HeadBucket Failed")
 
@@ -203,7 +204,8 @@ func (s *CosTestSuite) TestPutGetDeleteLifeCycle() {
 
 func (s *CosTestSuite) TestListMultipartUploads() {
 	// Create new upload
-	name := "test_multipart.txt"
+	name := "test_multipart" + time.Now().Format(time.RFC3339)
+	flag := false
 	v, _, err := s.Client.Object.InitiateMultipartUpload(context.Background(), name, nil)
 	assert.Nil(s.T(), err, "InitiateMultipartUpload Failed")
 	id := v.UploadID
@@ -211,11 +213,13 @@ func (s *CosTestSuite) TestListMultipartUploads() {
 	// List
 	r, _, err := s.Client.Bucket.ListMultipartUploads(context.Background(), nil)
 	assert.Nil(s.T(), err, "ListMultipartUploads Failed")
-	assert.Equal(s.T(), 1, len(r.Uploads), "ListMultipartUploads wrong number uploads")
 	for _, p := range r.Uploads {
-		assert.Equal(s.T(), name, p.Key, "ListMultipartUploads wrong key")
-		assert.Equal(s.T(), id, p.UploadID, "ListMultipartUploads wrong uploadid")
+		if p.Key == name {
+			assert.Equal(s.T(), id, p.UploadID, "ListMultipartUploads wrong uploadid")
+			flag = true
+		}
 	}
+	assert.Equal(s.T(), true, flag, "ListMultipartUploads wrong key")
 
 	// Abort
 	_, err = s.Client.Object.AbortMultipartUpload(context.Background(), name, id)
@@ -224,7 +228,7 @@ func (s *CosTestSuite) TestListMultipartUploads() {
 
 // Object API
 func (s *CosTestSuite) TestPutHeadGetDeleteObject_10MB() {
-	name := "test/objectPut.go"
+	name := "test/objectPut" + time.Now().Format(time.RFC3339)
 	b := make([]byte, 1024*1024*10)
 	_, err := rand.Read(b)
 	content := fmt.Sprintf("%X", b)
@@ -242,12 +246,12 @@ func (s *CosTestSuite) TestPutHeadGetDeleteObject_10MB() {
 
 func (s *CosTestSuite) TestPutGetDeleteObjectByFile_10MB() {
 	// Create tmp file
-	filePath := "tmpfile"
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
 	newfile, err := os.Create(filePath)
 	assert.Nil(s.T(), err, "create tmp file Failed")
 	defer newfile.Close()
 
-	name := "test/objectPutByFile.go"
+	name := "test/objectPutByFile" + time.Now().Format(time.RFC3339)
 	b := make([]byte, 1024*1024*10)
 	_, err = rand.Read(b)
 
@@ -269,16 +273,17 @@ func (s *CosTestSuite) TestPutGetDeleteObjectByFile_10MB() {
 
 func (s *CosTestSuite) TestPutGetDeleteObjectSpecialName() {
 	f := strings.NewReader("test")
-	_, err := s.Client.Object.Put(context.Background(), s.SepFileName, f, nil)
+	name := s.SepFileName + time.Now().Format(time.RFC3339)
+	_, err := s.Client.Object.Put(context.Background(), name, f, nil)
 	assert.Nil(s.T(), err, "PutObject Failed")
 
-	resp, err := s.Client.Object.Get(context.Background(), s.SepFileName, nil)
+	resp, err := s.Client.Object.Get(context.Background(), name, nil)
 	assert.Nil(s.T(), err, "GetObject Failed")
 	defer resp.Body.Close()
 	bs, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(s.T(), "test", string(bs), "GetObject failed content wrong")
 
-	_, err = s.Client.Object.Delete(context.Background(), s.SepFileName)
+	_, err = s.Client.Object.Delete(context.Background(), name)
 	assert.Nil(s.T(), err, "DeleteObject Failed")
 }
 
@@ -300,7 +305,7 @@ func (s *CosTestSuite) TestPutObjectToNonExistBucket() {
 }
 
 func (s *CosTestSuite) TestPutGetObjectACL() {
-	name := "test/objectACL.go"
+	name := "test/objectACL.go" + time.Now().Format(time.RFC3339)
 	f := strings.NewReader("test")
 	_, err := s.Client.Object.Put(context.Background(), name, f, nil)
 	assert.Nil(s.T(), err, "PutObject Failed")
@@ -344,7 +349,7 @@ func (s *CosTestSuite) TestCopyObject() {
 		assert.Nil(s.T(), err, "PutBucket Failed")
 	}
 
-	source := "test/objectMove1.go"
+	source := "test/objectMove1" + time.Now().Format(time.RFC3339)
 	expected := "test"
 	f := strings.NewReader(expected)
 
@@ -369,7 +374,7 @@ func (s *CosTestSuite) TestCopyObject() {
 }
 
 func (s *CosTestSuite) TestCreateAbortMultipartUpload() {
-	name := "test_multipart.txt"
+	name := "test_multipart" + time.Now().Format(time.RFC3339)
 	v, _, err := s.Client.Object.InitiateMultipartUpload(context.Background(), name, nil)
 	assert.Nil(s.T(), err, "InitiateMultipartUpload Failed")
 
@@ -378,13 +383,13 @@ func (s *CosTestSuite) TestCreateAbortMultipartUpload() {
 }
 
 func (s *CosTestSuite) TestCreateCompleteMultipartUpload() {
-	name := "test/test_complete_upload.go"
+	name := "test/test_complete_upload" + time.Now().Format(time.RFC3339)
 	v, _, err := s.Client.Object.InitiateMultipartUpload(context.Background(), name, nil)
 	uploadID := v.UploadID
 	blockSize := 1024 * 1024 * 3
 
 	opt := &cos.CompleteMultipartUploadOptions{}
-	for i := 1; i < 5; i++ {
+	for i := 1; i < 3; i++ {
 		b := make([]byte, blockSize)
 		_, err := rand.Read(b)
 		content := fmt.Sprintf("%X", b)
@@ -403,6 +408,11 @@ func (s *CosTestSuite) TestCreateCompleteMultipartUpload() {
 	_, _, err = s.Client.Object.CompleteMultipartUpload(
 		context.Background(), name, uploadID, opt,
 	)
+
+	if err != nil {
+		_, err = s.Client.Object.AbortMultipartUpload(context.Background(), name, uploadID)
+		assert.Nil(s.T(), err, "AbortMultipartUpload Failed")
+	}
 	assert.Nil(s.T(), err, "CompleteMultipartUpload Failed")
 }
 
