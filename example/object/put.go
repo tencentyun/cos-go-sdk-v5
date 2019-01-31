@@ -54,10 +54,4 @@ func main() {
 		panic(err)
 	}
 
-	// Case3 put object by local file
-	_, err = c.Object.PutFromFile(context.Background(), name, "./test10M", nil)
-	if err != nil {
-		panic(err)
-	}
-
 }
