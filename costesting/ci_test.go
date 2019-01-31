@@ -110,6 +110,10 @@ func (s *CosTestSuite) TestPutHeadDeleteBucket() {
 		assert.Nil(s.T(), err, "PutBucket Failed")
 	}
 
+	if err != nil {
+		panic(err)
+	}
+
 	time.Sleep(3 * time.Second)
 
 	_, err = client.Bucket.Head(context.Background())
