@@ -12,6 +12,7 @@ before_install:
 install:
 - go get
 - go build
+- go build github.com/mattn/goveralls
 script:
 - make test
 - make ci-test

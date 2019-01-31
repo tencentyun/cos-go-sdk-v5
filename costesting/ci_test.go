@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/tencentyun/cos-go-sdk-v5"
-	"github.com/tencentyun/cos-go-sdk-v5/debug"
+	"github.com/toranger/cos-go-sdk-v5"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -70,12 +69,6 @@ func (s *CosTestSuite) SetupSuite() {
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-			// RequestHeader: true,
-			// RequestBody:    true,
-			// ResponseHeader: true,
-			// ResponseBody:   true,
-			},
 		},
 	})
 
