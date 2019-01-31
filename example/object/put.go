@@ -20,8 +20,9 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
-				RequestBody:    true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    false,
 				ResponseHeader: true,
 				ResponseBody:   true,
 			},
@@ -50,6 +51,12 @@ func main() {
 		},
 	}
 	_, err = c.Object.Put(context.Background(), name, f, opt)
+	if err != nil {
+		panic(err)
+	}
+
+	// Case3 put object by local file path
+	_, err = c.Object.PutFromFile(context.Background(), name, "./test", nil)
 	if err != nil {
 		panic(err)
 	}
