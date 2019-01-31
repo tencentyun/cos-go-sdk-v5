@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -39,6 +40,29 @@ func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOpti
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+// GetToFile download the object to local file
+func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, opt *ObjectGetOptions) (*Response, error) {
+	resp, err := s.Get(context.Background(), name, opt)
+	if err != nil {
+		return resp, err
+	}
+	defer resp.Body.Close()
+
+	// If file exist, overwrite it
+	fd, err := os.OpenFile(localpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	if err != nil {
+		return resp, err
+	}
+
+	_, err = io.Copy(fd, resp.Body)
+	fd.Close()
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
 }
 
 // ObjectPutHeaderOptions the options of header of the put object
@@ -79,6 +103,17 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, opt *
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+// PutFromFile put object from local file
+func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (*Response, error) {
+	fd, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	return s.Put(ctx, name, fd, opt)
 }
 
 // ObjectCopyHeaderOptions is the head option of the Copy

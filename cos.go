@@ -24,7 +24,7 @@ const (
 	Version               = "0.7.3"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
-	defaultServiceBaseURL = "https://service.cos.myqcloud.com"
+	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
 )
 
 var bucketURLTemplate = template.Must(
@@ -326,6 +326,7 @@ type ACLHeaderOptions struct {
 type ACLGrantee struct {
 	Type        string `xml:"type,attr"`
 	UIN         string `xml:"uin,omitempty"`
+	URI         string `xml:"URI,omitempty"`
 	ID          string `xml:",omitempty"`
 	DisplayName string `xml:",omitempty"`
 	SubAccount  string `xml:"Subaccount,omitempty"`
