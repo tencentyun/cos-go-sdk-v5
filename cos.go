@@ -326,6 +326,7 @@ type ACLHeaderOptions struct {
 type ACLGrantee struct {
 	Type        string `xml:"type,attr"`
 	UIN         string `xml:"uin,omitempty"`
+	URI         string `xml:"URI,omitempty"`
 	ID          string `xml:",omitempty"`
 	DisplayName string `xml:",omitempty"`
 	SubAccount  string `xml:"Subaccount,omitempty"`
