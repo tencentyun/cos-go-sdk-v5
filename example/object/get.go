@@ -26,7 +26,7 @@ func main() {
 				RequestHeader:  true,
 				RequestBody:    true,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
