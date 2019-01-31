@@ -8,7 +8,7 @@ go:
 sudo: false
 before_install:
 - go get github.com/mattn/goveralls
-  go get github.com/stretchr/testify
+- go get github.com/stretchr/testify
 install:
 - go get
 - go build
