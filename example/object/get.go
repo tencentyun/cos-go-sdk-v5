@@ -22,8 +22,6 @@ func main() {
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
-			SecretID:  ak,
-			SecretKey: sk,
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
