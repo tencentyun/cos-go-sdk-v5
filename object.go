@@ -232,6 +232,34 @@ func (s *ObjectService) Options(ctx context.Context, name string, opt *ObjectOpt
 	return resp, err
 }
 
+// CASJobParameters support three way: Standard(in 35 hours), Expedited(quick way, in 15 mins), Bulk(in 5-12 hours_
+type CASJobParameters struct {
+	Tier string `xml:"Tier"`
+}
+
+// ObjectRestoreOptions is the option of object restore
+type ObjectRestoreOptions struct {
+	XMLName xml.Name          `xml:"RestoreRequest"`
+	Days    int               `xml:"Days"`
+	Tier    *CASJobParameters `xml:"CASJobParameters"`
+}
+
+// PutRestore API can recover an object of type archived by COS archive.
+//
+// https://cloud.tencent.com/document/product/436/12633
+func (s *ObjectService) PutRestore(ctx context.Context, name string, opt *ObjectRestoreOptions) (*Response, error) {
+	u := fmt.Sprintf("/%s?restore", encodeURIComponent(name))
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     u,
+		method:  http.MethodPost,
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+
+	return resp, err
+}
+
 // TODO Append 接口在优化未开放使用
 //
 // Append请求可以将一个文件（Object）以分块追加的方式上传至 Bucket 中。使用Append Upload的文件必须事前被设定为Appendable。
