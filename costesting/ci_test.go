@@ -334,6 +334,33 @@ func (s *CosTestSuite) TestPutGetObjectACL() {
 	assert.Nil(s.T(), err, "DeleteObject Failed")
 }
 
+func (s *CosTestSuite) TestPutObjectRestore() {
+	name := "archivetest"
+	putOpt := &cos.ObjectPutOptions{
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+			XCosStorageClass: "ARCHIVE",
+		},
+	}
+	f := strings.NewReader("test")
+	_, err := s.Client.Object.Put(context.Background(), name, f, putOpt)
+	assert.Nil(s.T(), err, "PutObject Archive faild")
+	opt := &cos.ObjectRestoreOptions{
+		Days: 2,
+		Tier: &cos.CASJobParameters{
+			// Standard, Exepdited and Bulk
+			Tier: "Expedited",
+		},
+	}
+	resp, _ := s.Client.Object.PutRestore(context.Background(), name, opt)
+	retCode := resp.StatusCode
+	if retCode != 200 && retCode != 202 && retCode != 409 {
+		right := false
+		fmt.Println("PutObjectRestore get code is:", retCode)
+		assert.Equal(s.T(), true, right, "PutObjectRestore Failed")
+	}
+
+}
+
 func (s *CosTestSuite) TestCopyObject() {
 	u := "http://gosdkcopytest-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
 	iu, _ := url.Parse(u)
