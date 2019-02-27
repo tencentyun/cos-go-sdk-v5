@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"os"
-
-	"net/url"
-
 	"net/http"
+	"net/url"
+	"os"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
