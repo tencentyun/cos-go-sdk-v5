@@ -34,7 +34,7 @@ func main() {
 		},
 	}
 	name := "archivetest"
-	_, err := c.Object.PutRestore(context.Background(), name, opt)
+	_, err := c.Object.PostRestore(context.Background(), name, opt)
 	if err != nil {
 		panic(err)
 	}

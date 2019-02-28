@@ -3,6 +3,7 @@ package cos
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -177,6 +178,11 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 //
 // https://www.qcloud.com/document/product/436/7743
 func (s *ObjectService) Delete(ctx context.Context, name string) (*Response, error) {
+	// When use "" string might call the delete bucket interface
+	if len(name) == 0 {
+		return nil, errors.New("empty object name")
+	}
+
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
 		uri:     "/" + encodeURIComponent(name),
@@ -247,7 +253,7 @@ type ObjectRestoreOptions struct {
 // PutRestore API can recover an object of type archived by COS archive.
 //
 // https://cloud.tencent.com/document/product/436/12633
-func (s *ObjectService) PutRestore(ctx context.Context, name string, opt *ObjectRestoreOptions) (*Response, error) {
+func (s *ObjectService) PostRestore(ctx context.Context, name string, opt *ObjectRestoreOptions) (*Response, error) {
 	u := fmt.Sprintf("/%s?restore", encodeURIComponent(name))
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
