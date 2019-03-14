@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 // ObjectService 相关 API
@@ -24,6 +26,11 @@ type ObjectGetOptions struct {
 	ResponseContentEncoding    string `url:"response-content-encoding,omitempty" header:"-"`
 	Range                      string `url:"-" header:"Range,omitempty"`
 	IfModifiedSince            string `url:"-" header:"If-Modified-Since,omitempty"`
+}
+
+// presignedURLTestingOptions is the opt of presigned url
+type presignedURLTestingOptions struct {
+	authTime *AuthTime
 }
 
 // Get Object 请求可以将一个文件（Object）下载至本地。
@@ -64,6 +71,41 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 	}
 
 	return resp, nil
+}
+
+// GetPresignedURL get the object presigned to down or upload file by url
+func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}) (*url.URL, error) {
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(name),
+		method:    httpMethod,
+		optQuery:  opt,
+		optHeader: opt,
+	}
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	var authTime *AuthTime
+	if opt != nil {
+		if opt, ok := opt.(*presignedURLTestingOptions); ok {
+			authTime = opt.authTime
+		}
+	}
+	if authTime == nil {
+		authTime = NewAuthTime(expired)
+	}
+	authorization := newAuthorization(ak, sk, req, authTime)
+	sign := encodeURIComponent(authorization)
+
+	if req.URL.RawQuery == "" {
+		req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
+	} else {
+		req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
+	}
+	return req.URL, nil
+
 }
 
 // ObjectPutHeaderOptions the options of header of the put object
