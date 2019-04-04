@@ -402,7 +402,7 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 	optini := opt.OptIni
 	res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
 	uploadID := res.UploadID
 	bufSize := opt.PartSize * 1024 * 1024
@@ -416,10 +416,7 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 				fmt.Println(err)
 			}
 		}()
-		resp, err := s.UploadPart(context.Background(), name, uploadId, partNumber, data, nil)
-		if err != nil {
-			panic(err)
-		}
+		resp, _ := s.UploadPart(context.Background(), name, uploadId, partNumber, data, nil)
 		ch <- resp
 	}
 
@@ -429,7 +426,7 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 		bytesread, err := r.Read(buffer)
 		if err != nil {
 			if err != io.EOF {
-				panic(err)
+				return nil, nil, err
 			}
 			PartNumber = i
 			break
@@ -440,6 +437,7 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 
 	for i := 1; i < PartNumber; i++ {
 		resp := <-chs[i]
+		// Notice one part fail can not get the etag according.
 		etag := resp.Header.Get("ETag")
 		optcom.Parts = append(optcom.Parts, Object{
 			PartNumber: i, ETag: etag},
