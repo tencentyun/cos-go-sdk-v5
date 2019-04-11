@@ -37,10 +37,19 @@ type presignedURLTestingOptions struct {
 // 该操作需要对目标 Object 具有读权限或目标 Object 对所有人都开放了读权限（公有读）。
 //
 // https://www.qcloud.com/document/product/436/7753
-func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOptions) (*Response, error) {
+func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = "/" + encodeURIComponent(name)
+	} else {
+		return nil, errors.New("wrong params")
+	}
+
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,
-		uri:              "/" + encodeURIComponent(name),
+		uri:              u,
 		method:           http.MethodGet,
 		optQuery:         opt,
 		optHeader:        opt,
@@ -51,8 +60,8 @@ func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOpti
 }
 
 // GetToFile download the object to local file
-func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, opt *ObjectGetOptions) (*Response, error) {
-	resp, err := s.Get(context.Background(), name, opt)
+func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, opt *ObjectGetOptions, id ...string) (*Response, error) {
+	resp, err := s.Get(ctx, name, opt, id...)
 	if err != nil {
 		return resp, err
 	}
@@ -162,6 +171,13 @@ func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath s
 
 // ObjectCopyHeaderOptions is the head option of the Copy
 type ObjectCopyHeaderOptions struct {
+	// When use replace directive to update meta infos
+	CacheControl                    string `header:"Cache-Control,omitempty" url:"-"`
+	ContentDisposition              string `header:"Content-Disposition,omitempty" url:"-"`
+	ContentEncoding                 string `header:"Content-Encoding,omitempty" url:"-"`
+	ContentType                     string `header:"Content-Type,omitempty" url:"-"`
+	Expires                         string `header:"Expires,omitempty" url:"-"`
+	Expect                          string `header:"Expect,omitempty" url:"-"`
 	XCosMetadataDirective           string `header:"x-cos-metadata-directive,omitempty" url:"-" xml:"-"`
 	XCosCopySourceIfModifiedSince   string `header:"x-cos-copy-source-If-Modified-Since,omitempty" url:"-" xml:"-"`
 	XCosCopySourceIfUnmodifiedSince string `header:"x-cos-copy-source-If-Unmodified-Since,omitempty" url:"-" xml:"-"`
@@ -169,8 +185,9 @@ type ObjectCopyHeaderOptions struct {
 	XCosCopySourceIfNoneMatch       string `header:"x-cos-copy-source-If-None-Match,omitempty" url:"-" xml:"-"`
 	XCosStorageClass                string `header:"x-cos-storage-class,omitempty" url:"-" xml:"-"`
 	// 自定义的 x-cos-meta-* header
-	XCosMetaXXX    *http.Header `header:"x-cos-meta-*,omitempty" url:"-"`
-	XCosCopySource string       `header:"x-cos-copy-source" url:"-" xml:"-"`
+	XCosMetaXXX              *http.Header `header:"x-cos-meta-*,omitempty" url:"-"`
+	XCosCopySource           string       `header:"x-cos-copy-source" url:"-" xml:"-"`
+	XCosServerSideEncryption string       `header:"x-cos-server-side-encryption,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectCopyOptions is the option of Copy, choose header or body
@@ -242,10 +259,19 @@ type ObjectHeadOptions struct {
 // Head Object请求可以取回对应Object的元数据，Head的权限与Get的权限一致
 //
 // https://www.qcloud.com/document/product/436/7745
-func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOptions) (*Response, error) {
+func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = "/" + encodeURIComponent(name)
+	} else {
+		return nil, errors.New("wrong params")
+	}
+
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + encodeURIComponent(name),
+		uri:       u,
 		method:    http.MethodHead,
 		optHeader: opt,
 	}
