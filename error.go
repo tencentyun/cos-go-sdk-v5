@@ -24,11 +24,11 @@ type ErrorResponse struct {
 func (r *ErrorResponse) Error() string {
 	RequestID := r.RequestID
 	if RequestID == "" {
-		RequestID = r.Response.Header["X-Cos-Request-Id"][0]
+		RequestID = r.Response.Header.Get("X-Cos-Request-Id")
 	}
 	TraceID := r.TraceID
 	if TraceID == "" {
-		TraceID = r.Response.Header["X-Cos-Trace-Id"][0]
+		TraceID = r.Response.Header.Get("X-Cos-Trace-Id")
 	}
 	return fmt.Sprintf("%v %v: %d %v(Message: %v, RequestId: %v, TraceId: %v)",
 		r.Response.Request.Method, r.Response.Request.URL,
