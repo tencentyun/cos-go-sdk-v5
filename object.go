@@ -123,6 +123,7 @@ type ObjectPutHeaderOptions struct {
 	ContentDisposition string `header:"Content-Disposition,omitempty" url:"-"`
 	ContentEncoding    string `header:"Content-Encoding,omitempty" url:"-"`
 	ContentType        string `header:"Content-Type,omitempty" url:"-"`
+	ContentMD5         string `header:"Content-MD5,omitempty" url:"-"`
 	ContentLength      int    `header:"Content-Length,omitempty" url:"-"`
 	Expect             string `header:"Expect,omitempty" url:"-"`
 	Expires            string `header:"Expires,omitempty" url:"-"`
