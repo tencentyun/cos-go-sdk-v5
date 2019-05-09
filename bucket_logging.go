@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+// Notice bucket logging function is testing, can not use.
+
 // BucketLoggingEnabled main struct of logging
 type BucketLoggingEnabled struct {
 	TargetBucket string `xml:"TargetBucket"`
@@ -25,7 +27,7 @@ type BucketGetLoggingResult struct {
 }
 
 // PutBucketLogging https://cloud.tencent.com/document/product/436/17054
-func (s *BucketService) PutBucketLogging(ctx context.Context, opt *BucketPutLoggingOptions) (*Response, error) {
+func (s *BucketService) PutBucketLoggingTest(ctx context.Context, opt *BucketPutLoggingOptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
 		uri:     "/?logging",
@@ -37,7 +39,7 @@ func (s *BucketService) PutBucketLogging(ctx context.Context, opt *BucketPutLogg
 }
 
 // GetBucketLogging https://cloud.tencent.com/document/product/436/17053
-func (s *BucketService) GetBucketLogging(ctx context.Context) (*BucketGetLoggingResult, *Response, error) {
+func (s *BucketService) GetBucketLoggingTest(ctx context.Context) (*BucketGetLoggingResult, *Response, error) {
 	var res BucketGetLoggingResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,

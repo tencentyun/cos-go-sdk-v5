@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+// Notice bucket_inventory only for test. can not use
+
 // BucketGetInventoryResult same struct to options
 type BucketGetInventoryResult BucketPutInventoryOptions
 
@@ -72,7 +74,7 @@ type ListBucketInventoryConfigResult struct {
 }
 
 // PutBucketInventory https://cloud.tencent.com/document/product/436/33707
-func (s *BucketService) PutBucketInventory(ctx context.Context, id string, opt *BucketPutInventoryOptions) (*Response, error) {
+func (s *BucketService) PutBucketInventoryTest(ctx context.Context, id string, opt *BucketPutInventoryOptions) (*Response, error) {
 	u := fmt.Sprintf("/?inventory&id=%s", id)
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
@@ -86,7 +88,7 @@ func (s *BucketService) PutBucketInventory(ctx context.Context, id string, opt *
 }
 
 // GetBucketInventory https://cloud.tencent.com/document/product/436/33705
-func (s *BucketService) GetBucketInventory(ctx context.Context, id string) (*BucketGetInventoryResult, *Response, error) {
+func (s *BucketService) GetBucketInventoryTest(ctx context.Context, id string) (*BucketGetInventoryResult, *Response, error) {
 	u := fmt.Sprintf("/?inventory&id=%s", id)
 	var res BucketGetInventoryResult
 	sendOpt := sendOptions{
@@ -100,7 +102,7 @@ func (s *BucketService) GetBucketInventory(ctx context.Context, id string) (*Buc
 }
 
 // DeleteBucketInventory https://cloud.tencent.com/document/product/436/33704
-func (s *BucketService) DeleteBucketInventory(ctx context.Context, id string) (*Response, error) {
+func (s *BucketService) DeleteBucketInventoryTest(ctx context.Context, id string) (*Response, error) {
 	u := fmt.Sprintf("/?inventory&id=%s", id)
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
@@ -112,7 +114,7 @@ func (s *BucketService) DeleteBucketInventory(ctx context.Context, id string) (*
 }
 
 // ListBucketInventoryConfigurations https://cloud.tencent.com/document/product/436/33706
-func (s *BucketService) ListBucketInventoryConfigurations(ctx context.Context, token string) (*ListBucketInventoryConfigResult, *Response, error) {
+func (s *BucketService) ListBucketInventoryConfigurationsTest(ctx context.Context, token string) (*ListBucketInventoryConfigResult, *Response, error) {
 	var res ListBucketInventoryConfigResult
 	var u string
 	if token == "" {
