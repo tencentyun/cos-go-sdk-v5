@@ -73,7 +73,7 @@ func encodeURIComponent(s string) string {
 		}
 
 		b.WriteString(s[written:i])
-		fmt.Fprintf(&b, "%%%02x", c)
+		fmt.Fprintf(&b, "%%%02X", c)
 		written = i + 1
 	}
 
