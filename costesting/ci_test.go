@@ -185,6 +185,100 @@ func (s *CosTestSuite) TestPutGetDeleteCORS() {
 	assert.Equal(s.T(), 1, len(v.Rules), "GetBucketCORS wrong number rules")
 }
 
+func (s *CosTestSuite) TestVersionAndReplication() {
+	opt := &cos.BucketPutVersionOptions{
+		// Enabled or Suspended, the versioning once opened can not close.
+		Status: "Enabled",
+	}
+	_, err := s.Client.Bucket.PutVersioning(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutVersioning Failed")
+	v, _, err := s.Client.Bucket.GetVersioning(context.Background())
+	assert.Nil(s.T(), err, "GetVersioning Failed")
+	assert.Equal(s.T(), "Enabled", v.Status, "Get Wrong Version status")
+
+	repOpt := &cos.PutBucketReplicationOptions{
+		// qcs::cam::uin/[UIN]:uin/[Subaccount]
+		Role: "qcs::cam::uin/2779643970:uin/2779643970",
+		Rule: []cos.BucketReplicationRule{
+			{
+				ID: "1",
+				// Enabled or Disabled
+				Status: "Enabled",
+				Destination: &cos.ReplicationDestination{
+					// qcs::cos:[Region]::[Bucketname-Appid]
+					Bucket: "qcs::cos:ap-beijing::alanbj-1251668577",
+				},
+			},
+		},
+	}
+
+	_, err = s.Client.Bucket.PutBucketReplication(context.Background(), repOpt)
+	assert.Nil(s.T(), err, "PutBucketReplication Failed")
+	vr, _, err := s.Client.Bucket.GetBucketReplication(context.Background())
+	assert.Nil(s.T(), err, "GetBucketReplication Failed")
+	for _, r := range vr.Rule {
+		assert.Equal(s.T(), "Enabled", r.Status, "Get Wrong Version status")
+		assert.Equal(s.T(), "qcs::cos:ap-beijing::alanbj-1251668577", r.Destination.Bucket, "Get Wrong Version status")
+
+	}
+	_, err = s.Client.Bucket.DeleteBucketReplication(context.Background())
+	assert.Nil(s.T(), err, "DeleteBucketReplication Failed")
+}
+
+func (s *CosTestSuite) TestBucketInventory() {
+	id := "test1"
+	opt := &cos.BucketPutInventoryOptions{
+		ID: id,
+		// True or False
+		IsEnabled:              "True",
+		IncludedObjectVersions: "All",
+		Filter: &cos.BucketInventoryFilter{
+			Prefix: "test",
+		},
+		OptionalFields: &cos.BucketInventoryOptionalFields{
+			BucketInventoryFields: []string{
+				"Size", "LastModifiedDate",
+			},
+		},
+		Schedule: &cos.BucketInventorySchedule{
+			// Weekly or Daily
+			Frequency: "Daily",
+		},
+		Destination: &cos.BucketInventoryDestination{
+			BucketDestination: &cos.BucketInventoryDestinationContent{
+				Bucket: "qcs::cos:ap-guangzhou::alangz-1251668577",
+				Format: "CSV",
+			},
+		},
+	}
+	_, err := s.Client.Bucket.PutBucketInventory(context.Background(), id, opt)
+	assert.Nil(s.T(), err, "PutBucketInventory Failed")
+	v, _, err := s.Client.Bucket.GetBucketInventory(context.Background(), id)
+	assert.Nil(s.T(), err, "GetBucketInventory Failed")
+	assert.Equal(s.T(), "test1", v.ID, "Get Wrong inventory id")
+	assert.Equal(s.T(), "True", v.IsEnabled, "Get Wrong inventory isenabled")
+	assert.Equal(s.T(), "qcs::cos:ap-guangzhou::alangz-1251668577", v.Destination.BucketDestination.Bucket, "Get Wrong inventory isenabled")
+
+	_, err = s.Client.Bucket.DeleteBucketInventory(context.Background(), id)
+	assert.Nil(s.T(), err, "DeleteBucketInventory Failed")
+
+}
+
+func (s *CosTestSuite) TestBucketLogging() {
+	opt := &cos.BucketPutLoggingOptions{
+		LoggingEnabled: &cos.BucketLoggingEnabled{
+			// The bucket must same region.
+			TargetBucket: "alangz-1251668577",
+		},
+	}
+	_, err := s.Client.Bucket.PutBucketLogging(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutBucketLogging Failed")
+	v, _, err := s.Client.Bucket.GetBucketLogging(context.Background())
+	assert.Nil(s.T(), err, "GetBucketLogging Failed")
+	assert.Equal(s.T(), "alangz-1251668577", v.LoggingEnabled.TargetBucket, "Get Wrong Version status")
+
+}
+
 func (s *CosTestSuite) TestPutGetDeleteLifeCycle() {
 	lc := &cos.BucketPutLifecycleOptions{
 		Rules: []cos.BucketLifecycleRule{
@@ -351,7 +445,7 @@ func (s *CosTestSuite) TestPutObjectRestore() {
 			Tier: "Expedited",
 		},
 	}
-	resp, _ := s.Client.Object.PutRestore(context.Background(), name, opt)
+	resp, _ := s.Client.Object.PostRestore(context.Background(), name, opt)
 	retCode := resp.StatusCode
 	if retCode != 200 && retCode != 202 && retCode != 409 {
 		right := false
