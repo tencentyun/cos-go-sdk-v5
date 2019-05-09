@@ -48,6 +48,43 @@ var needSignHeaders = map[string]bool{
 	"x-cos-object-type":              true,
 }
 
+func safeURLEncode(s string) string {
+	s = encodeURIComponent(s)
+	s = strings.Replace(s, "!", "%21", -1)
+	s = strings.Replace(s, "'", "%27", -1)
+	s = strings.Replace(s, "(", "%28", -1)
+	s = strings.Replace(s, ")", "%29", -1)
+	s = strings.Replace(s, "*", "%2A", -1)
+	return s
+}
+
+type valuesSignMap map[string][]string
+
+func (vs valuesSignMap) Add(key, value string) {
+	key = strings.ToLower(key)
+	vs[key] = append(vs[key], value)
+}
+
+func (vs valuesSignMap) Encode() string {
+	var keys []string
+	for k := range vs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var pairs []string
+	for _, k := range keys {
+		items := vs[k]
+		sort.Strings(items)
+		for _, val := range items {
+			pairs = append(
+				pairs,
+				fmt.Sprintf("%s=%s", safeURLEncode(k), safeURLEncode(val)))
+		}
+	}
+	return strings.Join(pairs, "&")
+}
+
 // AuthTime 用于生成签名所需的 q-sign-time 和 q-key-time 相关参数
 type AuthTime struct {
 	SignStartTime time.Time
@@ -157,11 +194,12 @@ func genFormatString(method string, uri url.URL, formatParameters, formatHeaders
 }
 
 // genFormatParameters 生成 FormatParameters 和 SignedParameterList
+// instead of the url.Values{}
 func genFormatParameters(parameters url.Values) (formatParameters string, signedParameterList []string) {
-	ps := url.Values{}
+	ps := valuesSignMap{}
 	for key, values := range parameters {
+		key = strings.ToLower(key)
 		for _, value := range values {
-			key = strings.ToLower(key)
 			ps.Add(key, value)
 			signedParameterList = append(signedParameterList, key)
 		}
@@ -174,10 +212,10 @@ func genFormatParameters(parameters url.Values) (formatParameters string, signed
 
 // genFormatHeaders 生成 FormatHeaders 和 SignedHeaderList
 func genFormatHeaders(headers http.Header) (formatHeaders string, signedHeaderList []string) {
-	hs := url.Values{}
+	hs := valuesSignMap{}
 	for key, values := range headers {
+		key = strings.ToLower(key)
 		for _, value := range values {
-			key = strings.ToLower(key)
 			if isSignHeader(key) {
 				hs.Add(key, value)
 				signedHeaderList = append(signedHeaderList, key)
