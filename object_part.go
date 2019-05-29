@@ -3,6 +3,7 @@ package cos
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -162,6 +163,12 @@ func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploa
 		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
+	// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
+	if err == nil && resp.StatusCode == 200 {
+		if res.ETag == "" {
+			return &res, resp, errors.New("response 200 OK, but body contains an error")
+		}
+	}
 	return &res, resp, err
 }
 
