@@ -277,8 +277,10 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 		optHeader: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
-	if resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
-		resp.Header.Add("x-cos-next-append-position", resp.Header["Content-Length"][0])
+	if resp != nil {
+		if resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
+			resp.Header.Add("x-cos-next-append-position", resp.Header["Content-Length"][0])
+		}
 	}
 
 	return resp, err
@@ -464,6 +466,10 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 
 	for i := 1; i < PartNumber; i++ {
 		resp := <-chs[i]
+		if resp == nil {
+            		respNilErr := fmt.Errorf("request uploadID:%s partNum:%d response is nil", uploadID, i)
+            		return nil, nil, respNilErr
+        	}
 		// Notice one part fail can not get the etag according.
 		etag := resp.Header.Get("ETag")
 		optcom.Parts = append(optcom.Parts, Object{
