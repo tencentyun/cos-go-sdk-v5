@@ -43,7 +43,7 @@ func uploadPart(c *cos.Client, name string, uploadID string, blockSize, n int) s
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1253846586.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("http://alangz-1251668577.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -68,7 +68,10 @@ func main() {
 		uploadPart(c, name, uploadID, blockSize, i)
 	}
 
-	v, _, err := c.Object.ListParts(ctx, name, uploadID)
+	// opt := &cos.ObjectListPartsOptions{
+	// 	MaxParts: 1,
+	// }
+	v, _, err := c.Object.ListParts(ctx, name, uploadID, nil)
 	if err != nil {
 		panic(err)
 		return

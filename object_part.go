@@ -94,14 +94,15 @@ type ObjectListPartsResult struct {
 // ListParts 用来查询特定分块上传中的已上传的块。
 //
 // https://www.qcloud.com/document/product/436/7747
-func (s *ObjectService) ListParts(ctx context.Context, name, uploadID string) (*ObjectListPartsResult, *Response, error) {
+func (s *ObjectService) ListParts(ctx context.Context, name, uploadID string, opt *ObjectListPartsOptions) (*ObjectListPartsResult, *Response, error) {
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	var res ObjectListPartsResult
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     u,
-		method:  http.MethodGet,
-		result:  &res,
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      u,
+		method:   http.MethodGet,
+		result:   &res,
+		optQuery: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
