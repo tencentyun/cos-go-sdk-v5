@@ -412,8 +412,8 @@ func (s *ObjectService) DeleteMulti(ctx context.Context, opt *ObjectDeleteMultiO
 type Object struct {
 	Key          string `xml:",omitempty"`
 	ETag         string `xml:",omitempty"`
-	Size         string `xml:",omitempty"`
-	PartNumber   string `xml:",omitempty"`
+	Size         int    `xml:",omitempty"`
+	PartNumber   int    `xml:",omitempty"`
 	LastModified string `xml:",omitempty"`
 	StorageClass string `xml:",omitempty"`
 	Owner        *Owner `xml:",omitempty"`
