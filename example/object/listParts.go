@@ -69,7 +69,7 @@ func main() {
 	}
 
 	// opt := &cos.ObjectListPartsOptions{
-	// 	MaxParts: 1,
+	// 	MaxParts: "1",
 	// }
 	v, _, err := c.Object.ListParts(ctx, name, uploadID, nil)
 	if err != nil {

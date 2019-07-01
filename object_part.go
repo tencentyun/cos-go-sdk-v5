@@ -70,8 +70,8 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 // ObjectListPartsOptions is the option of ListParts
 type ObjectListPartsOptions struct {
 	EncodingType     string `url:"Encoding-type,omitempty"`
-	MaxParts         int    `url:"max-parts,omitempty"`
-	PartNumberMarker int    `url:"part-number-marker,omitempty"`
+	MaxParts         string `url:"max-parts,omitempty"`
+	PartNumberMarker string `url:"part-number-marker,omitempty"`
 }
 
 // ObjectListPartsResult is the result of ListParts
@@ -84,9 +84,9 @@ type ObjectListPartsResult struct {
 	Initiator            *Initiator `xml:"Initiator,omitempty"`
 	Owner                *Owner     `xml:"Owner,omitempty"`
 	StorageClass         string
-	PartNumberMarker     int
-	NextPartNumberMarker int `xml:"NextPartNumberMarker,omitempty"`
-	MaxParts             int
+	PartNumberMarker     string
+	NextPartNumberMarker string `xml:"NextPartNumberMarker,omitempty"`
+	MaxParts             string
 	IsTruncated          bool
 	Parts                []Object `xml:"Part,omitempty"`
 }
