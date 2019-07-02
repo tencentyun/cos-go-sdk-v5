@@ -468,7 +468,7 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 		go PartUpload(chs[i], context.Background(), name, uploadID, i, strings.NewReader(string(buffer[:bytesread])), nil)
 	}
 
-	for i := 1; i < PartNumber; i++ {
+	for i := 1; i <= PartNumber; i++ {
 		resp := <-chs[i]
 		// Notice one part fail can not get the etag according.
 		etag := resp.Header.Get("ETag")
