@@ -283,7 +283,7 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 		optHeader: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
-	if resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
+	if resp != nil && resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
 		resp.Header.Add("x-cos-next-append-position", resp.Header["Content-Length"][0])
 	}
 
