@@ -142,6 +142,10 @@ func newAuthorization(secretID, secretKey string, req *http.Request, authTime *A
 
 // AddAuthorizationHeader 给 req 增加签名信息
 func AddAuthorizationHeader(secretID, secretKey string, sessionToken string, req *http.Request, authTime *AuthTime) {
+	if secretID == "" {
+		return
+	}
+
 	auth := newAuthorization(secretID, secretKey, req,
 		authTime,
 	)
