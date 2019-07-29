@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/toranger/cos-go-sdk-v5"
+	"github.com/tencentyun/cos-go-sdk-v5"
 	"io/ioutil"
 	"math/rand"
 	"net/http"

@@ -45,7 +45,10 @@ func TestAuthorizationTransport(t *testing.T) {
 		}
 	})
 
-	client.client.Transport = &AuthorizationTransport{}
+	client.client.Transport = &AuthorizationTransport{
+		SecretID:  "test",
+		SecretKey: "test",
+	}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
 }
