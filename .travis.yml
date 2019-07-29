@@ -4,6 +4,8 @@ go:
 - '1.8'
 - '1.9'
 - 1.10.x
+- 1.11.x
+- 1.12.x
 - master
 sudo: false
 before_install:
@@ -15,8 +17,8 @@ install:
 - go build github.com/mattn/goveralls
 script:
 - make test
-- make ci-test
-- go test -coverprofile=cover.out github.com/toranger/cos-go-sdk-v5
+# - make ci-test
+# - go test -coverprofile=cover.out github.com/toranger/cos-go-sdk-v5
 - "${TRAVIS_HOME}/gopath/bin/goveralls -service=travis-ci -coverprofile=cover.out"
 matrix:
   allow_failures:
