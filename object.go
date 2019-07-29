@@ -133,6 +133,8 @@ type ObjectPutHeaderOptions struct {
 	XCosStorageClass string       `header:"x-cos-storage-class,omitempty" url:"-"`
 	// 可选值: Normal, Appendable
 	//XCosObjectType string `header:"x-cos-object-type,omitempty" url:"-"`
+        // Enable Server Side Encryption, Only supported: AES256
+	XCosServerSideEncryption string       `header:"x-cos-server-side-encryption,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectPutOptions the options of put object
