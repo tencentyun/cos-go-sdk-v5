@@ -168,7 +168,7 @@ func TestObjectService_ListParts(t *testing.T) {
 	})
 
 	ref, _, err := client.Object.ListParts(context.Background(),
-		name, uploadID)
+		name, uploadID, nil)
 	if err != nil {
 		t.Fatalf("Object.ListParts returned error: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestObjectService_ListParts(t *testing.T) {
 			ID:          "1253846586",
 			DisplayName: "1253846586",
 		},
-		PartNumberMarker: 0,
+		PartNumberMarker: "0",
 		Initiator: &Initiator{
 			ID:          "qcs::cam::uin/100000760461:uin/100000760461",
 			DisplayName: "100000760461",
@@ -202,7 +202,7 @@ func TestObjectService_ListParts(t *testing.T) {
 			},
 		},
 		StorageClass: "Standard",
-		MaxParts:     1000,
+		MaxParts:     "1000",
 		IsTruncated:  false,
 	}
 
