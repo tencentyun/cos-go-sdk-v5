@@ -51,7 +51,7 @@ func (s *CosTestSuite) SetupSuite() {
 
 	// CI client for test interface
 	// URL like this http://test-1253846586.cos.ap-guangzhou.myqcloud.com
-	u := os.Getenv("COS_BUCKET_URL")
+	u := "http://cosgosdktest-1251668577.cos.ap-guangzhou.myqcloud.com"
 
 	// Get the region
 	iu, _ := url.Parse(u)
