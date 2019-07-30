@@ -251,15 +251,15 @@ func (s *CosTestSuite) TestBucketInventory() {
 			},
 		},
 	}
-	_, err := s.Client.Bucket.PutBucketInventory(context.Background(), id, opt)
+	_, err := s.Client.Bucket.PutBucketInventoryTest(context.Background(), id, opt)
 	assert.Nil(s.T(), err, "PutBucketInventory Failed")
-	v, _, err := s.Client.Bucket.GetBucketInventory(context.Background(), id)
+	v, _, err := s.Client.Bucket.GetBucketInventoryTest(context.Background(), id)
 	assert.Nil(s.T(), err, "GetBucketInventory Failed")
 	assert.Equal(s.T(), "test1", v.ID, "Get Wrong inventory id")
-	assert.Equal(s.T(), "True", v.IsEnabled, "Get Wrong inventory isenabled")
+	assert.Equal(s.T(), "true", v.IsEnabled, "Get Wrong inventory isenabled")
 	assert.Equal(s.T(), "qcs::cos:ap-guangzhou::alangz-1251668577", v.Destination.BucketDestination.Bucket, "Get Wrong inventory isenabled")
 
-	_, err = s.Client.Bucket.DeleteBucketInventory(context.Background(), id)
+	_, err = s.Client.Bucket.DeleteBucketInventoryTest(context.Background(), id)
 	assert.Nil(s.T(), err, "DeleteBucketInventory Failed")
 
 }
@@ -271,9 +271,9 @@ func (s *CosTestSuite) TestBucketLogging() {
 			TargetBucket: "alangz-1251668577",
 		},
 	}
-	_, err := s.Client.Bucket.PutBucketLogging(context.Background(), opt)
+	_, err := s.Client.Bucket.PutBucketLoggingTest(context.Background(), opt)
 	assert.Nil(s.T(), err, "PutBucketLogging Failed")
-	v, _, err := s.Client.Bucket.GetBucketLogging(context.Background())
+	v, _, err := s.Client.Bucket.GetBucketLoggingTest(context.Background())
 	assert.Nil(s.T(), err, "GetBucketLogging Failed")
 	assert.Equal(s.T(), "alangz-1251668577", v.LoggingEnabled.TargetBucket, "Get Wrong Version status")
 
