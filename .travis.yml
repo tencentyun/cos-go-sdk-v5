@@ -9,13 +9,15 @@ go:
 - master
 sudo: false
 before_install:
-- go get github.com/mattn/goveralls
-- go get github.com/stretchr/testify
+- go get -u github.com/mattn/goveralls
+- go get -u github.com/stretchr/testify
 install:
 - go get
 - go build
 - go build github.com/mattn/goveralls
 script:
+- if [[ ! -n "$COS_SECRETID" ]]; then exit 0
+  ; fi
 - make test
 - make ci-test
 - go test -coverprofile=cover.out github.com/toranger/cos-go-sdk-v5

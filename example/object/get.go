@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"os"
-
 	"io"
 	"io/ioutil"
-
 	"net/http"
+	"net/url"
+	"os"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -55,7 +53,7 @@ func main() {
 	resp.Body.Close()
 
 	// Case3 Download object to local file path
-	err = c.Object.GetToFile(context.Background(), name, "hello_1.txt", nil)
+	_, err = c.Object.GetToFile(context.Background(), name, "hello_1.txt", nil)
 	if err != nil {
 		panic(err)
 	}
