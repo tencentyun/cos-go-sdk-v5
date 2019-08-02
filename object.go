@@ -133,8 +133,8 @@ type ObjectPutHeaderOptions struct {
 	XCosStorageClass string       `header:"x-cos-storage-class,omitempty" url:"-"`
 	// 可选值: Normal, Appendable
 	//XCosObjectType string `header:"x-cos-object-type,omitempty" url:"-"`
-        // Enable Server Side Encryption, Only supported: AES256
-	XCosServerSideEncryption string       `header:"x-cos-server-side-encryption,omitempty" url:"-" xml:"-"`
+	// Enable Server Side Encryption, Only supported: AES256
+	XCosServerSideEncryption string `header:"x-cos-server-side-encryption,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectPutOptions the options of put object
@@ -427,6 +427,7 @@ type MultiUploadOptions struct {
 }
 
 // MultiUpload 为高级upload接口，并发分块上传
+// 注意该接口目前只供参考
 //
 // 需要指定分块大小 partSize >= 1 ,单位为MB
 // 同时请确认分块数量不超过10000
@@ -463,6 +464,9 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 			if err != io.EOF {
 				return nil, nil, err
 			}
+			// If read fail also need to create i index respon in chan,
+			// in case below out of index to panic.
+			chs[i] = make(chan *Response)
 			PartNumber = i
 			break
 		}
@@ -473,6 +477,10 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, r io.Reade
 	for i := 1; i < PartNumber; i++ {
 		resp := <-chs[i]
 		// Notice one part fail can not get the etag according.
+		if resp == nil {
+			// Some part already fail, can not to get the header inside.
+			return nil, nil, fmt.Errorf("UploadID %s, part %d failed to get resp content.", uploadID, i)
+		}
 		etag := resp.Header.Get("ETag")
 		optcom.Parts = append(optcom.Parts, Object{
 			PartNumber: i, ETag: etag},
