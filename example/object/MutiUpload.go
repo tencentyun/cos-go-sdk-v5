@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
-	"net/http"
 
 	"fmt"
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -13,14 +13,14 @@ import (
 )
 
 func main() {
-	u, _ := url.Parse("http://tencentyun02-1252448703.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("http://alanbj-1251668577.cos.ap-beijing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		//设置超时时间
 		Timeout: 100 * time.Second,
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_Key"),
-			SecretKey: os.Getenv("COS_Secret"),
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  false,
 				RequestBody:    false,
@@ -29,15 +29,16 @@ func main() {
 			},
 		},
 	})
-	f,err:=os.Open("E:/cos-php-sdk.zip")
-	if err!=nil {panic(err)}
+
 	opt := &cos.MultiUploadOptions{
-		OptIni: nil,
-		PartSize:1,
+		OptIni:   nil,
+		PartSize: 1,
 	}
 	v, _, err := c.Object.MultiUpload(
-		context.Background(), "test", f, opt,
+		context.Background(), "test/gomulput1G", "./test1G", opt,
 	)
-	if err!=nil {panic(err)}
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(v)
 }
