@@ -27,20 +27,14 @@ func main() {
 		},
 	})
 
-	opt := &cos.BucketWebsiteConfiguration{
-		Index: "index.html",
-    Error: "index_backup.html",
-    RedirectProtocol: "https",
-    Rules: []cos.WebsiteRoutingRule{
-      {
-        ConditionErrorCode: "404",
-        RedirectProtocol: "https",
-        RedirectReplaceKey: "404.html",
-      },
-    },
+	opt := &cos.BucketDomainConfiguration{
+    Status : "ENABLED",
+    Name : "www.agin719.com",
+    Type : "REST",
+    ForcedReplacement: "CNAME",
 	}
 
-	resp, err := c.Bucket.PutWebsite(context.Background(), opt)
+	resp, err := c.Bucket.PutDomain(context.Background(), opt)
 	if err != nil {
 		panic(err)
 	}

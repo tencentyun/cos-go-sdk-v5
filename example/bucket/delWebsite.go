@@ -6,7 +6,6 @@ import (
 	"github.com/agin719/cos-go-sdk-v5/debug"
 	"net/http"
 	"net/url"
-	"fmt"
 )
 
 func main() {
@@ -27,23 +26,9 @@ func main() {
 		},
 	})
 
-	opt := &cos.BucketWebsiteConfiguration{
-		Index: "index.html",
-    Error: "index_backup.html",
-    RedirectProtocol: "https",
-    Rules: []cos.WebsiteRoutingRule{
-      {
-        ConditionErrorCode: "404",
-        RedirectProtocol: "https",
-        RedirectReplaceKey: "404.html",
-      },
-    },
-	}
-
-	resp, err := c.Bucket.PutWebsite(context.Background(), opt)
+	_, err := c.Bucket.DelWebsite(context.Background())
 	if err != nil {
 		panic(err)
 	}
-  fmt.Println(resp.Header)
 }
 
