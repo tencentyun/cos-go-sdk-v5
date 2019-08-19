@@ -29,21 +29,20 @@ func main() {
 
 	opt := &cos.BucketWebsiteConfiguration{
 		Index: "index.html",
-    	Error: "index_backup.html",
-	    RedirectProtocol: "https",
-    	Rules: []cos.WebsiteRoutingRule{
-      		{
-        		ConditionErrorCode: "404",
-		        RedirectProtocol: "https",
-    		    RedirectReplaceKey: "404.html",
-      		},
+		Error: "index_backup.html",
+		RedirectProtocol: "https",
+		Rules: []cos.WebsiteRoutingRule{
+			{
+				ConditionErrorCode: "404",
+				RedirectProtocol: "https",
+				RedirectReplaceKey: "404.html",
+			},
 			{
 				ConditionPrefix : "docs/",
 				RedirectProtocol : "https",
 				RedirectReplaceKeyPrefix : "documents/",
 			},
-	
-    	},
+		},
 	}
 
 	_, err := c.Bucket.PutWebsite(context.Background(), opt)
