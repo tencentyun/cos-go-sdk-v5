@@ -7,10 +7,10 @@ import (
 )
 
 type WebsiteRoutingRule struct {
-  ConditionErrorCode string `xml:"Condition>HttpErrorCodeReturnedEquals,omitempty"`
+ 	ConditionErrorCode string `xml:"Condition>HttpErrorCodeReturnedEquals,omitempty"`
 	ConditionPrefix    string `xml:"Condition>KeyPrefixEquals,omitempty"`
 
-  RedirectProtocol         string `xml:"Redirect>Protocol,omitempty"`
+	RedirectProtocol         string `xml:"Redirect>Protocol,omitempty"`
 	RedirectReplaceKey       string `xml:"Redirect>ReplaceKeyWith,omitempty"`
 	RedirectReplaceKeyPrefix string `xml:"Redirect>ReplaceKeyPrefixWith,omitempty"`
 }
@@ -42,11 +42,11 @@ func (s *BucketService) GetWebsite(ctx context.Context) (*BucketWebsiteConfigura
 		method:  http.MethodGet,
 		result:  &res,
 	}
-  resp, err := s.client.send(ctx, &sendOpt)
+  	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
 }
 
-func (s *BucketService) DelWebsite(ctx context.Context) (*Response, error) {
+func (s *BucketService) DeleteWebsite(ctx context.Context) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
 		uri:     "/?website",

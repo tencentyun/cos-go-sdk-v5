@@ -2,23 +2,23 @@ package main
 
 import (
 	"context"
-	"github.com/agin719/cos-go-sdk-v5"
-	"github.com/agin719/cos-go-sdk-v5/debug"
+	"github.com/tencentyun/cos-go-sdk-v5"
+	"github.com/tencentyun/cos-go-sdk-v5/debug"
 	"net/http"
 	"net/url"
-  "encoding/xml"
-  "os"
+  	"encoding/xml"
+  	"os"
 )
 
 func main() {
-  u, _ := url.Parse("https://jojobucket-1259654469.cos.ap-guangzhou.myqcloud.com")
+  	u, _ := url.Parse("https://test-1253846586.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{
 		BucketURL: u,
 	}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  "AKIDfcOzOmUkJfphOt6JJ6kCPQFsKfqrbIhu",
-			SecretKey: "CCsLj86tUt6MUQAr44tBLNI3d3IxWvz1",
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-  body, _ := xml.Marshal(res)
-  os.Stdout.Write(body)
+  	body, _ := xml.Marshal(res)
+  	os.Stdout.Write(body)
 }
 
