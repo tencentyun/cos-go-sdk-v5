@@ -4,9 +4,6 @@ package cos
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"github.com/tencentyun/cos-go-sdk-v5"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -15,6 +12,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
 // Define the suite, and absorb the built-in basic suite
@@ -302,6 +303,39 @@ func (s *CosTestSuite) TestPutGetDeleteLifeCycle() {
 	}
 	_, err = s.Client.Bucket.DeleteLifecycle(context.Background())
 	assert.Nil(s.T(), err, "DeleteBucketLifecycle Failed")
+}
+
+func (s *CosTestSuite) TestPutGetDeleteWebsite() {
+	opt := &cos.BucketPutWebsiteOptions{
+		Index:            "index.html",
+		Error:            "index_backup.html",
+		RedirectProtocol: "https",
+		Rules: []cos.WebsiteRoutingRule{
+			{
+				ConditionErrorCode: "404",
+				RedirectProtocol:   "https",
+				RedirectReplaceKey: "404.html",
+			},
+			{
+				ConditionPrefix:          "docs/",
+				RedirectProtocol:         "https",
+				RedirectReplaceKeyPrefix: "documents/",
+			},
+		},
+	}
+
+	_, err := s.Client.Bucket.PutWebsite(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutBucketWebsite Failed")
+
+	res, rsp, err := s.Client.Bucket.GetWebsite(context.Background())
+	if err != nil && 404 != rsp.StatusCode {
+		assert.Nil(s.T(), err, "GetBucketWebsite Failed")
+	}
+	assert.Equal(s.T(), opt.Index, res.Index, "GetBucketWebsite Failed")
+	assert.Equal(s.T(), opt.Error, res.Error, "GetBucketWebsite Failed")
+	assert.Equal(s.T(), opt.RedirectProtocol, res.RedirectProtocol, "GetBucketWebsite Failed")
+	_, err = s.Client.Bucket.DeleteWebsite(context.Background())
+	assert.Nil(s.T(), err, "DeleteBucketWebsite Failed")
 }
 
 func (s *CosTestSuite) TestListMultipartUploads() {
