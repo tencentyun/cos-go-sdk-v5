@@ -271,3 +271,44 @@ func TestObjectService_CompleteMultipartUpload(t *testing.T) {
 		t.Errorf("Object.CompleteMultipartUpload returned \n%#v, want \n%#v", ref, want)
 	}
 }
+
+func TestObjectService_CopyPart(t *testing.T) {
+	setup()
+	defer teardown()
+
+	sourceUrl := "test-1253846586.cos.ap-guangzhou.myqcloud.com/test.source"
+	opt := &ObjectCopyPartOptions{}
+	name := "test/hello.txt"
+	uploadID := "xxxxx"
+	partNumber := 1
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		vs := values{
+			"uploadId":   uploadID,
+			"partNumber": "1",
+		}
+		testFormValues(t, r, vs)
+
+		fmt.Fprint(w, `<CopyPartResult>
+   <ETag>&quot;ba82b57cfdfda8bd17ad4e5879ebb4fe&quot;</ETag>
+   <LastModified>2017-09-04T04:45:45</LastModified>
+</CopyPartResult>`)
+	})
+
+	r, _, err := client.Object.CopyPart(context.Background(),
+		name, uploadID, partNumber, sourceUrl, opt)
+	if err != nil {
+		t.Fatalf("Object.CopyPart returned error: %v", err)
+	}
+
+	want := &CopyPartResult{
+		XMLName:      xml.Name{Local: "CopyPartResult"},
+		ETag:         `"ba82b57cfdfda8bd17ad4e5879ebb4fe"`,
+		LastModified: "2017-09-04T04:45:45",
+	}
+
+	if !reflect.DeepEqual(r, want) {
+		t.Errorf("Object.Copy returned %+v, want %+v", r, want)
+	}
+}
