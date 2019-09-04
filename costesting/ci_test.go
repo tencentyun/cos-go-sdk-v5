@@ -482,15 +482,23 @@ func (s *CosTestSuite) TestCopyObject() {
 	expected := "test"
 	f := strings.NewReader(expected)
 
-	_, err = c.Object.Put(context.Background(), source, f, nil)
+	r, err = c.Object.Put(context.Background(), source, f, nil)
 	assert.Nil(s.T(), err, "PutObject Failed")
+	var version_id string
+	if r.Header["X-Cos-Version-Id"] != nil {
+		version_id = r.Header.Get("X-Cos-Version-Id")
+	}
 
 	time.Sleep(3 * time.Second)
 	// Copy file
 	soruceURL := fmt.Sprintf("%s/%s", iu.Host, source)
-	dest := source
+	dest := "test/objectMove1" + time.Now().Format(time.RFC3339)
 	//opt := &cos.ObjectCopyOptions{}
-	_, _, err = s.Client.Object.Copy(context.Background(), dest, soruceURL, nil)
+	if version_id == "" {
+		_, _, err = s.Client.Object.Copy(context.Background(), dest, soruceURL, nil)
+	} else {
+		_, _, err = s.Client.Object.Copy(context.Background(), dest, soruceURL, nil, version_id)
+	}
 	assert.Nil(s.T(), err, "PutObjectCopy Failed")
 
 	// Check content

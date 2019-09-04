@@ -214,7 +214,16 @@ type ObjectCopyResult struct {
 // 注意：在跨帐号复制的时候，需要先设置被复制文件的权限为公有读，或者对目标帐号赋权，同帐号则不需要。
 //
 // https://cloud.tencent.com/document/product/436/10881
-func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *ObjectCopyOptions) (*ObjectCopyResult, *Response, error) {
+func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *ObjectCopyOptions, id ...string) (*ObjectCopyResult, *Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("%s?versionId=%s", encodeURIComponent(sourceURL), id[0])
+	} else if len(id) == 0 {
+		u = encodeURIComponent(sourceURL)
+	} else {
+		return nil, nil, errors.New("wrong params")
+	}
+
 	var res ObjectCopyResult
 	if opt == nil {
 		opt = new(ObjectCopyOptions)
@@ -222,7 +231,7 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	if opt.ObjectCopyHeaderOptions == nil {
 		opt.ObjectCopyHeaderOptions = new(ObjectCopyHeaderOptions)
 	}
-	opt.XCosCopySource = encodeURIComponent(sourceURL)
+	opt.XCosCopySource = u
 
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
