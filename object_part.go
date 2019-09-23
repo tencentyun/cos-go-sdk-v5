@@ -44,6 +44,10 @@ type ObjectUploadPartOptions struct {
 	Expect          string `header:"Expect,omitempty" url:"-"`
 	XCosContentSHA1 string `header:"x-cos-content-sha1" url:"-"`
 	ContentLength   int    `header:"Content-Length,omitempty" url:"-"`
+
+	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 }
 
 // UploadPart 请求实现在初始化以后的分块上传，支持的块的数量为1到10000，块的大小为1 MB 到5 GB。

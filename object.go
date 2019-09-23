@@ -26,6 +26,10 @@ type ObjectGetOptions struct {
 	ResponseContentEncoding    string `url:"response-content-encoding,omitempty" header:"-"`
 	Range                      string `url:"-" header:"Range,omitempty"`
 	IfModifiedSince            string `url:"-" header:"If-Modified-Since,omitempty"`
+	// SSE-C
+	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url
@@ -135,6 +139,12 @@ type ObjectPutHeaderOptions struct {
 	//XCosObjectType string `header:"x-cos-object-type,omitempty" url:"-"`
 	// Enable Server Side Encryption, Only supported: AES256
 	XCosServerSideEncryption string `header:"x-cos-server-side-encryption,omitempty" url:"-" xml:"-"`
+	// SSE-C
+	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+	//兼容其他自定义头部
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectPutOptions the options of put object
@@ -191,6 +201,13 @@ type ObjectCopyHeaderOptions struct {
 	XCosMetaXXX              *http.Header `header:"x-cos-meta-*,omitempty" url:"-"`
 	XCosCopySource           string       `header:"x-cos-copy-source" url:"-" xml:"-"`
 	XCosServerSideEncryption string       `header:"x-cos-server-side-encryption,omitempty" url:"-" xml:"-"`
+	// SSE-C
+	XCosSSECustomerAglo             string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKey              string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKeyMD5           string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+	XCosCopySourceSSECustomerAglo   string `header:"x-cos-copy-source-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosCopySourceSSECustomerKey    string `header:"x-cos-copy-source-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosCopySourceSSECustomerKeyMD5 string `header:"x-cos-copy-source-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectCopyOptions is the option of Copy, choose header or body
@@ -272,6 +289,10 @@ func (s *ObjectService) Delete(ctx context.Context, name string) (*Response, err
 // ObjectHeadOptions is the option of HeadObject
 type ObjectHeadOptions struct {
 	IfModifiedSince string `url:"-" header:"If-Modified-Since,omitempty"`
+	// SSE-C
+	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 }
 
 // Head Object请求可以取回对应Object的元数据，Head的权限与Get的权限一致
@@ -472,14 +493,12 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 
 		fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 		// UploadPart do not support the chunk trsf, so need to add the content-length
-		opt := &ObjectUploadPartOptions{
-			ContentLength: int(j.Chunk.Size),
-		}
+		j.Opt.ContentLength = int(j.Chunk.Size)
 
 		rt := j.RetryTimes
 		for {
 			resp, err := s.UploadPart(context.Background(), j.Name, j.UploadId, j.Chunk.Number,
-				&io.LimitedReader{R: fd, N: j.Chunk.Size}, opt)
+				&io.LimitedReader{R: fd, N: j.Chunk.Size}, j.Opt)
 			res.PartNumber = j.Chunk.Number
 			res.Resp = resp
 			if err != nil {
@@ -581,12 +600,19 @@ func (s *ObjectService) MultiUpload(ctx context.Context, name string, filepath s
 
 	// 4.Push jobs
 	for _, chunk := range chunks {
+		partOpt := &ObjectUploadPartOptions{}
+		if optini != nil && optini.ObjectPutHeaderOptions != nil {
+			partOpt.XCosSSECustomerAglo = optini.XCosSSECustomerAglo
+			partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
+			partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
+		}
 		job := &Jobs{
 			Name:       name,
 			RetryTimes: 3,
 			FilePath:   filepath,
 			UploadId:   uploadID,
 			Chunk:      chunk,
+			Opt:        partOpt,
 		}
 		chjobs <- job
 	}
