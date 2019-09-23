@@ -549,6 +549,85 @@ func (s *CosTestSuite) TestCreateCompleteMultipartUpload() {
 	assert.Nil(s.T(), err, "CompleteMultipartUpload Failed")
 }
 
+func (s *CosTestSuite) TestSSE_C() {
+	name := "test/TestSSE_C"
+	content := "test sse-c " + time.Now().Format(time.RFC3339)
+	f := strings.NewReader(content)
+	putOpt := &cos.ObjectPutOptions{
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+			ContentType: "text/html",
+			//XCosServerSideEncryption: "AES256",
+			XCosSSECustomerAglo:   "AES256",
+			XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+			XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+		},
+		ACLHeaderOptions: &cos.ACLHeaderOptions{
+			XCosACL: "public-read",
+			//XCosACL: "private",
+		},
+	}
+	_, err := s.Client.Object.Put(context.Background(), name, f, putOpt)
+	assert.Nil(s.T(), err, "PutObject with SSE failed")
+
+	headOpt := &cos.ObjectHeadOptions{
+		XCosSSECustomerAglo:   "AES256",
+		XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+		XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+	}
+	_, err = s.Client.Object.Head(context.Background(), name, headOpt)
+	assert.Nil(s.T(), err, "HeadObject with SSE failed")
+
+	getOpt := &cos.ObjectGetOptions{
+		XCosSSECustomerAglo:   "AES256",
+		XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+		XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+	}
+	var resp *cos.Response
+	resp, err = s.Client.Object.Get(context.Background(), name, getOpt)
+	assert.Nil(s.T(), err, "GetObject with SSE failed")
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	bodyContent := string(bodyBytes)
+	assert.Equal(s.T(), content, bodyContent, "GetObject with SSE failed, want: %+v, res: %+v", content, bodyContent)
+
+	copyOpt := &cos.ObjectCopyOptions{
+		&cos.ObjectCopyHeaderOptions{
+			XCosCopySourceSSECustomerAglo:   "AES256",
+			XCosCopySourceSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+			XCosCopySourceSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+		},
+		&cos.ACLHeaderOptions{},
+	}
+	copySource := s.Bucket + "-" + s.Appid + ".cos." + s.Region + ".myqcloud.com/" + name
+	_, _, err = s.Client.Object.Copy(context.Background(), "test/TestSSE_C_Copy", copySource, copyOpt)
+	assert.Nil(s.T(), err, "CopyObject with SSE failed")
+
+	partIni := &cos.MultiUploadOptions{
+		OptIni: &cos.InitiateMultipartUploadOptions{
+			&cos.ACLHeaderOptions{},
+			&cos.ObjectPutHeaderOptions{
+				XCosSSECustomerAglo:   "AES256",
+				XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+				XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+			},
+		},
+		PartSize: 1,
+	}
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newFile, err := os.Create(filePath)
+	assert.Nil(s.T(), err, "create tmp file Failed")
+	defer newFile.Close()
+	b := make([]byte, 1024*10)
+	_, err = rand.Read(b)
+	newFile.Write(b)
+
+	_, _, err = s.Client.Object.MultiUpload(context.Background(), "test/TestSSE_C_MultiUpload", filePath, partIni)
+	assert.Nil(s.T(), err, "MultiUpload with SSE failed")
+
+	err = os.Remove(filePath)
+	assert.Nil(s.T(), err, "remove local file Failed")
+}
+
 // End of api test
 
 // All methods that begin with "Test" are run as tests within a
