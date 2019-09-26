@@ -628,6 +628,23 @@ func (s *CosTestSuite) TestSSE_C() {
 	assert.Nil(s.T(), err, "remove local file Failed")
 }
 
+func (s *CosTestSuite) TestMultiUpload() {
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newFile, err := os.Create(filePath)
+	assert.Nil(s.T(), err, "create tmp file Failed")
+	defer newFile.Close()
+	b := make([]byte, 1024*1024*10)
+	_, err = rand.Read(b)
+	newFile.Write(b)
+
+	partIni := &cos.MultiUploadOptions{}
+
+	_, _, err = s.Client.Object.MultiUpload(context.Background(), "test/Test_MultiUpload", filePath, partIni)
+
+	err = os.Remove(filePath)
+	assert.Nil(s.T(), err, "remove tmp file failed")
+}
+
 // End of api test
 
 // All methods that begin with "Test" are run as tests within a
