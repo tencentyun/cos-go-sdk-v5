@@ -517,9 +517,19 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	}
 }
 
+func DividePart(fileSize int64) (int64, int64) {
+	partSize := int64(1 * 1024 * 1024)
+	partNum := fileSize / partSize
+	for partNum >= 10000 {
+		partSize = partSize * 2
+		partNum = fileSize / partSize
+	}
+	return partNum, partSize
+}
+
 func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) {
-	if filePath == "" || partSize <= 0 {
-		return nil, 0, errors.New("chunkSize invalid")
+	if filePath == "" {
+		return nil, 0, errors.New("filePath invalid")
 	}
 
 	file, err := os.Open(filePath)
@@ -532,10 +542,15 @@ func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) 
 	if err != nil {
 		return nil, 0, err
 	}
-	var partNum = stat.Size() / partSize
-	// 10000 max part size
-	if partNum >= 10000 {
-		return nil, 0, errors.New("Too many parts, out of 10000")
+	var partNum int64
+	if partSize > 0 {
+		partSize = partSize * 1024 * 1024
+		partNum = stat.Size() / partSize
+		if partNum >= 10000 {
+			return nil, 0, errors.New("Too many parts, out of 10000")
+		}
+	} else {
+		partNum, partSize = DividePart(stat.Size())
 	}
 
 	var chunks []Chunk
@@ -562,14 +577,13 @@ func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) 
 // MultiUpload 为高级upload接口，并发分块上传
 // 注意该接口目前只供参考
 //
-// 需要指定分块大小 partSize >= 1 ,单位为MB
-// 同时请确认分块数量不超过10000
+// 当 partSize > 0 时，由调用者指定分块大小，否则由 SDK 自动切分，单位为MB
+// 由调用者指定分块大小时，请确认分块数量不超过10000
 //
 
 func (s *ObjectService) MultiUpload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
 	// 1.Get the file chunk
-	bufSize := opt.PartSize * 1024 * 1024
-	chunks, partNum, err := SplitFileIntoChunks(filepath, bufSize)
+	chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize)
 	if err != nil {
 		return nil, nil, err
 	}
