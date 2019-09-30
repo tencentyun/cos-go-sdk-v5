@@ -15,12 +15,24 @@ type WebsiteRoutingRule struct {
 	RedirectReplaceKeyPrefix string `xml:"Redirect>ReplaceKeyPrefixWith,omitempty"`
 }
 
+type WebsiteRoutingRules struct {
+	Rules []WebsiteRoutingRule `xml:"RoutingRule,omitempty"`
+}
+
+type ErrorDocument struct {
+	Key string `xml:"Key,omitempty"`
+}
+
+type RedirectRequestsProtocol struct {
+	Protocol string `xml:"Protocol,omitempty"`
+}
+
 type BucketPutWebsiteOptions struct {
-	XMLName          xml.Name             `xml:"WebsiteConfiguration"`
-	Index            string               `xml:"IndexDocument>Suffix"`
-	RedirectProtocol string               `xml:"RedirectAllRequestsTo>Protocol,omitempty"`
-	Error            string               `xml:"ErrorDocument>Key,omitempty"`
-	Rules            []WebsiteRoutingRule `xml:"RoutingRules>RoutingRule,omitempty"`
+	XMLName          xml.Name                  `xml:"WebsiteConfiguration"`
+	Index            string                    `xml:"IndexDocument>Suffix"`
+	RedirectProtocol *RedirectRequestsProtocol `xml:"RedirectAllRequestsTo,omitempty"`
+	Error            *ErrorDocument            `xml:"ErrorDocument,omitempty"`
+	RoutingRules     *WebsiteRoutingRules      `xml:"RoutingRules,omitempty"`
 }
 
 type BucketGetWebsiteResult BucketPutWebsiteOptions

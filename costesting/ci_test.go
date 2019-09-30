@@ -307,19 +307,20 @@ func (s *CosTestSuite) TestPutGetDeleteLifeCycle() {
 
 func (s *CosTestSuite) TestPutGetDeleteWebsite() {
 	opt := &cos.BucketPutWebsiteOptions{
-		Index:            "index.html",
-		Error:            "index_backup.html",
-		RedirectProtocol: "https",
-		Rules: []cos.WebsiteRoutingRule{
-			{
-				ConditionErrorCode: "404",
-				RedirectProtocol:   "https",
-				RedirectReplaceKey: "404.html",
-			},
-			{
-				ConditionPrefix:          "docs/",
-				RedirectProtocol:         "https",
-				RedirectReplaceKeyPrefix: "documents/",
+		Index: "index.html",
+		Error: &cos.ErrorDocument{"index_backup.html"},
+		RoutingRules: &cos.WebsiteRoutingRules{
+			[]cos.WebsiteRoutingRule{
+				{
+					ConditionErrorCode: "404",
+					RedirectProtocol:   "https",
+					RedirectReplaceKey: "404.html",
+				},
+				{
+					ConditionPrefix:          "docs/",
+					RedirectProtocol:         "https",
+					RedirectReplaceKeyPrefix: "documents/",
+				},
 			},
 		},
 	}

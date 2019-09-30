@@ -30,18 +30,20 @@ func main() {
 
 	opt := &cos.BucketPutWebsiteOptions{
 		Index:            "index.html",
-		Error:            "index_backup.html",
-		RedirectProtocol: "https",
-		Rules: []cos.WebsiteRoutingRule{
-			{
-				ConditionErrorCode: "404",
-				RedirectProtocol:   "https",
-				RedirectReplaceKey: "404.html",
-			},
-			{
-				ConditionPrefix:          "docs/",
-				RedirectProtocol:         "https",
-				RedirectReplaceKeyPrefix: "documents/",
+		Error:            &cos.ErrorDocument{"index_backup.html"},
+		RedirectProtocol: &cos.RedirectRequestsProtocol{"https"},
+		RoutingRules: &cos.WebsiteRoutingRules{
+			[]cos.WebsiteRoutingRule{
+				{
+					ConditionErrorCode: "404",
+					RedirectProtocol:   "https",
+					RedirectReplaceKey: "404.html",
+				},
+				{
+					ConditionPrefix:          "docs/",
+					RedirectProtocol:         "https",
+					RedirectReplaceKeyPrefix: "documents/",
+				},
 			},
 		},
 	}

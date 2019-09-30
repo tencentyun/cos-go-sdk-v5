@@ -8,9 +8,9 @@ import (
 
 type BucketPutDomainOptions struct {
 	XMLName           xml.Name `xml:"DomainConfiguration"`
-	Status            string   `xml:"DomainRule>Status,omitempty"`
-	Name              string   `xml:"DomainRule>Name,omitempty"`
-	Type              string   `xml:"DomainRule>Type,omitempty"`
+	Status            string   `xml:"DomainRule>Status"`
+	Name              string   `xml:"DomainRule>Name"`
+	Type              string   `xml:"DomainRule>Type"`
 	ForcedReplacement string   `xml:"DomainRule>ForcedReplacement,omitempty"`
 }
 type BucketGetDomainResult BucketPutDomainOptions

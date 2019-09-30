@@ -26,9 +26,6 @@ func TestBucketService_GetWebsite(t *testing.T) {
 	<RedirectAllRequestsTo>
 		<Protocol>https</Protocol>
 	</RedirectAllRequestsTo>
-	<ErrorDocument>
-		<Key>Error.html</Key>
-	</ErrorDocument>
 	<RoutingRules>
 		<RoutingRule>
 			<Condition>
@@ -67,25 +64,28 @@ func TestBucketService_GetWebsite(t *testing.T) {
 	}
 
 	want := &BucketGetWebsiteResult{
-		XMLName:          xml.Name{Local: "WebsiteConfiguration"},
-		Index:            "index.html",
-		RedirectProtocol: "https",
-		Error:            "Error.html",
-		Rules: []WebsiteRoutingRule{
-			{
-				ConditionErrorCode: "404",
-				RedirectProtocol:   "https",
-				RedirectReplaceKey: "404.html",
-			},
-			{
-				ConditionPrefix:          "docs/",
-				RedirectProtocol:         "https",
-				RedirectReplaceKeyPrefix: "documents/",
-			},
-			{
-				ConditionPrefix:    "img/",
-				RedirectProtocol:   "https",
-				RedirectReplaceKey: "demo.jpg",
+		XMLName: xml.Name{Local: "WebsiteConfiguration"},
+		Index:   "index.html",
+		RedirectProtocol: &RedirectRequestsProtocol{
+			"https",
+		},
+		RoutingRules: &WebsiteRoutingRules{
+			Rules: []WebsiteRoutingRule{
+				{
+					ConditionErrorCode: "404",
+					RedirectProtocol:   "https",
+					RedirectReplaceKey: "404.html",
+				},
+				{
+					ConditionPrefix:          "docs/",
+					RedirectProtocol:         "https",
+					RedirectReplaceKeyPrefix: "documents/",
+				},
+				{
+					ConditionPrefix:    "img/",
+					RedirectProtocol:   "https",
+					RedirectReplaceKey: "demo.jpg",
+				},
 			},
 		},
 	}
@@ -100,24 +100,30 @@ func TestBucketService_PutWebsite(t *testing.T) {
 	defer teardown()
 
 	opt := &BucketPutWebsiteOptions{
-		Index:            "index.html",
-		RedirectProtocol: "https",
-		Error:            "Error.html",
-		Rules: []WebsiteRoutingRule{
-			{
-				ConditionErrorCode: "404",
-				RedirectProtocol:   "https",
-				RedirectReplaceKey: "404.html",
-			},
-			{
-				ConditionPrefix:          "docs/",
-				RedirectProtocol:         "https",
-				RedirectReplaceKeyPrefix: "documents/",
-			},
-			{
-				ConditionPrefix:    "img/",
-				RedirectProtocol:   "https",
-				RedirectReplaceKey: "demo.jpg",
+		Index: "index.html",
+		RedirectProtocol: &RedirectRequestsProtocol{
+			"https",
+		},
+		Error: &ErrorDocument{
+			"Error.html",
+		},
+		RoutingRules: &WebsiteRoutingRules{
+			[]WebsiteRoutingRule{
+				{
+					ConditionErrorCode: "404",
+					RedirectProtocol:   "https",
+					RedirectReplaceKey: "404.html",
+				},
+				{
+					ConditionPrefix:          "docs/",
+					RedirectProtocol:         "https",
+					RedirectReplaceKeyPrefix: "documents/",
+				},
+				{
+					ConditionPrefix:    "img/",
+					RedirectProtocol:   "https",
+					RedirectReplaceKey: "demo.jpg",
+				},
 			},
 		},
 	}
