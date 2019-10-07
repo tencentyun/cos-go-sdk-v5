@@ -44,6 +44,16 @@ type CosTestSuite struct {
 	SepFileName string
 }
 
+// replace
+const (
+	//uin
+	kUin = "100010805041"
+	//Replication Target Region,
+	kRepRegion = "ap-chengdu"
+	//Replication Target Bucket, Version management needs to be turned on beforehand
+	kRepBucket = "cosgosdkreptest"
+)
+
 func (s *CosTestSuite) SetupSuite() {
 	fmt.Println("Set up test")
 	// init
@@ -52,7 +62,7 @@ func (s *CosTestSuite) SetupSuite() {
 
 	// CI client for test interface
 	// URL like this http://test-1253846586.cos.ap-guangzhou.myqcloud.com
-	u := "http://cosgosdktest-1251668577.cos.ap-guangzhou.myqcloud.com"
+	u := "https://cosgosdktest-1259654469.cos.ap-guangzhou.myqcloud.com"
 
 	// Get the region
 	iu, _ := url.Parse(u)
@@ -199,7 +209,7 @@ func (s *CosTestSuite) TestVersionAndReplication() {
 
 	repOpt := &cos.PutBucketReplicationOptions{
 		// qcs::cam::uin/[UIN]:uin/[Subaccount]
-		Role: "qcs::cam::uin/2779643970:uin/2779643970",
+		Role: "qcs::cam::uin/" + kUin + ":uin/" + kUin,
 		Rule: []cos.BucketReplicationRule{
 			{
 				ID: "1",
@@ -207,7 +217,7 @@ func (s *CosTestSuite) TestVersionAndReplication() {
 				Status: "Enabled",
 				Destination: &cos.ReplicationDestination{
 					// qcs::cos:[Region]::[Bucketname-Appid]
-					Bucket: "qcs::cos:ap-beijing::alanbj-1251668577",
+					Bucket: "qcs::cos:" + kRepRegion + "::" + kRepBucket + "-" + s.Appid,
 				},
 			},
 		},
@@ -219,7 +229,7 @@ func (s *CosTestSuite) TestVersionAndReplication() {
 	assert.Nil(s.T(), err, "GetBucketReplication Failed")
 	for _, r := range vr.Rule {
 		assert.Equal(s.T(), "Enabled", r.Status, "Get Wrong Version status")
-		assert.Equal(s.T(), "qcs::cos:ap-beijing::alanbj-1251668577", r.Destination.Bucket, "Get Wrong Version status")
+		assert.Equal(s.T(), "qcs::cos:"+kRepRegion+"::"+kRepBucket+"-"+s.Appid, r.Destination.Bucket, "Get Wrong Version status")
 
 	}
 	_, err = s.Client.Bucket.DeleteBucketReplication(context.Background())
@@ -228,6 +238,7 @@ func (s *CosTestSuite) TestVersionAndReplication() {
 
 func (s *CosTestSuite) TestBucketInventory() {
 	id := "test1"
+	dBucket := "qcs::cos:" + s.Region + "::" + s.Bucket + "-" + s.Appid
 	opt := &cos.BucketPutInventoryOptions{
 		ID: id,
 		// True or False
@@ -246,38 +257,57 @@ func (s *CosTestSuite) TestBucketInventory() {
 			Frequency: "Daily",
 		},
 		Destination: &cos.BucketInventoryDestination{
-			BucketDestination: &cos.BucketInventoryDestinationContent{
-				Bucket: "qcs::cos:ap-guangzhou::alangz-1251668577",
-				Format: "CSV",
-			},
+			Bucket: dBucket,
+			Format: "CSV",
 		},
 	}
-	_, err := s.Client.Bucket.PutBucketInventoryTest(context.Background(), id, opt)
+	_, err := s.Client.Bucket.PutInventory(context.Background(), id, opt)
 	assert.Nil(s.T(), err, "PutBucketInventory Failed")
-	v, _, err := s.Client.Bucket.GetBucketInventoryTest(context.Background(), id)
+	v, _, err := s.Client.Bucket.GetInventory(context.Background(), id)
 	assert.Nil(s.T(), err, "GetBucketInventory Failed")
 	assert.Equal(s.T(), "test1", v.ID, "Get Wrong inventory id")
 	assert.Equal(s.T(), "true", v.IsEnabled, "Get Wrong inventory isenabled")
-	assert.Equal(s.T(), "qcs::cos:ap-guangzhou::alangz-1251668577", v.Destination.BucketDestination.Bucket, "Get Wrong inventory isenabled")
+	assert.Equal(s.T(), dBucket, v.Destination.Bucket, "Get Wrong inventory isenabled")
 
-	_, err = s.Client.Bucket.DeleteBucketInventoryTest(context.Background(), id)
+	_, err = s.Client.Bucket.DeleteInventory(context.Background(), id)
 	assert.Nil(s.T(), err, "DeleteBucketInventory Failed")
-
 }
 
 func (s *CosTestSuite) TestBucketLogging() {
+	tBucket := s.Bucket + "-" + s.Appid
 	opt := &cos.BucketPutLoggingOptions{
 		LoggingEnabled: &cos.BucketLoggingEnabled{
-			// The bucket must same region.
-			TargetBucket: "alangz-1251668577",
+			TargetBucket: tBucket,
 		},
 	}
-	_, err := s.Client.Bucket.PutBucketLoggingTest(context.Background(), opt)
-	assert.Nil(s.T(), err, "PutBucketLogging Failed")
-	v, _, err := s.Client.Bucket.GetBucketLoggingTest(context.Background())
-	assert.Nil(s.T(), err, "GetBucketLogging Failed")
-	assert.Equal(s.T(), "alangz-1251668577", v.LoggingEnabled.TargetBucket, "Get Wrong Version status")
+	_, err := s.Client.Bucket.PutLogging(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutLogging Failed")
+	v, _, err := s.Client.Bucket.GetLogging(context.Background())
+	assert.Nil(s.T(), err, "GetLogging Failed")
+	assert.Equal(s.T(), tBucket, v.LoggingEnabled.TargetBucket, "Get Wrong Version status")
+}
 
+func (s *CosTestSuite) TestBucketTagging() {
+	opt := &cos.BucketPutTaggingOptions{
+		TagSet: []cos.BucketTaggingTag{
+			{
+				Key:   "testk1",
+				Value: "testv1",
+			},
+			{
+				Key:   "testk2",
+				Value: "testv2",
+			},
+		},
+	}
+	_, err := s.Client.Bucket.PutTagging(context.Background(), opt)
+	assert.Nil(s.T(), err, "Put Tagging Failed")
+	v, _, err := s.Client.Bucket.GetTagging(context.Background())
+	assert.Nil(s.T(), err, "Get Tagging Failed")
+	assert.Equal(s.T(), v.TagSet[0].Key, opt.TagSet[0].Key, "Get Wrong Tag key")
+	assert.Equal(s.T(), v.TagSet[0].Value, opt.TagSet[0].Value, "Get Wrong Tag value")
+	assert.Equal(s.T(), v.TagSet[1].Key, opt.TagSet[1].Key, "Get Wrong Tag key")
+	assert.Equal(s.T(), v.TagSet[1].Value, opt.TagSet[1].Value, "Get Wrong Tag value")
 }
 
 func (s *CosTestSuite) TestPutGetDeleteLifeCycle() {
@@ -491,7 +521,7 @@ func (s *CosTestSuite) TestPutObjectRestore() {
 }
 
 func (s *CosTestSuite) TestCopyObject() {
-	u := "http://gosdkcopytest-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
+	u := "http://" + kRepBucket + "-" + s.Appid + ".cos." + kRepRegion + ".myqcloud.com"
 	iu, _ := url.Parse(u)
 	ib := &cos.BaseURL{BucketURL: iu}
 	c := cos.NewClient(ib, &http.Client{
