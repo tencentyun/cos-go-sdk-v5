@@ -65,7 +65,8 @@ func main() {
 				},
 				Effect: "allow",
 				Resource: []string{
-					"qcs::cos:ap-guangzhou:uid/" + appid + ":" + bucket + "/*",
+                    //这里改成允许的路径前缀，可以根据自己网站的用户登录态判断允许上传的具体路径，例子： a.jpg 或者 a/* 或者 * (使用通配符*存在重大安全风险, 请谨慎评估使用)
+					"qcs::cos:ap-guangzhou:uid/" + appid + ":" + bucket + "/exampleobject",
 				},
 			},
 		},
@@ -117,7 +118,7 @@ func main() {
 		},
 	})
 
-	name := "test/objectPut.go"
+	name := "exampleobject"
 	f := strings.NewReader("test")
 
 	_, err = c.Object.Put(context.Background(), name, f, nil)
@@ -125,7 +126,7 @@ func main() {
 		panic(err)
 	}
 
-	name = "test/put_option.go"
+	name = "exampleobject"
 	f = strings.NewReader("test xxx")
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
