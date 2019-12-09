@@ -580,11 +580,11 @@ func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) 
 // 当 partSize > 0 时，由调用者指定分块大小，否则由 SDK 自动切分，单位为MB
 // 由调用者指定分块大小时，请确认分块数量不超过10000
 //
-func (s *ObjectService) Upload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
-	return s.MultiUpload(ctx, name, filepath, opt)
+func (s *ObjectService) MultiUpload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	return s.Upload(ctx, name, filepath, opt)
 }
 
-func (s *ObjectService) MultiUpload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+func (s *ObjectService) Upload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
 	if opt == nil {
 		opt = &MultiUploadOptions{}
 	}
