@@ -574,14 +574,20 @@ func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) 
 
 }
 
-// MultiUpload 为高级upload接口，并发分块上传
+// MultiUpload/Upload 为高级upload接口，并发分块上传
 // 注意该接口目前只供参考
 //
 // 当 partSize > 0 时，由调用者指定分块大小，否则由 SDK 自动切分，单位为MB
 // 由调用者指定分块大小时，请确认分块数量不超过10000
 //
-
 func (s *ObjectService) MultiUpload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	return s.Upload(ctx, name, filepath, opt)
+}
+
+func (s *ObjectService) Upload(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	if opt == nil {
+		opt = &MultiUploadOptions{}
+	}
 	// 1.Get the file chunk
 	chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize)
 	if err != nil {
