@@ -69,6 +69,7 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 type Client struct {
 	client *http.Client
 
+	Host      string
 	UserAgent string
 	BaseURL   *BaseURL
 
@@ -157,6 +158,9 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	}
 	if req.Header.Get("Content-Type") == "" && contentType != "" {
 		req.Header.Set("Content-Type", contentType)
+	}
+	if c.Host != "" {
+		req.Host = c.Host
 	}
 	return
 }
