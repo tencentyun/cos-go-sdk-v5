@@ -129,6 +129,7 @@ type ObjectPutHeaderOptions struct {
 	ContentType        string `header:"Content-Type,omitempty" url:"-"`
 	ContentMD5         string `header:"Content-MD5,omitempty" url:"-"`
 	ContentLength      int    `header:"Content-Length,omitempty" url:"-"`
+	ContentLanguage    string `header:"Content-Language,omitempty" url:"-"`
 	Expect             string `header:"Expect,omitempty" url:"-"`
 	Expires            string `header:"Expires,omitempty" url:"-"`
 	XCosContentSHA1    string `header:"x-cos-content-sha1,omitempty" url:"-"`
@@ -188,6 +189,7 @@ type ObjectCopyHeaderOptions struct {
 	CacheControl                    string `header:"Cache-Control,omitempty" url:"-"`
 	ContentDisposition              string `header:"Content-Disposition,omitempty" url:"-"`
 	ContentEncoding                 string `header:"Content-Encoding,omitempty" url:"-"`
+	ContentLanguage                 string `header:"Content-Language,omitempty" url:"-"`
 	ContentType                     string `header:"Content-Type,omitempty" url:"-"`
 	Expires                         string `header:"Expires,omitempty" url:"-"`
 	Expect                          string `header:"Expect,omitempty" url:"-"`
@@ -208,6 +210,8 @@ type ObjectCopyHeaderOptions struct {
 	XCosCopySourceSSECustomerAglo   string `header:"x-cos-copy-source-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosCopySourceSSECustomerKey    string `header:"x-cos-copy-source-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosCopySourceSSECustomerKeyMD5 string `header:"x-cos-copy-source-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+	//兼容其他自定义头部
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectCopyOptions is the option of Copy, choose header or body
