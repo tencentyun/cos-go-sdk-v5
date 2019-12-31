@@ -39,6 +39,8 @@ type BaseURL struct {
 	BucketURL *url.URL
 	// 访问 service API 的基础 URL（不包含 path 部分）: http://example.com
 	ServiceURL *url.URL
+	// 访问 job API 的基础 URL （不包含 path 部分）: http://example.com
+	BatchURL *url.URL
 }
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
@@ -78,6 +80,7 @@ type Client struct {
 	Service *ServiceService
 	Bucket  *BucketService
 	Object  *ObjectService
+	Batch   *BatchService
 }
 
 type service struct {
@@ -94,6 +97,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	if uri != nil {
 		baseURL.BucketURL = uri.BucketURL
 		baseURL.ServiceURL = uri.ServiceURL
+		baseURL.BatchURL = uri.BatchURL
 	}
 	if baseURL.ServiceURL == nil {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)
@@ -108,6 +112,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	c.Service = (*ServiceService)(&c.common)
 	c.Bucket = (*BucketService)(&c.common)
 	c.Object = (*ObjectService)(&c.common)
+	c.Batch = (*BatchService)(&c.common)
 	return c
 }
 

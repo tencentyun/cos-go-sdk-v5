@@ -3,6 +3,7 @@ package cos
 // Basic imports
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -44,14 +46,24 @@ type CosTestSuite struct {
 	SepFileName string
 }
 
-// replace
+// 请替换成您的账号及存储桶信息
 const (
 	//uin
-	kUin = "100010805041"
-	//Replication Target Region,
-	kRepRegion = "ap-chengdu"
-	//Replication Target Bucket, Version management needs to be turned on beforehand
+	kUin   = "100010805041"
+	kAppid = 1259654469
+
+	// 常规测试需要的存储桶
+	kBucket = "cosgosdktest-1259654469"
+	kRegion = "ap-guangzhou"
+
+	// 跨区域复制需要的目标存储桶，地域不能与kBucket存储桶相同。
 	kRepBucket = "cosgosdkreptest"
+	kRepRegion = "ap-chengdu"
+
+	// Batch测试需要的源存储桶和目标存储桶，目前只在成都、重庆地域公测
+	kBatchBucket       = "testcd-1259654469"
+	kTargetBatchBucket = "cosgosdkreptest-1259654469" //复用了存储桶
+	kBatchRegion       = "ap-chengdu"
 )
 
 func (s *CosTestSuite) SetupSuite() {
@@ -62,11 +74,13 @@ func (s *CosTestSuite) SetupSuite() {
 
 	// CI client for test interface
 	// URL like this http://test-1253846586.cos.ap-guangzhou.myqcloud.com
-	u := "https://cosgosdktest-1259654469.cos.ap-guangzhou.myqcloud.com"
+	u := "https://" + kBucket + ".cos." + kRegion + ".myqcloud.com"
+	u2 := "https://" + kUin + ".cos-control." + kBatchRegion + ".myqcloud.com"
 
 	// Get the region
-	iu, _ := url.Parse(u)
-	p := strings.Split(iu.Host, ".")
+	bucketurl, _ := url.Parse(u)
+	batchurl, _ := url.Parse(u2)
+	p := strings.Split(bucketurl.Host, ".")
 	assert.Equal(s.T(), 5, len(p), "Bucket host is not right")
 	s.Region = p[2]
 
@@ -75,7 +89,7 @@ func (s *CosTestSuite) SetupSuite() {
 	s.Bucket = pp[0]
 	s.Appid = pp[1]
 
-	ib := &cos.BaseURL{BucketURL: iu}
+	ib := &cos.BaseURL{BucketURL: bucketurl, BatchURL: batchurl}
 	s.Client = cos.NewClient(ib, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -105,7 +119,7 @@ func (s *CosTestSuite) TestGetService() {
 // Bucket API
 func (s *CosTestSuite) TestPutHeadDeleteBucket() {
 	// Notic sometimes the bucket host can not analyis, may has i/o timeout problem
-	u := "http://gosdkbuckettest-" + s.Appid + ".cos.ap-beijing-1.myqcloud.com"
+	u := "http://" + "testgosdkbucket-create-head-del-" + s.Appid + ".cos." + kRegion + ".myqcloud.com"
 	iu, _ := url.Parse(u)
 	ib := &cos.BaseURL{BucketURL: iu}
 	client := cos.NewClient(ib, &http.Client{
@@ -708,6 +722,112 @@ func (s *CosTestSuite) TestMultiUpload() {
 
 	err = os.Remove(filePath)
 	assert.Nil(s.T(), err, "remove tmp file failed")
+}
+
+func (s *CosTestSuite) TestBatch() {
+	client := cos.NewClient(s.Client.BaseURL, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+		},
+	})
+
+	source_name := "test/1.txt"
+	sf := strings.NewReader("batch test content")
+	_, err := client.Object.Put(context.Background(), source_name, sf, nil)
+	assert.Nil(s.T(), err, "object put Failed")
+
+	manifest_name := "test/manifest.csv"
+	f := strings.NewReader(kBatchBucket + "," + source_name)
+	resp, err := client.Object.Put(context.Background(), manifest_name, f, nil)
+	assert.Nil(s.T(), err, "object put Failed")
+	etag := resp.Header.Get("ETag")
+
+	uuid_str := uuid.New().String()
+	opt := &cos.BatchCreateJobOptions{
+		ClientRequestToken:   uuid_str,
+		ConfirmationRequired: "true",
+		Description:          "test batch",
+		Manifest: &cos.BatchJobManifest{
+			Location: &cos.BatchJobManifestLocation{
+				ETag:      etag,
+				ObjectArn: "qcs::cos:" + kBatchRegion + "::" + kBatchBucket + "/" + manifest_name,
+			},
+			Spec: &cos.BatchJobManifestSpec{
+				Fields: []string{"Bucket", "Key"},
+				Format: "COSBatchOperations_CSV_V1",
+			},
+		},
+		Operation: &cos.BatchJobOperation{
+			PutObjectCopy: &cos.BatchJobOperationCopy{
+				TargetResource: "qcs::cos:" + kBatchRegion + "::" + kTargetBatchBucket,
+			},
+		},
+		Priority: 1,
+		Report: &cos.BatchJobReport{
+			Bucket:      "qcs::cos:" + kBatchRegion + "::" + kBatchBucket,
+			Enabled:     "true",
+			Format:      "Report_CSV_V1",
+			Prefix:      "job-result",
+			ReportScope: "AllTasks",
+		},
+		RoleArn: "qcs::cam::uin/" + kUin + ":roleName/COSBatch_QcsRole",
+	}
+	headers := &cos.BatchRequestHeaders{
+		XCosAppid: kAppid,
+	}
+
+	res1, _, err := client.Batch.CreateJob(context.Background(), opt, headers)
+	assert.Nil(s.T(), err, "create job Failed")
+
+	jobid := res1.JobId
+
+	res2, _, err := client.Batch.DescribeJob(context.Background(), jobid, headers)
+	assert.Nil(s.T(), err, "describe job Failed")
+	assert.Equal(s.T(), res2.Job.ConfirmationRequired, "true", "ConfirmationRequired not right")
+	assert.Equal(s.T(), res2.Job.Description, "test batch", "Description not right")
+	assert.Equal(s.T(), res2.Job.JobId, jobid, "jobid not right")
+	assert.Equal(s.T(), res2.Job.Priority, 1, "priority not right")
+	assert.Equal(s.T(), res2.Job.RoleArn, "qcs::cam::uin/"+kUin+":roleName/COSBatch_QcsRole", "priority not right")
+
+	_, _, err = client.Batch.ListJobs(context.Background(), nil, headers)
+	assert.Nil(s.T(), err, "list jobs failed")
+
+	up_opt := &cos.BatchUpdatePriorityOptions{
+		JobId:    jobid,
+		Priority: 3,
+	}
+	res3, _, err := client.Batch.UpdateJobPriority(context.Background(), up_opt, headers)
+	assert.Nil(s.T(), err, "list jobs failed")
+	assert.Equal(s.T(), res3.JobId, jobid, "jobid failed")
+	assert.Equal(s.T(), res3.Priority, 3, "priority not right")
+
+	for i := 0; i < 10; i = i + 1 {
+		res, _, err := client.Batch.DescribeJob(context.Background(), jobid, headers)
+		assert.Nil(s.T(), err, "describe job Failed")
+		assert.Equal(s.T(), res2.Job.ConfirmationRequired, "true", "ConfirmationRequired not right")
+		assert.Equal(s.T(), res2.Job.Description, "test batch", "Description not right")
+		assert.Equal(s.T(), res2.Job.JobId, jobid, "jobid not right")
+		assert.Equal(s.T(), res2.Job.Priority, 1, "priority not right")
+		assert.Equal(s.T(), res2.Job.RoleArn, "qcs::cam::uin/"+kUin+":roleName/COSBatch_QcsRole", "priority not right")
+		if res.Job.Status == "Suspended" {
+			break
+		}
+		if i == 9 {
+			assert.Error(s.T(), errors.New("Job status is not Suspended or timeout"))
+		}
+		time.Sleep(time.Second * 2)
+	}
+	us_opt := &cos.BatchUpdateStatusOptions{
+		JobId:              jobid,
+		RequestedJobStatus: "Ready", // 允许状态转换见 https://cloud.tencent.com/document/product/436/38604
+		StatusUpdateReason: "to test",
+	}
+	res4, _, err := client.Batch.UpdateJobStatus(context.Background(), us_opt, headers)
+	assert.Nil(s.T(), err, "list jobs failed")
+	assert.Equal(s.T(), res4.JobId, jobid, "jobid failed")
+	assert.Equal(s.T(), res4.Status, "Ready", "status failed")
+	assert.Equal(s.T(), res4.StatusUpdateReason, "to test", "StatusUpdateReason failed")
 }
 
 // End of api test
