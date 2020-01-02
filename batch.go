@@ -10,100 +10,100 @@ import (
 type BatchService service
 
 type BatchRequestHeaders struct {
-	XCosAppid     int          `header:"x-cos-appid"`
-	ContentLength string       `header:"Content-Length,omitempty"`
-	ContentType   string       `header:"Content-Type,omitempty"`
-	Headers       *http.Header `header:"-"`
+	XCosAppid     int          `header:"x-cos-appid" xml:"-" url:"-"`
+	ContentLength string       `header:"Content-Length,omitempty" xml:"-" url:"-"`
+	ContentType   string       `header:"Content-Type,omitempty" xml:"-" url:"-"`
+	Headers       *http.Header `header:"-" xml:"-", url:"-"`
 }
 
 // BatchProgressSummary
 type BatchProgressSummary struct {
-	NumberOfTasksFailed    int `xml:"NumberOfTasksFailed"`
-	NumberOfTasksSucceeded int `xml:"NumberOfTasksSucceeded"`
-	TotalNumberOfTasks     int `xml:"TotalNumberOfTasks"`
+	NumberOfTasksFailed    int `xml:"NumberOfTasksFailed" header:"-" url:"-"`
+	NumberOfTasksSucceeded int `xml:"NumberOfTasksSucceeded" header:"-" url:"-"`
+	TotalNumberOfTasks     int `xml:"TotalNumberOfTasks" header:"-" url:"-"`
 }
 
 // BatchJobReport
 type BatchJobReport struct {
-	Bucket      string `xml:"Bucket"`
-	Enabled     string `xml:"Enabled"`
-	Format      string `xml:"Format"`
-	Prefix      string `xml:"Prefix,omitempty"`
-	ReportScope string `xml:"ReportScope"`
+	Bucket      string `xml:"Bucket" header:"-" url:"-"`
+	Enabled     string `xml:"Enabled" header:"-" url:"-"`
+	Format      string `xml:"Format" header:"-" url:"-"`
+	Prefix      string `xml:"Prefix,omitempty" header:"-" url:"-"`
+	ReportScope string `xml:"ReportScope" header:"-" url:"-"`
 }
 
 // BatchJobOperationCopy
 type BatchMetadata struct {
-	Key   string `xml:"Key"`
-	Value string `xml:"Value"`
+	Key   string `xml:"Key" header:"-" url:"-"`
+	Value string `xml:"Value" header:"-" url:"-"`
 }
 type BatchNewObjectMetadata struct {
-	CacheControl       string          `xml:"CacheControl,omitempty"`
-	ContentDisposition string          `xml:"ContentDisposition,omitempty"`
-	ContentEncoding    string          `xml:"ContentEncoding,omitempty"`
-	ContentType        string          `xml:"ContentType,omitempty"`
-	HttpExpiresDate    string          `xml:"HttpExpiresDate,omitempty"`
-	SSEAlgorithm       string          `xml:"SSEAlgorithm,omitempty"`
-	UserMetadata       []BatchMetadata `xml:"UserMetadata>member,omitempty"`
+	CacheControl       string          `xml:"CacheControl,omitempty" header:"-" url:"-"`
+	ContentDisposition string          `xml:"ContentDisposition,omitempty" header:"-" url:"-"`
+	ContentEncoding    string          `xml:"ContentEncoding,omitempty" header:"-" url:"-"`
+	ContentType        string          `xml:"ContentType,omitempty" header:"-" url:"-"`
+	HttpExpiresDate    string          `xml:"HttpExpiresDate,omitempty" header:"-" url:"-"`
+	SSEAlgorithm       string          `xml:"SSEAlgorithm,omitempty" header:"-" url:"-"`
+	UserMetadata       []BatchMetadata `xml:"UserMetadata>member,omitempty" header:"-" url:"-"`
 }
 type BatchGrantee struct {
-	DisplayName    string `xml:"DisplayName,omitempty"`
-	Identifier     string `xml:"Identifier"`
-	TypeIdentifier string `xml:"TypeIdentifier"`
+	DisplayName    string `xml:"DisplayName,omitempty" header:"-" url:"-"`
+	Identifier     string `xml:"Identifier" header:"-" url:"-"`
+	TypeIdentifier string `xml:"TypeIdentifier" header:"-" url:"-"`
 }
 type BatchCOSGrant struct {
-	Grantee    *BatchGrantee `xml:"Grantee"`
-	Permission string        `xml:"Permission"`
+	Grantee    *BatchGrantee `xml:"Grantee" header:"-" url:"-"`
+	Permission string        `xml:"Permission" header:"-" url:"-"`
 }
 type BatchAccessControlGrants struct {
-	COSGrants *BatchCOSGrant `xml:"COSGrant,omitempty"`
+	COSGrants *BatchCOSGrant `xml:"COSGrant,omitempty" header:"-" url:"-"`
 }
 type BatchJobOperationCopy struct {
-	AccessControlGrants       *BatchAccessControlGrants `xml:"AccessControlGrants,omitempty"`
-	CannedAccessControlList   string                    `xml:"CannedAccessControlList,omitempty"`
-	MetadataDirective         string                    `xml:"MetadataDirective,omitempty"`
-	ModifiedSinceConstraint   int64                     `xml:"ModifiedSinceConstraint,omitempty"`
-	UnModifiedSinceConstraint int64                     `xml:"UnModifiedSinceConstraint,omitempty"`
-	NewObjectMetadata         *BatchNewObjectMetadata   `xml:"NewObjectMetadata,omitempty"`
-	StorageClass              string                    `xml:"StorageClass,omitempty"`
-	TargetResource            string                    `xml:"TargetResource"`
+	AccessControlGrants       *BatchAccessControlGrants `xml:"AccessControlGrants,omitempty" header:"-" url:"-"`
+	CannedAccessControlList   string                    `xml:"CannedAccessControlList,omitempty" header:"-" url:"-"`
+	MetadataDirective         string                    `xml:"MetadataDirective,omitempty" header:"-" url:"-"`
+	ModifiedSinceConstraint   int64                     `xml:"ModifiedSinceConstraint,omitempty" header:"-" url:"-"`
+	UnModifiedSinceConstraint int64                     `xml:"UnModifiedSinceConstraint,omitempty" header:"-" url:"-"`
+	NewObjectMetadata         *BatchNewObjectMetadata   `xml:"NewObjectMetadata,omitempty" header:"-" url:"-"`
+	StorageClass              string                    `xml:"StorageClass,omitempty" header:"-" url:"-"`
+	TargetResource            string                    `xml:"TargetResource" header:"-" url:"-"`
 }
 
 // BatchJobOperation
 type BatchJobOperation struct {
-	PutObjectCopy *BatchJobOperationCopy `xml:"COSPutObjectCopy,omitempty" header:"-"`
+	PutObjectCopy *BatchJobOperationCopy `xml:"COSPutObjectCopy,omitempty" header:"-" url:"-"`
 }
 
 // BatchJobManifest
 type BatchJobManifestLocation struct {
-	ETag            string `xml:"ETag" header:"-"`
-	ObjectArn       string `xml:"ObjectArn" header:"-"`
-	ObjectVersionId string `xml:"ObjectVersionId,omitempty" header:"-"`
+	ETag            string `xml:"ETag" header:"-" url:"-"`
+	ObjectArn       string `xml:"ObjectArn" header:"-" url:"-"`
+	ObjectVersionId string `xml:"ObjectVersionId,omitempty" header:"-" url:"-"`
 }
 type BatchJobManifestSpec struct {
-	Fields []string `xml:"Fields>member,omitempty" header:"-"`
-	Format string   `xml:"Format" header:"-"`
+	Fields []string `xml:"Fields>member,omitempty" header:"-" url:"-"`
+	Format string   `xml:"Format" header:"-" url:"-"`
 }
 type BatchJobManifest struct {
-	Location *BatchJobManifestLocation `xml:"Location" header:"-"`
-	Spec     *BatchJobManifestSpec     `xml:"Spec" header:"-"`
+	Location *BatchJobManifestLocation `xml:"Location" header:"-" url:"-"`
+	Spec     *BatchJobManifestSpec     `xml:"Spec" header:"-" url:"-"`
 }
 
 type BatchCreateJobOptions struct {
-	XMLName              xml.Name           `xml:"CreateJobRequest" header:"-"`
-	ClientRequestToken   string             `xml:"ClientRequestToken" header:"-"`
-	ConfirmationRequired string             `xml:"ConfirmationRequired,omitempty" header:"-"`
-	Description          string             `xml:"Description,omitempty" header:"-"`
-	Manifest             *BatchJobManifest  `xml:"Manifest" header:"-"`
-	Operation            *BatchJobOperation `xml:"Operation" header:"-"`
-	Priority             int                `xml:"Priority" header:"-"`
-	Report               *BatchJobReport    `xml:"Report" header:"-"`
-	RoleArn              string             `xml:"RoleArn" header:"-"`
+	XMLName              xml.Name           `xml:"CreateJobRequest" header:"-" url:"-"`
+	ClientRequestToken   string             `xml:"ClientRequestToken" header:"-" url:"-"`
+	ConfirmationRequired string             `xml:"ConfirmationRequired,omitempty" header:"-" url:"-"`
+	Description          string             `xml:"Description,omitempty" header:"-" url:"-"`
+	Manifest             *BatchJobManifest  `xml:"Manifest" header:"-" url:"-"`
+	Operation            *BatchJobOperation `xml:"Operation" header:"-" url:"-"`
+	Priority             int                `xml:"Priority" header:"-" url:"-"`
+	Report               *BatchJobReport    `xml:"Report" header:"-" url:"-"`
+	RoleArn              string             `xml:"RoleArn" header:"-" url:"-"`
 }
 
 type BatchCreateJobResult struct {
 	XMLName xml.Name `xml:"CreateJobResult"`
-	JobId   string   `xml:"JobId"`
+	JobId   string   `xml:"JobId,omitempty"`
 }
 
 func processETag(opt *BatchCreateJobOptions) *BatchCreateJobOptions {
@@ -129,31 +129,31 @@ func (s *BatchService) CreateJob(ctx context.Context, opt *BatchCreateJobOptions
 }
 
 type BatchJobFailureReasons struct {
-	FailureCode   string `xml:"FailureCode"`
-	FailureReason string `xml:"FailureReason"`
+	FailureCode   string `xml:"FailureCode" header:"-" url:"-"`
+	FailureReason string `xml:"FailureReason" header:"-" url:"-"`
 }
 
 type BatchDescribeJob struct {
-	ConfirmationRequired string                  `xml:"ConfirmationRequired,omitempty"`
-	CreationTime         string                  `xml:"CreationTime,omitempty"`
-	Description          string                  `xml:"Description,omitempty"`
-	FailureReasons       *BatchJobFailureReasons `xml:"FailureReasons>JobFailure,omitempty"`
-	JobId                string                  `xml:"JobId"`
-	Manifest             *BatchJobManifest       `xml:"Manifest"`
-	Operation            *BatchJobOperation      `xml:"Operation"`
-	Priority             int                     `xml:"Priority"`
-	ProgressSummary      *BatchProgressSummary   `xml:"ProgressSummary"`
-	Report               *BatchJobReport         `xml:"Report,omitempty"`
-	RoleArn              string                  `xml:"RoleArn,omitempty"`
-	Status               string                  `xml:"Status,omitempty"`
-	StatusUpdateReason   string                  `xml:"StatusUpdateReason,omitempty"`
-	SuspendedCause       string                  `xml:"SuspendedCause,omitempty"`
-	SuspendedDate        string                  `xml:"SuspendedDate,omitempty"`
-	TerminationDate      string                  `xml:"TerminationDate,omitempty"`
+	ConfirmationRequired string                  `xml:"ConfirmationRequired,omitempty" header:"-" url:"-"`
+	CreationTime         string                  `xml:"CreationTime,omitempty" header:"-" url:"-"`
+	Description          string                  `xml:"Description,omitempty" header:"-" url:"-"`
+	FailureReasons       *BatchJobFailureReasons `xml:"FailureReasons>JobFailure,omitempty" header:"-" url:"-"`
+	JobId                string                  `xml:"JobId" header:"-" url:"-"`
+	Manifest             *BatchJobManifest       `xml:"Manifest" header:"-" url:"-"`
+	Operation            *BatchJobOperation      `xml:"Operation" header:"-" url:"-"`
+	Priority             int                     `xml:"Priority" header:"-" url:"-"`
+	ProgressSummary      *BatchProgressSummary   `xml:"ProgressSummary" header:"-" url:"-"`
+	Report               *BatchJobReport         `xml:"Report,omitempty" header:"-" url:"-"`
+	RoleArn              string                  `xml:"RoleArn,omitempty" header:"-" url:"-"`
+	Status               string                  `xml:"Status,omitempty" header:"-" url:"-"`
+	StatusUpdateReason   string                  `xml:"StatusUpdateReason,omitempty" header:"-" url:"-"`
+	SuspendedCause       string                  `xml:"SuspendedCause,omitempty" header:"-" url:"-"`
+	SuspendedDate        string                  `xml:"SuspendedDate,omitempty" header:"-" url:"-"`
+	TerminationDate      string                  `xml:"TerminationDate,omitempty" header:"-" url:"-"`
 }
 type BatchDescribeJobResult struct {
 	XMLName xml.Name          `xml:"DescribeJobResult"`
-	Job     *BatchDescribeJob `xml:"Job"`
+	Job     *BatchDescribeJob `xml:"Job,omitempty"`
 }
 
 func (s *BatchService) DescribeJob(ctx context.Context, id string, headers *BatchRequestHeaders) (*BatchDescribeJobResult, *Response, error) {
@@ -171,27 +171,27 @@ func (s *BatchService) DescribeJob(ctx context.Context, id string, headers *Batc
 }
 
 type BatchListJobsOptions struct {
-	JobStatuses string `url:"jobStatuses,omitempty" header:"-"`
-	MaxResults  int    `url:"maxResults,omitempty" header:"-"`
-	NextToken   string `url:"nextToken,omitempty" header:"-"`
+	JobStatuses string `url:"jobStatuses,omitempty" header:"-" xml:"-"`
+	MaxResults  int    `url:"maxResults,omitempty" header:"-" xml:"-"`
+	NextToken   string `url:"nextToken,omitempty" header:"-" xml:"-"`
 }
 
 type BatchListJobsMember struct {
-	CreationTime    string                `xml:"CreationTime,omitempty"`
-	Description     string                `xml:"Description,omitempty"`
-	JobId           string                `xml:"JobId,omitempty"`
-	Operation       string                `xml:"Operation,omitempty"`
-	Priority        int                   `xml:"Priority,omitempty"`
-	ProgressSummary *BatchProgressSummary `xml:"ProgressSummary,omitempty"`
-	Status          string                `xml:"Status,omitempty"`
-	TerminationDate string                `xml:"TerminationDate,omitempty"`
+	CreationTime    string                `xml:"CreationTime,omitempty" header:"-" url:"-"`
+	Description     string                `xml:"Description,omitempty" header:"-" url:"-"`
+	JobId           string                `xml:"JobId,omitempty" header:"-" url:"-"`
+	Operation       string                `xml:"Operation,omitempty" header:"-" url:"-"`
+	Priority        int                   `xml:"Priority,omitempty" header:"-" url:"-"`
+	ProgressSummary *BatchProgressSummary `xml:"ProgressSummary,omitempty" header:"-" url:"-"`
+	Status          string                `xml:"Status,omitempty" header:"-" url:"-"`
+	TerminationDate string                `xml:"TerminationDate,omitempty" header:"-" url:"-"`
 }
 type BatchListJobs struct {
-	Members []BatchListJobsMember `xml:"member,omitempty"`
+	Members []BatchListJobsMember `xml:"member,omitempty" header:"-" url:"-"`
 }
 type BatchListJobsResult struct {
 	XMLName   xml.Name       `xml:"ListJobsResult"`
-	Jobs      *BatchListJobs `xml:"Jobs"`
+	Jobs      *BatchListJobs `xml:"Jobs,omitempty"`
 	NextToken string         `xml:"NextToken,omitempty"`
 }
 
