@@ -751,7 +751,7 @@ func (s *CosTestSuite) TestBatch() {
 		Manifest: &cos.BatchJobManifest{
 			Location: &cos.BatchJobManifestLocation{
 				ETag:      etag,
-				ObjectArn: "qcs::cos:" + kBatchRegion + "::" + kBatchBucket + "/" + manifest_name,
+				ObjectArn: "qcs::cos:" + kBatchRegion + ":uid/" + s.Appid + ":" + kBatchBucket + "/" + manifest_name,
 			},
 			Spec: &cos.BatchJobManifestSpec{
 				Fields: []string{"Bucket", "Key"},
@@ -760,12 +760,12 @@ func (s *CosTestSuite) TestBatch() {
 		},
 		Operation: &cos.BatchJobOperation{
 			PutObjectCopy: &cos.BatchJobOperationCopy{
-				TargetResource: "qcs::cos:" + kBatchRegion + "::" + kTargetBatchBucket,
+				TargetResource: "qcs::cos:" + kBatchRegion + ":uid/" + s.Appid + ":" + kTargetBatchBucket,
 			},
 		},
 		Priority: 1,
 		Report: &cos.BatchJobReport{
-			Bucket:      "qcs::cos:" + kBatchRegion + "::" + kBatchBucket,
+			Bucket:      "qcs::cos:" + kBatchRegion + ":uid/" + s.Appid + ":" + kBatchBucket,
 			Enabled:     "true",
 			Format:      "Report_CSV_V1",
 			Prefix:      "job-result",

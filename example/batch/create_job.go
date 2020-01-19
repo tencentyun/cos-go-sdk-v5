@@ -2,20 +2,21 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
-	"fmt"
+	"github.com/google/uuid"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
-	"github.com/google/uuid"
 )
 
 func main() {
 	test_batch_bucket := "testcd-1259654469"
-	target_batch_bucket := "targetcd-1259654469"
+	target_batch_bucket := "cosgosdkreptest-1259654469"
 	appid := 1259654469
 	uin := "100010805041"
 	region := "ap-chengdu"
@@ -73,7 +74,7 @@ func main() {
 		},
 		Operation: &cos.BatchJobOperation{
 			PutObjectCopy: &cos.BatchJobOperationCopy{
-				TargetResource: "qcs::cos:" + region + "::" + target_batch_bucket,
+				TargetResource: "qcs::cos:" + region + ":uid/" + strconv.Itoa(appid) + ":" + target_batch_bucket,
 			},
 		},
 		Priority: 1,

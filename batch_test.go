@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-    "github.com/google/uuid"
+	"github.com/google/uuid"
 )
 
 func TestBatchService_CreateJob(t *testing.T) {
@@ -21,7 +21,7 @@ func TestBatchService_CreateJob(t *testing.T) {
 		Manifest: &BatchJobManifest{
 			Location: &BatchJobManifestLocation{
 				ETag:      "15150651828fa9cdcb8356b6d1c7638b",
-				ObjectArn: "qcs::cos:ap-chengdu::sourcebucket-1250000000/manifests/batch-copy-manifest.csv",
+				ObjectArn: "qcs::cos:ap-chengdu:uid/1250000000:sourcebucket-1250000000/manifests/batch-copy-manifest.csv",
 			},
 			Spec: &BatchJobManifestSpec{
 				Fields: []string{"Bucket", "Key"},
@@ -30,12 +30,12 @@ func TestBatchService_CreateJob(t *testing.T) {
 		},
 		Operation: &BatchJobOperation{
 			PutObjectCopy: &BatchJobOperationCopy{
-				TargetResource: "qcs::cos:ap-chengdu::destinationbucket-1250000000",
+				TargetResource: "qcs::cos:ap-chengdu:uid/1250000000:destinationbucket-1250000000",
 			},
 		},
 		Priority: 1,
 		Report: &BatchJobReport{
-			Bucket:      "qcs::cos:ap-chengdu::sourcebucket-1250000000",
+			Bucket:      "qcs::cos:ap-chengdu:uid/1250000000:sourcebucket-1250000000",
 			Enabled:     "true",
 			Format:      "Report_CSV_V1",
 			Prefix:      "job-result",
@@ -104,7 +104,7 @@ func TestBatchService_DescribeJob(t *testing.T) {
         <Manifest>
             <Location>
                 <ETag>&quot;15150651828fa9cdcb8356b6d1c7638b&quot;</ETag>
-                <ObjectArn>qcs::cos:ap-chengdu::sourcebucket-1250000000/manifests/batch-copy-manifest.csv</ObjectArn>
+                <ObjectArn>qcs::cos:ap-chengdu:uid/1250000000:sourcebucket-1250000000/manifests/batch-copy-manifest.csv</ObjectArn>
             </Location>
             <Spec>
                 <Fields>
@@ -116,7 +116,7 @@ func TestBatchService_DescribeJob(t *testing.T) {
         </Manifest>
         <Operation>
             <COSPutObjectCopy>
-                <TargetResource>qcs::cos:ap-chengdu::destinationbucket-1250000000</TargetResource>
+                <TargetResource>qcs::cos:ap-chengdu:uid/1250000000:destinationbucket-1250000000</TargetResource>
             </COSPutObjectCopy>
         </Operation>
         <Priority>10</Priority>
@@ -126,7 +126,7 @@ func TestBatchService_DescribeJob(t *testing.T) {
             <TotalNumberOfTasks>10</TotalNumberOfTasks>
         </ProgressSummary>
         <Report>
-            <Bucket>qcs::cos:ap-chengdu::sourcebucket-1250000000</Bucket>
+            <Bucket>qcs::cos:ap-chengdu:uid/1250000000:sourcebucket-1250000000</Bucket>
             <Enabled>true</Enabled>
             <Format>Report_CSV_V1</Format>
             <Prefix>job-result</Prefix>
@@ -159,7 +159,7 @@ func TestBatchService_DescribeJob(t *testing.T) {
 			Manifest: &BatchJobManifest{
 				Location: &BatchJobManifestLocation{
 					ETag:      "\"15150651828fa9cdcb8356b6d1c7638b\"",
-					ObjectArn: "qcs::cos:ap-chengdu::sourcebucket-1250000000/manifests/batch-copy-manifest.csv",
+					ObjectArn: "qcs::cos:ap-chengdu:uid/1250000000:sourcebucket-1250000000/manifests/batch-copy-manifest.csv",
 				},
 				Spec: &BatchJobManifestSpec{
 					Fields: []string{"Bucket", "Key"},
@@ -168,7 +168,7 @@ func TestBatchService_DescribeJob(t *testing.T) {
 			},
 			Operation: &BatchJobOperation{
 				PutObjectCopy: &BatchJobOperationCopy{
-					TargetResource: "qcs::cos:ap-chengdu::destinationbucket-1250000000",
+					TargetResource: "qcs::cos:ap-chengdu:uid/1250000000:destinationbucket-1250000000",
 				},
 			},
 			Priority: 10,
@@ -178,7 +178,7 @@ func TestBatchService_DescribeJob(t *testing.T) {
 				TotalNumberOfTasks:     10,
 			},
 			Report: &BatchJobReport{
-				Bucket:      "qcs::cos:ap-chengdu::sourcebucket-1250000000",
+				Bucket:      "qcs::cos:ap-chengdu:uid/1250000000:sourcebucket-1250000000",
 				Enabled:     "true",
 				Format:      "Report_CSV_V1",
 				Prefix:      "job-result",
