@@ -69,9 +69,16 @@ type BatchJobOperationCopy struct {
 	TargetResource            string                    `xml:"TargetResource" header:"-" url:"-"`
 }
 
+// BatchInitiateRestoreObject
+type BatchInitiateRestoreObject struct {
+	ExpirationInDays int    `xml:"ExpirationInDays"`
+	JobTier          string `xml:"JobTier"`
+}
+
 // BatchJobOperation
 type BatchJobOperation struct {
-	PutObjectCopy *BatchJobOperationCopy `xml:"COSPutObjectCopy,omitempty" header:"-" url:"-"`
+	PutObjectCopy *BatchJobOperationCopy      `xml:"COSPutObjectCopy,omitempty" header:"-" url:"-"`
+	RestoreObject *BatchInitiateRestoreObject `xml:"COSInitiateRestoreObject,omitempty" header:"-" url:"-"`
 }
 
 // BatchJobManifest
