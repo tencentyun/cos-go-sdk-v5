@@ -605,6 +605,7 @@ func SplitFileIntoChunks(name, filePath string, opt *MultiUploadOptions) (*Check
 				break
 			}
 			if optcp.Key != name || optcp.FilePath != filePath || optcp.FileSize != stat.Size() {
+				optcp = &CheckPointOptions{}
 				break
 			}
 			uploaded = true
