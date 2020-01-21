@@ -42,7 +42,7 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 // ObjectUploadPartOptions is the options of upload-part
 type ObjectUploadPartOptions struct {
 	Expect          string `header:"Expect,omitempty" url:"-"`
-	XCosContentSHA1 string `header:"x-cos-content-sha1" url:"-"`
+	XCosContentSHA1 string `header:"x-cos-content-sha1,omitempty" url:"-"`
 	ContentLength   int    `header:"Content-Length,omitempty" url:"-"`
 
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
