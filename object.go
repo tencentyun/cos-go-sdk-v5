@@ -32,6 +32,7 @@ type ObjectGetOptions struct {
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+	XCosTrafficLimit      int    `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url
@@ -148,6 +149,8 @@ type ObjectPutHeaderOptions struct {
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 	//兼容其他自定义头部
 	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+
+	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectPutOptions the options of put object
@@ -754,6 +757,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			partOpt.XCosSSECustomerAglo = optini.XCosSSECustomerAglo
 			partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
 			partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
+			partOpt.XCosTrafficLimit = optini.XCosTrafficLimit
 		}
 		job := &Jobs{
 			Name:       name,
