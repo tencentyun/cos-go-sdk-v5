@@ -47,3 +47,17 @@ func checkResponse(r *http.Response) error {
 	}
 	return errorResponse
 }
+
+func IsNoSuchKeyError(e error) bool {
+	if e == nil {
+		return false
+	}
+	err, ok := e.(*ErrorResponse)
+	if !ok {
+		return false
+	}
+	if err.Response != nil && err.Response.StatusCode == 404 && err.Code == "NoSuchKey" {
+		return true
+	}
+	return false
+}
