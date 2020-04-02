@@ -16,7 +16,7 @@ type ErrorResponse struct {
 	Code      string
 	Message   string
 	Resource  string
-	RequestID string `header:"x-cos-request-id,omitempty" url:"-" xml:"-"`
+	RequestID string `header:"x-cos-request-id,omitempty" url:"-" xml:"RequestId,omitempty"`
 	TraceID   string `xml:"TraceId,omitempty"`
 }
 
@@ -48,7 +48,7 @@ func checkResponse(r *http.Response) error {
 	return errorResponse
 }
 
-func IsNoSuchKeyError(e error) bool {
+func IsNotFoundError(e error) bool {
 	if e == nil {
 		return false
 	}
@@ -56,8 +56,16 @@ func IsNoSuchKeyError(e error) bool {
 	if !ok {
 		return false
 	}
-	if err.Response != nil && err.Response.StatusCode == 404 && err.Code == "NoSuchKey" {
+	if err.Response != nil && err.Response.StatusCode == 404 {
 		return true
 	}
 	return false
+}
+
+func IsCOSError(e error) (*ErrorResponse, bool) {
+	if e == nil {
+		return nil, false
+	}
+	err, ok := e.(*ErrorResponse)
+	return err, ok
 }
