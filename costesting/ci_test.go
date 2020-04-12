@@ -802,6 +802,7 @@ func (s *CosTestSuite) TestBatch() {
 	assert.Equal(s.T(), res3.JobId, jobid, "jobid failed")
 	assert.Equal(s.T(), res3.Priority, 3, "priority not right")
 
+	// 等待状态变成Suspended
 	for i := 0; i < 10; i = i + 1 {
 		res, _, err := client.Batch.DescribeJob(context.Background(), jobid, headers)
 		assert.Nil(s.T(), err, "describe job Failed")
@@ -828,6 +829,46 @@ func (s *CosTestSuite) TestBatch() {
 	assert.Equal(s.T(), res4.JobId, jobid, "jobid failed")
 	assert.Equal(s.T(), res4.Status, "Ready", "status failed")
 	assert.Equal(s.T(), res4.StatusUpdateReason, "to test", "StatusUpdateReason failed")
+}
+
+func (s *CosTestSuite) TestEncryption() {
+	opt := &cos.BucketPutEncryptionOptions{
+		Rule: &cos.BucketEncryptionConfiguration{
+			SSEAlgorithm: "AES256",
+		},
+	}
+
+	_, err := s.Client.Bucket.PutEncryption(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutEncryption Failed")
+
+	res, _, err := s.Client.Bucket.GetEncryption(context.Background())
+	assert.Nil(s.T(), err, "GetEncryption Failed")
+	assert.Equal(s.T(), opt.Rule.SSEAlgorithm, res.Rule.SSEAlgorithm, "GetEncryption Failed")
+
+	_, err = s.Client.Bucket.DeleteEncryption(context.Background())
+	assert.Nil(s.T(), err, "DeleteEncryption Failed")
+}
+
+func (s *CosTestSuite) TestReferer() {
+	opt := &cos.BucketPutRefererOptions{
+		Status:      "Enabled",
+		RefererType: "White-List",
+		DomainList: []string{
+			"*.qq.com",
+			"*.qcloud.com",
+		},
+		EmptyReferConfiguration: "Allow",
+	}
+
+	_, err := s.Client.Bucket.PutReferer(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutReferer Failed")
+
+	res, _, err := s.Client.Bucket.GetReferer(context.Background())
+	assert.Nil(s.T(), err, "GetReferer Failed")
+	assert.Equal(s.T(), opt.Status, res.Status, "GetReferer Failed")
+	assert.Equal(s.T(), opt.RefererType, res.RefererType, "GetReferer Failed")
+	assert.Equal(s.T(), opt.DomainList, res.DomainList, "GetReferer Failed")
+	assert.Equal(s.T(), opt.EmptyReferConfiguration, res.EmptyReferConfiguration, "GetReferer Failed")
 }
 
 // End of api test
