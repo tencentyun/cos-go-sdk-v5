@@ -272,10 +272,18 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	return &res, resp, err
 }
 
+type ObjectDeleteOptions struct {
+	// SSE-C
+	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+	//兼容其他自定义头部
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
 // Delete Object请求可以将一个文件（Object）删除。
 //
 // https://www.qcloud.com/document/product/436/7743
-func (s *ObjectService) Delete(ctx context.Context, name string) (*Response, error) {
+func (s *ObjectService) Delete(ctx context.Context, name string, opt *ObjectDeleteOptions) (*Response, error) {
 	// When use "" string might call the delete bucket interface
 	if len(name) == 0 {
 		return nil, errors.New("empty object name")
@@ -285,6 +293,7 @@ func (s *ObjectService) Delete(ctx context.Context, name string) (*Response, err
 		baseURL: s.client.BaseURL.BucketURL,
 		uri:     "/" + encodeURIComponent(name),
 		method:  http.MethodDelete,
+		optHeader: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
