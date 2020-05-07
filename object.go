@@ -283,17 +283,21 @@ type ObjectDeleteOptions struct {
 // Delete Object请求可以将一个文件（Object）删除。
 //
 // https://www.qcloud.com/document/product/436/7743
-func (s *ObjectService) Delete(ctx context.Context, name string, opt *ObjectDeleteOptions) (*Response, error) {
+func (s *ObjectService) Delete(ctx context.Context, name string, opt ...*ObjectDeleteOptions) (*Response, error) {
+	var optHeader *ObjectDeleteOptions
 	// When use "" string might call the delete bucket interface
 	if len(name) == 0 {
 		return nil, errors.New("empty object name")
+	}
+	if len(opt) > 0 {
+		optHeader = opt[0]
 	}
 
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
 		uri:     "/" + encodeURIComponent(name),
 		method:  http.MethodDelete,
-		optHeader: opt,
+		optHeader: optHeader,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
