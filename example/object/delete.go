@@ -29,7 +29,7 @@ func main() {
 
 	name := "test/objectPut.go"
 
-	_, err := c.Object.Delete(context.Background(), name)
+	_, err := c.Object.Delete(context.Background(), name, nil)
 	if err != nil {
 		panic(err)
 	}
