@@ -184,6 +184,15 @@ func (s *CosTestSuite) TestGetBucket() {
 	assert.Nil(s.T(), err, "GetBucket Failed")
 }
 
+func (s *CosTestSuite) TestGetObjectVersions() {
+    opt := &cos.BucketGetObjectVersionsOptions {
+		Prefix:  "中文",
+		MaxKeys: 3,
+	}
+    _, _, err := s.Client.Bucket.GetObjectVersions(context.Background(), opt)
+    assert.Nil(s.T(), err, "GetObjectVersions Failed")
+}
+
 func (s *CosTestSuite) TestGetBucketLocation() {
 	v, _, err := s.Client.Bucket.GetLocation(context.Background())
 	assert.Nil(s.T(), err, "GetLocation Failed")

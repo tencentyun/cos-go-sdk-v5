@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
-
-	"net/http"
+	"strings"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -39,19 +41,35 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
-				RequestBody:    true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    false,
 				ResponseHeader: true,
 				ResponseBody:   true,
 			},
 		},
 	})
-
-	name := "test/hello.txt"
-	v, _, err := c.Object.GetACL(context.Background(), name)
-	log_status(err)
-	for _, a := range v.AccessControlList {
-		fmt.Printf("%s, %s, %s\n", a.Grantee.Type, a.Grantee.ID, a.Permission)
+	opt := &cos.ObjectPutOptions{
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+			ContentType:              "text/html",
+			XCosServerSideEncryption: "AES256",
+		},
+		ACLHeaderOptions: &cos.ACLHeaderOptions{},
 	}
+	name := "PutFromGoWithSSE-COS"
+	content := "Put Object From Go With SSE-COS"
+	f := strings.NewReader(content)
+	_, err := c.Object.Put(context.Background(), name, f, opt)
+	log_status(err)
 
+	getopt := &cos.ObjectGetOptions{}
+	var resp *cos.Response
+	resp, err = c.Object.Get(context.Background(), name, getopt)
+	log_status(err)
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	bodyContent := string(bodyBytes)
+	if bodyContent != content {
+		log_status(errors.New("Content inconsistency"))
+	}
 }
