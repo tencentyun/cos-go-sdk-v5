@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -31,7 +34,7 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://testcd-1259654469.cos.ap-chengdu.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -46,25 +49,33 @@ func main() {
 			},
 		},
 	})
-
 	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
-			XOptionHeader: &http.Header{},
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+			ContentType:           "text/html",
+			XCosSSECustomerAglo:   "AES256",
+			XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+			XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
 		},
+		ACLHeaderOptions: &cos.ACLHeaderOptions{},
 	}
-	pic := &cos.PicOperations{
-		IsPicInfo: 1,
-		Rules: []cos.PicOperationsRules{
-			{
-				FileId: "format.jpg",
-				Rule:   "imageView2/format/png",
-			},
-		},
-	}
-	opt.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
-	name := "test.jpg"
-	local_filename := "./test.jpg"
-	_, err := c.Object.PutFromFile(context.Background(), name, local_filename, opt)
+	name := "PutFromGoWithSSE-C"
+	content := "Put Object From Go With SSE-C"
+	f := strings.NewReader(content)
+	_, err := c.Object.Put(context.Background(), name, f, opt)
 	log_status(err)
+
+	getopt := &cos.ObjectGetOptions{
+		XCosSSECustomerAglo:   "AES256",
+		XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+		XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+	}
+	var resp *cos.Response
+	resp, err = c.Object.Get(context.Background(), name, getopt)
+	log_status(err)
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	bodyContent := string(bodyBytes)
+	if bodyContent != content {
+		log_status(errors.New("Content inconsistency"))
+	}
 }

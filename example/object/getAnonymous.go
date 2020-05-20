@@ -11,6 +11,25 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
+func log_status(err error) {
+	if err == nil {
+		return
+	}
+	if cos.IsNotFoundError(err) {
+		// WARN
+		fmt.Println("WARN: Resource is not existed")
+	} else if e, ok := cos.IsCOSError(err); ok {
+		fmt.Printf("ERROR: Code: %v\n", e.Code)
+		fmt.Printf("ERROR: Message: %v\n", e.Message)
+		fmt.Printf("ERROR: Resource: %v\n", e.Resource)
+		fmt.Printf("ERROR: RequestId: %v\n", e.RequestID)
+		// ERROR
+	} else {
+		fmt.Printf("ERROR: %v\n", err)
+		// ERROR
+	}
+}
+
 func upload(c *cos.Client, name string) {
 	f := strings.NewReader("test")
 	f = strings.NewReader("test xxx")
@@ -35,10 +54,7 @@ func main() {
 	upload(c, name)
 
 	resp, err := c.Object.Get(context.Background(), name, nil)
-	if err != nil {
-		panic(err)
-		return
-	}
+	log_status(err)
 	bs, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	fmt.Printf("%s\n", string(bs))
