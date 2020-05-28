@@ -47,9 +47,6 @@ type BucketPutACLOptions struct {
 func (s *BucketService) PutACL(ctx context.Context, opt *BucketPutACLOptions) (*Response, error) {
 	header := opt.Header
 	body := opt.Body
-	if body != nil {
-		header = nil
-	}
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/?acl",
