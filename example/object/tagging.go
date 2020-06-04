@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-
 	"net/url"
+	"os"
 
 	"net/http"
 
@@ -49,16 +48,28 @@ func main() {
 			},
 		},
 	})
+	name := "test"
 
-	opt := &cos.BucketGetObjectVersionsOptions{
-		Delimiter: "/",
-		MaxKeys:   1,
+	opt := &cos.ObjectPutTaggingOptions{
+		TagSet: []cos.ObjectTaggingTag{
+			{
+				Key:   "test_k2",
+				Value: "test_v2",
+			},
+			{
+				Key:   "test_k3",
+				Value: "test_v3",
+			},
+		},
 	}
-	v, _, err := c.Bucket.GetObjectVersions(context.Background(), opt)
+
+	_, err := c.Object.PutTagging(context.Background(), name, opt)
 	log_status(err)
 
-	for _, c := range v.Version {
-		fmt.Printf("%v, %v, %v\n", c.Key, c.Size, c.IsLatest)
-	}
+	res, _, err := c.Object.GetTagging(context.Background(), name)
+	log_status(err)
+	fmt.Printf("%v\n", res.TagSet)
 
+	_, err = c.Object.DeleteTagging(context.Background(), name)
+	log_status(err)
 }
