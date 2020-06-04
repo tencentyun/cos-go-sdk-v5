@@ -280,6 +280,7 @@ type ObjectDeleteOptions struct {
 	//兼容其他自定义头部
 	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 }
+
 // Delete Object请求可以将一个文件（Object）删除。
 //
 // https://www.qcloud.com/document/product/436/7743
@@ -294,9 +295,9 @@ func (s *ObjectService) Delete(ctx context.Context, name string, opt ...*ObjectD
 	}
 
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     "/" + encodeURIComponent(name),
-		method:  http.MethodDelete,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(name),
+		method:    http.MethodDelete,
 		optHeader: optHeader,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
@@ -674,4 +675,70 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
 
 	return v, resp, err
+}
+
+type ObjectPutTaggingOptions struct {
+	XMLName xml.Name           `xml:"Tagging"`
+	TagSet  []ObjectTaggingTag `xml:"TagSet>Tag,omitempty"`
+}
+type ObjectTaggingTag BucketTaggingTag
+type ObjectGetTaggingResult ObjectPutTaggingOptions
+
+func (s *ObjectService) PutTagging(ctx context.Context, name string, opt *ObjectPutTaggingOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?tagging&versionId=%s", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
+	} else {
+		return nil, errors.New("wrong params")
+	}
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     u,
+		method:  http.MethodPut,
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+func (s *ObjectService) GetTagging(ctx context.Context, name string, id ...string) (*ObjectGetTaggingResult, *Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?tagging&versionId=%s", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
+	} else {
+		return nil, nil, errors.New("wrong params")
+	}
+
+	var res ObjectGetTaggingResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     u,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *ObjectService) DeleteTagging(ctx context.Context, name string, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?tagging&versionId=%s", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
+	} else {
+		return nil, errors.New("wrong params")
+	}
+
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     u,
+		method:  http.MethodDelete,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
 }

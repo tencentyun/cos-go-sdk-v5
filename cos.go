@@ -21,7 +21,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.6"
+	Version               = "0.7.7"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -329,6 +329,8 @@ type ACLHeaderOptions struct {
 	XCosGrantRead        string `header:"x-cos-grant-read,omitempty" url:"-" xml:"-"`
 	XCosGrantWrite       string `header:"x-cos-grant-write,omitempty" url:"-" xml:"-"`
 	XCosGrantFullControl string `header:"x-cos-grant-full-control,omitempty" url:"-" xml:"-"`
+	XCosGrantReadACP     string `header:"x-cos-grant-read-acp,omitempty" url:"-" xml:"-"`
+	XCosGrantWriteACP    string `header:"x-cos-grant-write-acp,omitempty" url:"-" xml:"-"`
 }
 
 // ACLGrantee is the param of ACLGrant
