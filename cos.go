@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
 	"text/template"
 
 	"strconv"
@@ -21,7 +23,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.7"
+	Version               = "0.7.8"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -73,7 +75,12 @@ type Client struct {
 
 	Host      string
 	UserAgent string
-	BaseURL   *BaseURL
+
+	// 慎用, 指定请求的路径前缀，设置Prefix后, 每个请求都会先带上该路径前缀，用于用户通过自身的网关或者代理根据前缀来路由COS请求。
+	// 设置Prefix参数时，BaseURL不能为COS域名(以*.mycloud.com结尾的域名), 否则Prefix无效
+	prefix string
+
+	BaseURL *BaseURL
 
 	common service
 
@@ -116,7 +123,33 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	return c
 }
 
+// 慎用, 该函数用于指定请求的路径前缀，设置Prefix后, 每个请求都会先带上该路径前缀，用于用户通过自身的网关或者代理根据前缀来路由COS请求。
+// 设置Prefix参数时，BaseURL不能为COS域名(以*.mycloud.com结尾的域名), 否则Prefix无效
+func (c *Client) SetPrefix(prefix string) error {
+	matches := `(.*)\.myqcloud\.com`
+	if c.BaseURL.BucketURL != nil {
+		if match, _ := regexp.MatchString(matches, c.BaseURL.BucketURL.Host); match {
+			return errors.New("SetPrefix is not allowed when BaseURL.BucketURL is *.mycloud.com")
+		}
+	}
+	if c.BaseURL.BatchURL != nil {
+		if match, _ := regexp.MatchString(matches, c.BaseURL.BatchURL.Host); match {
+			return errors.New("SetPrefix is not allowed when BaseURL.BatchURL is *.mycloud.com")
+		}
+	}
+	if c.BaseURL.ServiceURL != nil {
+		if match, _ := regexp.MatchString(matches, c.BaseURL.ServiceURL.Host); match {
+			return errors.New("SetPrefix is not allowed when BaseURL.ServiceURL is *.mycloud.com")
+		}
+	}
+	c.prefix = prefix
+	return nil
+}
+
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
+	if c.prefix != "" {
+		uri = encodeURIComponent(c.prefix) + uri
+	}
 	uri, err = addURLOptions(uri, optQuery)
 	if err != nil {
 		return
