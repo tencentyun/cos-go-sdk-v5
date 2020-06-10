@@ -184,6 +184,15 @@ func (s *CosTestSuite) TestGetBucket() {
 	assert.Nil(s.T(), err, "GetBucket Failed")
 }
 
+func (s *CosTestSuite) TestGetObjectVersions() {
+    opt := &cos.BucketGetObjectVersionsOptions {
+		Prefix:  "中文",
+		MaxKeys: 3,
+	}
+    _, _, err := s.Client.Bucket.GetObjectVersions(context.Background(), opt)
+    assert.Nil(s.T(), err, "GetObjectVersions Failed")
+}
+
 func (s *CosTestSuite) TestGetBucketLocation() {
 	v, _, err := s.Client.Bucket.GetLocation(context.Background())
 	assert.Nil(s.T(), err, "GetLocation Failed")
@@ -751,7 +760,7 @@ func (s *CosTestSuite) TestBatch() {
 		Manifest: &cos.BatchJobManifest{
 			Location: &cos.BatchJobManifestLocation{
 				ETag:      etag,
-				ObjectArn: "qcs::cos:" + kBatchRegion + "::" + kBatchBucket + "/" + manifest_name,
+				ObjectArn: "qcs::cos:" + kBatchRegion + ":uid/" + s.Appid + ":" + kBatchBucket + "/" + manifest_name,
 			},
 			Spec: &cos.BatchJobManifestSpec{
 				Fields: []string{"Bucket", "Key"},
@@ -760,12 +769,12 @@ func (s *CosTestSuite) TestBatch() {
 		},
 		Operation: &cos.BatchJobOperation{
 			PutObjectCopy: &cos.BatchJobOperationCopy{
-				TargetResource: "qcs::cos:" + kBatchRegion + "::" + kTargetBatchBucket,
+				TargetResource: "qcs::cos:" + kBatchRegion + ":uid/" + s.Appid + ":" + kTargetBatchBucket,
 			},
 		},
 		Priority: 1,
 		Report: &cos.BatchJobReport{
-			Bucket:      "qcs::cos:" + kBatchRegion + "::" + kBatchBucket,
+			Bucket:      "qcs::cos:" + kBatchRegion + ":uid/" + s.Appid + ":" + kBatchBucket,
 			Enabled:     "true",
 			Format:      "Report_CSV_V1",
 			Prefix:      "job-result",
@@ -802,6 +811,7 @@ func (s *CosTestSuite) TestBatch() {
 	assert.Equal(s.T(), res3.JobId, jobid, "jobid failed")
 	assert.Equal(s.T(), res3.Priority, 3, "priority not right")
 
+	// 等待状态变成Suspended
 	for i := 0; i < 10; i = i + 1 {
 		res, _, err := client.Batch.DescribeJob(context.Background(), jobid, headers)
 		assert.Nil(s.T(), err, "describe job Failed")
@@ -828,6 +838,46 @@ func (s *CosTestSuite) TestBatch() {
 	assert.Equal(s.T(), res4.JobId, jobid, "jobid failed")
 	assert.Equal(s.T(), res4.Status, "Ready", "status failed")
 	assert.Equal(s.T(), res4.StatusUpdateReason, "to test", "StatusUpdateReason failed")
+}
+
+func (s *CosTestSuite) TestEncryption() {
+	opt := &cos.BucketPutEncryptionOptions{
+		Rule: &cos.BucketEncryptionConfiguration{
+			SSEAlgorithm: "AES256",
+		},
+	}
+
+	_, err := s.Client.Bucket.PutEncryption(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutEncryption Failed")
+
+	res, _, err := s.Client.Bucket.GetEncryption(context.Background())
+	assert.Nil(s.T(), err, "GetEncryption Failed")
+	assert.Equal(s.T(), opt.Rule.SSEAlgorithm, res.Rule.SSEAlgorithm, "GetEncryption Failed")
+
+	_, err = s.Client.Bucket.DeleteEncryption(context.Background())
+	assert.Nil(s.T(), err, "DeleteEncryption Failed")
+}
+
+func (s *CosTestSuite) TestReferer() {
+	opt := &cos.BucketPutRefererOptions{
+		Status:      "Enabled",
+		RefererType: "White-List",
+		DomainList: []string{
+			"*.qq.com",
+			"*.qcloud.com",
+		},
+		EmptyReferConfiguration: "Allow",
+	}
+
+	_, err := s.Client.Bucket.PutReferer(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutReferer Failed")
+
+	res, _, err := s.Client.Bucket.GetReferer(context.Background())
+	assert.Nil(s.T(), err, "GetReferer Failed")
+	assert.Equal(s.T(), opt.Status, res.Status, "GetReferer Failed")
+	assert.Equal(s.T(), opt.RefererType, res.RefererType, "GetReferer Failed")
+	assert.Equal(s.T(), opt.DomainList, res.DomainList, "GetReferer Failed")
+	assert.Equal(s.T(), opt.EmptyReferConfiguration, res.EmptyReferConfiguration, "GetReferer Failed")
 }
 
 // End of api test

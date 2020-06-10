@@ -14,11 +14,28 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
+func log_status(err error) {
+	if err == nil {
+		return
+	}
+	if cos.IsNotFoundError(err) {
+		// WARN
+		fmt.Println("WARN: Resource is not existed")
+	} else if e, ok := cos.IsCOSError(err); ok {
+		fmt.Printf("ERROR: Code: %v\n", e.Code)
+		fmt.Printf("ERROR: Message: %v\n", e.Message)
+		fmt.Printf("ERROR: Resource: %v\n", e.Resource)
+		fmt.Printf("ERROR: RequestId: %v\n", e.RequestID)
+		// ERROR
+	} else {
+		fmt.Printf("ERROR: %v\n", err)
+		// ERROR
+	}
+}
+
 func initUpload(c *cos.Client, name string) *cos.InitiateMultipartUploadResult {
 	v, _, err := c.Object.InitiateMultipartUpload(context.Background(), name, nil)
-	if err != nil {
-		panic(err)
-	}
+	log_status(err)
 	fmt.Printf("%#v\n", v)
 	return v
 }
@@ -47,7 +64,5 @@ func main() {
 	_, err := c.Object.UploadPart(
 		context.Background(), name, uploadID, 1, f, nil,
 	)
-	if err != nil {
-		panic(err)
-	}
+	log_status(err)
 }

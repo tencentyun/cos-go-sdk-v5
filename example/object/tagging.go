@@ -33,7 +33,9 @@ func log_status(err error) {
 
 func main() {
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u}
+	b := &cos.BaseURL{
+		BucketURL: u,
+	}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -46,12 +48,28 @@ func main() {
 			},
 		},
 	})
+	name := "test"
 
-	name := "test/hello.txt"
-	v, _, err := c.Object.GetACL(context.Background(), name)
-	log_status(err)
-	for _, a := range v.AccessControlList {
-		fmt.Printf("%s, %s, %s\n", a.Grantee.Type, a.Grantee.ID, a.Permission)
+	opt := &cos.ObjectPutTaggingOptions{
+		TagSet: []cos.ObjectTaggingTag{
+			{
+				Key:   "test_k2",
+				Value: "test_v2",
+			},
+			{
+				Key:   "test_k3",
+				Value: "test_v3",
+			},
+		},
 	}
 
+	_, err := c.Object.PutTagging(context.Background(), name, opt)
+	log_status(err)
+
+	res, _, err := c.Object.GetTagging(context.Background(), name)
+	log_status(err)
+	fmt.Printf("%v\n", res.TagSet)
+
+	_, err = c.Object.DeleteTagging(context.Background(), name)
+	log_status(err)
 }

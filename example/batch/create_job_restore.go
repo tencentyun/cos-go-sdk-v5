@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -16,7 +15,6 @@ import (
 
 func main() {
 	test_batch_bucket := "testcd-1259654469"
-	target_batch_bucket := "cosgosdkreptest-1259654469"
 	appid := 1259654469
 	uin := "100010805041"
 	region := "ap-chengdu"
@@ -40,10 +38,16 @@ func main() {
 		},
 	})
 
-	// 创建需要复制的文件
-	source_name := "test/1.txt"
+	// 创建需要归档恢复的文件
+	source_name := "test/restore.txt"
 	sf := strings.NewReader("batch test content")
-	_, err := c.Object.Put(context.Background(), source_name, sf, nil)
+	objopt := &cos.ObjectPutOptions{
+		nil,
+		&cos.ObjectPutHeaderOptions{
+			XCosStorageClass: "Archive",
+		},
+	}
+	_, err := c.Object.Put(context.Background(), source_name, sf, objopt)
 	if err != nil {
 		panic(err)
 	}
@@ -73,8 +77,9 @@ func main() {
 			},
 		},
 		Operation: &cos.BatchJobOperation{
-			PutObjectCopy: &cos.BatchJobOperationCopy{
-				TargetResource: "qcs::cos:" + region + ":uid/" + strconv.Itoa(appid) + ":" + target_batch_bucket,
+			RestoreObject: &cos.BatchInitiateRestoreObject{
+				ExpirationInDays: 3,
+				JobTier:          "Standard",
 			},
 		},
 		Priority: 1,

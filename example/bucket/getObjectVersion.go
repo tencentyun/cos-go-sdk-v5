@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
+
+	"net/url"
 
 	"net/http"
 
@@ -33,7 +34,9 @@ func log_status(err error) {
 
 func main() {
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u}
+	b := &cos.BaseURL{
+		BucketURL: u,
+	}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -47,11 +50,15 @@ func main() {
 		},
 	})
 
-	name := "test/hello.txt"
-	v, _, err := c.Object.GetACL(context.Background(), name)
+	opt := &cos.BucketGetObjectVersionsOptions{
+		Delimiter: "/",
+		MaxKeys:   1,
+	}
+	v, _, err := c.Bucket.GetObjectVersions(context.Background(), opt)
 	log_status(err)
-	for _, a := range v.AccessControlList {
-		fmt.Printf("%s, %s, %s\n", a.Grantee.Type, a.Grantee.ID, a.Permission)
+
+	for _, c := range v.Version {
+		fmt.Printf("%v, %v, %v\n", c.Key, c.Size, c.IsLatest)
 	}
 
 }

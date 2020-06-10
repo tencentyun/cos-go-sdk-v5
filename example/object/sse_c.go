@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
-
-	"net/http"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -19,7 +20,7 @@ func log_status(err error) {
 	}
 	if cos.IsNotFoundError(err) {
 		// WARN
-        fmt.Println("WARN: Resource is not existed")
+		fmt.Println("WARN: Resource is not existed")
 	} else if e, ok := cos.IsCOSError(err); ok {
 		fmt.Printf("ERROR: Code: %v\n", e.Code)
 		fmt.Printf("ERROR: Message: %v\n", e.Message)
@@ -33,7 +34,7 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://testcd-1259654469.cos.ap-chengdu.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -48,30 +49,33 @@ func main() {
 			},
 		},
 	})
-
-	// Case1 normal put object
-	name := "test/objectPut.go"
-	f := strings.NewReader("test")
-
-	_, err := c.Object.Put(context.Background(), name, f, nil)
-	log_status(err)
-
-	// Case2 put object with the options
-	name = "test/put_option.go"
-	f = strings.NewReader("test xxx")
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentType: "text/html",
+			ContentType:           "text/html",
+			XCosSSECustomerAglo:   "AES256",
+			XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+			XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
 		},
-		ACLHeaderOptions: &cos.ACLHeaderOptions{
-			//XCosACL: "public-read",
-			XCosACL: "private",
-		},
+		ACLHeaderOptions: &cos.ACLHeaderOptions{},
 	}
-	_, err = c.Object.Put(context.Background(), name, f, opt)
+	name := "PutFromGoWithSSE-C"
+	content := "Put Object From Go With SSE-C"
+	f := strings.NewReader(content)
+	_, err := c.Object.Put(context.Background(), name, f, opt)
 	log_status(err)
 
-	// Case3 put object by local file path
-	_, err = c.Object.PutFromFile(context.Background(), name, "./test", nil)
+	getopt := &cos.ObjectGetOptions{
+		XCosSSECustomerAglo:   "AES256",
+		XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+		XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+	}
+	var resp *cos.Response
+	resp, err = c.Object.Get(context.Background(), name, getopt)
 	log_status(err)
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	bodyContent := string(bodyBytes)
+	if bodyContent != content {
+		log_status(errors.New("Content inconsistency"))
+	}
 }

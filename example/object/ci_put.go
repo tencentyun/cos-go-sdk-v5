@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
-
-	"net/http"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -39,19 +38,33 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
-				RequestBody:    true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    false,
 				ResponseHeader: true,
 				ResponseBody:   true,
 			},
 		},
 	})
 
-	name := "test/hello.txt"
-	v, _, err := c.Object.GetACL(context.Background(), name)
-	log_status(err)
-	for _, a := range v.AccessControlList {
-		fmt.Printf("%s, %s, %s\n", a.Grantee.Type, a.Grantee.ID, a.Permission)
+	opt := &cos.ObjectPutOptions{
+		nil,
+		&cos.ObjectPutHeaderOptions{
+			XOptionHeader: &http.Header{},
+		},
 	}
-
+	pic := &cos.PicOperations{
+		IsPicInfo: 1,
+		Rules: []cos.PicOperationsRules{
+			{
+				FileId: "format.jpg",
+				Rule:   "imageView2/format/png",
+			},
+		},
+	}
+	opt.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
+	name := "test.jpg"
+	local_filename := "./test.jpg"
+	_, err := c.Object.PutFromFile(context.Background(), name, local_filename, opt)
+	log_status(err)
 }
