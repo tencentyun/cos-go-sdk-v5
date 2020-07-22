@@ -2,6 +2,7 @@ package cos
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -32,7 +33,8 @@ type ObjectGetOptions struct {
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
-	XCosTrafficLimit      int    `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
+
+	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url
@@ -148,9 +150,8 @@ type ObjectPutHeaderOptions struct {
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 	//兼容其他自定义头部
-	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
-
-	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
+	XOptionHeader    *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	XCosTrafficLimit int          `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectPutOptions the options of put object
@@ -485,21 +486,10 @@ type Object struct {
 // MultiUploadOptions is the option of the multiupload,
 // ThreadPoolSize default is one
 type MultiUploadOptions struct {
-	OptIni           *InitiateMultipartUploadOptions
-	PartSize         int64
-	ThreadPoolSize   int
-	CheckPointFile   string
-	EnableCheckpoint bool
-}
-
-type CheckPointOptions struct {
-	cpfile   *os.File
-	Key      string   `xml:"Key"`
-	FilePath string   `xml:"FilePath"`
-	FileSize int64    `xml:"FileSize"`
-	PartSize int64    `xml:"PartSize"`
-	UploadID string   `xml:"UploadID"`
-	Parts    []Object `xml:"Parts>Part,omitempty"`
+	OptIni         *InitiateMultipartUploadOptions
+	PartSize       int64
+	ThreadPoolSize int
+	CheckPoint     bool
 }
 
 type Chunk struct {
@@ -574,73 +564,34 @@ func DividePart(fileSize int64) (int64, int64) {
 	return partNum, partSize
 }
 
-func SplitFileIntoChunks(name, filePath string, opt *MultiUploadOptions) (*CheckPointOptions, []Chunk, int, error) {
+func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) {
 	if filePath == "" {
-		return nil, nil, 0, errors.New("filePath invalid")
+		return nil, 0, errors.New("filePath invalid")
 	}
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, 0, err
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, 0, err
 	}
-
-	optcp := &CheckPointOptions{}
-	uploaded := false
-	if opt.EnableCheckpoint {
-		for {
-			optcp.cpfile, err = os.OpenFile(opt.CheckPointFile, os.O_RDONLY|os.O_CREATE, 0644)
-			if err != nil {
-				return nil, nil, 0, errors.New("open(create) checkpoint file[" + opt.CheckPointFile + "] failed, error:" + err.Error())
-			}
-			defer optcp.cpfile.Close()
-			bs, err := ioutil.ReadAll(optcp.cpfile)
-			if err != nil {
-				break
-			}
-			err = xml.Unmarshal(bs, optcp)
-			if err != nil {
-				break
-			}
-			if optcp.Key != name || optcp.FilePath != filePath || optcp.FileSize != stat.Size() {
-				optcp = &CheckPointOptions{}
-				break
-			}
-			uploaded = true
-			break
-		}
-		optcp.Key = name
-		optcp.FilePath = filePath
-		optcp.FileSize = stat.Size()
-	}
-
 	var partNum int64
-	partSize := opt.PartSize
-	if uploaded {
-		partSize = optcp.PartSize
-	}
 	if partSize > 0 {
 		partSize = partSize * 1024 * 1024
 		partNum = stat.Size() / partSize
 		if partNum >= 10000 {
-			return nil, nil, 0, errors.New("Too many parts, out of 10000")
+			return nil, 0, errors.New("Too many parts, out of 10000")
 		}
 	} else {
 		partNum, partSize = DividePart(stat.Size())
 	}
-	if opt.EnableCheckpoint {
-		optcp.PartSize = partSize / 1024 / 1024
-	}
 
 	var chunks []Chunk
-	var chunk = Chunk{
-		Done: false,
-	}
+	var chunk = Chunk{}
 	for i := int64(0); i < partNum; i++ {
 		chunk.Number = int(i + 1)
 		chunk.OffSet = i * partSize
@@ -656,14 +607,84 @@ func SplitFileIntoChunks(name, filePath string, opt *MultiUploadOptions) (*Check
 		partNum++
 	}
 
-	if uploaded {
-		for _, part := range optcp.Parts {
-			if part.PartNumber <= int(partNum) {
-				chunks[(part.PartNumber - 1)].Done = true
-			}
+	return chunks, int(partNum), nil
+
+}
+
+func (s *ObjectService) getResumableUploadID(ctx context.Context, name string) (string, error) {
+	opt := &ObjectListUploadsOptions{
+		Prefix:       name,
+		EncodingType: "url",
+	}
+	res, _, err := s.ListUploads(ctx, opt)
+	if err != nil {
+		return "", err
+	}
+	if len(res.Upload) == 0 {
+		return "", nil
+	}
+	last := len(res.Upload) - 1
+	for last >= 0 {
+		decodeKey, _ := decodeURIComponent(res.Upload[last].Key)
+		if decodeKey == name {
+			return decodeURIComponent(res.Upload[last].UploadID)
+		}
+		last = last - 1
+	}
+	return "", nil
+}
+
+func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, filepath string, chunks []Chunk, partNum int) error {
+	var err error
+	var uploadedParts []Object
+	isTruncated := true
+	opt := &ObjectListPartsOptions{
+		EncodingType: "url",
+	}
+	for isTruncated {
+		res, _, err := s.ListParts(ctx, name, UploadID, opt)
+		if err != nil {
+			return err
+		}
+		if len(res.Parts) > 0 {
+			uploadedParts = append(uploadedParts, res.Parts...)
+		}
+		isTruncated = res.IsTruncated
+		opt.PartNumberMarker = res.NextPartNumberMarker
+	}
+	fd, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+	err = nil
+	for _, part := range uploadedParts {
+		partNumber := part.PartNumber
+		if partNumber > partNum {
+			err = errors.New("Part Number is not consistent")
+			break
+		}
+		partNumber = partNumber - 1
+		fd.Seek(chunks[partNumber].OffSet, os.SEEK_SET)
+		bs, e := ioutil.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
+		if e != nil {
+			err = e
+			break
+		}
+		localMD5 := fmt.Sprintf("\"%x\"", md5.Sum(bs))
+		if localMD5 != part.ETag {
+			err = errors.New(fmt.Sprintf("CheckSum Failed in Part[%d]", part.PartNumber))
+			break
+		}
+		chunks[partNumber].Done = true
+	}
+	// 某个分块出错, 重置chunks
+	if err != nil {
+		for _, chunk := range chunks {
+			chunk.Done = false
 		}
 	}
-	return optcp, chunks, int(partNum), nil
+	return err
 }
 
 // MultiUpload/Upload 为高级upload接口，并发分块上传
@@ -680,12 +701,8 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	if opt == nil {
 		opt = &MultiUploadOptions{}
 	}
-	if opt.EnableCheckpoint && opt.CheckPointFile == "" {
-		opt.CheckPointFile = fmt.Sprintf("%s.cp", filepath)
-	}
-
 	// 1.Get the file chunk
-	optcp, chunks, partNum, err := SplitFileIntoChunks(name, filepath, opt)
+	chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -706,25 +723,27 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			ETag: rsp.Header.Get("ETag"),
 		}
 		return result, rsp, nil
-    }
-	if opt.EnableCheckpoint {
-		optcp.cpfile, err = os.OpenFile(opt.CheckPointFile, os.O_RDWR, 0644)
-		if err != nil {
-			return nil, nil, errors.New("open checkpoint file failed, error: " + err.Error())
-		}
-		defer optcp.cpfile.Close()
 	}
 
-	uploadID := optcp.UploadID
+	var uploadID string
+	resumableFlag := false
+	if opt.CheckPoint {
+		var err error
+		uploadID, err = s.getResumableUploadID(ctx, name)
+		if err == nil && uploadID != "" {
+			err = s.checkUploadedParts(ctx, name, uploadID, filepath, chunks, partNum)
+			resumableFlag = (err == nil)
+		}
+	}
+
+	// 2.Init
 	optini := opt.OptIni
-	if uploadID == "" {
-		// 2.Init
+	if !resumableFlag {
 		res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
 		if err != nil {
 			return nil, nil, err
 		}
 		uploadID = res.UploadID
-		optcp.UploadID = uploadID
 	}
 	var poolSize int
 	if opt.ThreadPoolSize > 0 {
@@ -737,10 +756,6 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	chjobs := make(chan *Jobs, 100)
 	chresults := make(chan *Results, 10000)
 	optcom := &CompleteMultipartUploadOptions{}
-	if len(optcp.Parts) > 0 {
-		optcom.Parts = append(optcom.Parts, optcp.Parts...)
-		partNum -= len(optcp.Parts)
-	}
 
 	// 3.Start worker
 	for w := 1; w <= poolSize; w++ {
@@ -784,26 +799,10 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		optcom.Parts = append(optcom.Parts, Object{
 			PartNumber: res.PartNumber, ETag: etag},
 		)
-		if opt.EnableCheckpoint {
-			optcp.Parts = append(optcp.Parts, Object{
-				PartNumber: res.PartNumber, ETag: etag},
-			)
-			err := optcp.cpfile.Truncate(0)
-			if err != nil {
-				continue
-			}
-			_, err = optcp.cpfile.Seek(0, os.SEEK_SET)
-			if err == nil {
-				xml.NewEncoder(optcp.cpfile).Encode(optcp)
-			}
-		}
 	}
 	sort.Sort(ObjectList(optcom.Parts))
 
 	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
-	if opt.EnableCheckpoint && err == nil {
-		os.Remove(opt.CheckPointFile)
-	}
 
 	return v, resp, err
 }
