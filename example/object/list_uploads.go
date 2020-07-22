@@ -76,7 +76,6 @@ func main() {
 	name := "test/test_list_parts.go"
 	up := initUpload(c, name)
 	uploadID := up.UploadID
-	ctx := context.Background()
 	blockSize := 1024 * 1024 * 3
 
 	for i := 1; i < 5; i++ {

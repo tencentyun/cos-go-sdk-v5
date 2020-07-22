@@ -635,7 +635,6 @@ func (s *ObjectService) getResumableUploadID(ctx context.Context, name string) (
 }
 
 func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, filepath string, chunks []Chunk, partNum int) error {
-	var err error
 	var uploadedParts []Object
 	isTruncated := true
 	opt := &ObjectListPartsOptions{
@@ -657,34 +656,31 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 		return err
 	}
 	defer fd.Close()
-	err = nil
-	for _, part := range uploadedParts {
-		partNumber := part.PartNumber
-		if partNumber > partNum {
-			err = errors.New("Part Number is not consistent")
-			break
-		}
-		partNumber = partNumber - 1
-		fd.Seek(chunks[partNumber].OffSet, os.SEEK_SET)
-		bs, e := ioutil.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
-		if e != nil {
-			err = e
-			break
-		}
-		localMD5 := fmt.Sprintf("\"%x\"", md5.Sum(bs))
-		if localMD5 != part.ETag {
-			err = errors.New(fmt.Sprintf("CheckSum Failed in Part[%d]", part.PartNumber))
-			break
-		}
-		chunks[partNumber].Done = true
-	}
 	// 某个分块出错, 重置chunks
-	if err != nil {
+	ret := func(e error) error {
 		for _, chunk := range chunks {
 			chunk.Done = false
 		}
+		return e
 	}
-	return err
+	for _, part := range uploadedParts {
+		partNumber := part.PartNumber
+		if partNumber > partNum {
+			return ret(errors.New("Part Number is not consistent"))
+		}
+		partNumber = partNumber - 1
+		fd.Seek(chunks[partNumber].OffSet, os.SEEK_SET)
+		bs, err := ioutil.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
+		if err != nil {
+			return ret(err)
+		}
+		localMD5 := fmt.Sprintf("\"%x\"", md5.Sum(bs))
+		if localMD5 != part.ETag {
+			return ret(errors.New(fmt.Sprintf("CheckSum Failed in Part[%d]", part.PartNumber)))
+		}
+		chunks[partNumber].Done = true
+	}
+	return nil
 }
 
 // MultiUpload/Upload 为高级upload接口，并发分块上传
