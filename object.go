@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -236,11 +237,15 @@ type ObjectCopyResult struct {
 //
 // https://cloud.tencent.com/document/product/436/10881
 func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *ObjectCopyOptions, id ...string) (*ObjectCopyResult, *Response, error) {
+	surl := strings.SplitN(sourceURL, "/", 2)
+	if len(surl) < 2 {
+		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
+	}
 	var u string
 	if len(id) == 1 {
-		u = fmt.Sprintf("%s?versionId=%s", encodeURIComponent(sourceURL), id[0])
+		u = fmt.Sprintf("%s/%s?versionId=%s", surl[0], encodeURIComponent(surl[1]), id[0])
 	} else if len(id) == 0 {
-		u = encodeURIComponent(sourceURL)
+		u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1]))
 	} else {
 		return nil, nil, errors.New("wrong params")
 	}
