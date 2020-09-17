@@ -12,7 +12,7 @@ type BucketEncryptionConfiguration struct {
 
 type BucketPutEncryptionOptions struct {
 	XMLName xml.Name                       `xml:"ServerSideEncryptionConfiguration"`
-	Rule    *BucketEncryptionConfiguration `xml:"Rule>ApplySideEncryptionConfiguration"`
+	Rule    *BucketEncryptionConfiguration `xml:"Rule>ApplyServerSideEncryptionByDefault"`
 }
 
 type BucketGetEncryptionResult BucketPutEncryptionOptions
