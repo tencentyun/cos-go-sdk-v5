@@ -35,6 +35,10 @@ type ObjectGetOptions struct {
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 
 	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
+
+	// CI 图片审核
+	CIProcess    string `header:"-" url:"ci-process" xml:"-"`
+	CIDetectType string `header:"-" url:"detect-type" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url

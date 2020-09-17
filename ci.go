@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"io"
 	"net/http"
 )
 
@@ -71,4 +72,29 @@ func (s *ObjectService) PostCI(ctx context.Context, name string, opt *CloudImage
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+type CloudImageRecognitionInfo struct {
+	Code    int    `xml:"Code,omitempty"`
+	Msg     string `xml:"Msg,omitempty"`
+	HitFlag int    `xml:"HitFlag,omitempty"`
+	Score   int    `xml:"Score,omitempty"`
+	Label   string `xml:"Label,omitempty"`
+	Count   int    `xml:"Count,omitempty"`
+}
+
+type CloudImageRecognitionResult struct {
+	PornInfo      *CloudImageRecognitionInfo `xml:"PornInfo,omitempty"`
+	TerroristInfo *CloudImageRecognitionInfo `xml:"TerroristInfo,omitempty"`
+	PoliticsInfo  *CloudImageRecognitionInfo `xml:"PoliticsInfo,omitempty"`
+	AdsInfo       *CloudImageRecognitionInfo `xml:"AdsInfo,omitempty"`
+}
+
+func GetRecognitionResult(body io.ReadCloser) *CloudImageRecognitionResult {
+	var res CloudImageRecognitionResult
+	err := xml.NewDecoder(body).Decode(&res)
+	if err != nil && err != io.EOF {
+		return nil
+	}
+	return &res
 }
