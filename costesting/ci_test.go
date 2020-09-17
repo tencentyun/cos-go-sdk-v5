@@ -61,9 +61,9 @@ const (
 	kRepRegion = "ap-chengdu"
 
 	// Batch测试需要的源存储桶和目标存储桶，目前只在成都、重庆地域公测
-	kBatchBucket       = "testcd-1259654469"
-	kTargetBatchBucket = "cosgosdkreptest-1259654469" //复用了存储桶
-	kBatchRegion       = "ap-chengdu"
+	kBatchBucket       = "cosgosdktest-1259654469"
+	kTargetBatchBucket = "cosgosdktest-1259654469" //复用了存储桶
+	kBatchRegion       = "ap-guangzhou"
 )
 
 func (s *CosTestSuite) SetupSuite() {
@@ -812,7 +812,7 @@ func (s *CosTestSuite) TestBatch() {
 	assert.Equal(s.T(), res3.Priority, 3, "priority not right")
 
 	// 等待状态变成Suspended
-	for i := 0; i < 10; i = i + 1 {
+	for i := 0; i < 50; i = i + 1 {
 		res, _, err := client.Batch.DescribeJob(context.Background(), jobid, headers)
 		assert.Nil(s.T(), err, "describe job Failed")
 		assert.Equal(s.T(), res2.Job.ConfirmationRequired, "true", "ConfirmationRequired not right")
