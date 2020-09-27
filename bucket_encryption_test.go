@@ -21,9 +21,9 @@ func TestBucketService_GetEncryption(t *testing.T) {
 		testFormValues(t, r, vs)
 		fmt.Fprint(w, `<ServerSideEncryptionConfiguration>
     <Rule>
-        <ApplySideEncryptionConfiguration>
+        <ApplyServerSideEncryptionByDefault>
             <SSEAlgorithm>AES256</SSEAlgorithm>
-        </ApplySideEncryptionConfiguration>
+        </ApplyServerSideEncryptionByDefault>
     </Rule>
 </ServerSideEncryptionConfiguration>`)
 
