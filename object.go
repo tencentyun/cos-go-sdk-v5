@@ -620,6 +620,24 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	if err != nil {
 		return nil, nil, err
 	}
+	if partNum == 0 {
+		var opt0 *ObjectPutOptions
+		if opt.OptIni != nil {
+			opt0 = &ObjectPutOptions{
+				opt.OptIni.ACLHeaderOptions,
+				opt.OptIni.ObjectPutHeaderOptions,
+			}
+		}
+		rsp, err := s.PutFromFile(ctx, name, filepath, opt0)
+		if err != nil {
+			return nil, rsp, err
+		}
+		result := &CompleteMultipartUploadResult{
+			Key:  name,
+			ETag: rsp.Header.Get("ETag"),
+		}
+		return result, rsp, nil
+	}
 
 	// 2.Init
 	optini := opt.OptIni
