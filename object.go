@@ -284,6 +284,7 @@ type ObjectDeleteOptions struct {
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 	//兼容其他自定义头部
 	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	VersionId     string       `header:"-" url:"VersionId,omitempty" xml:"-"`
 }
 
 // Delete Object请求可以将一个文件（Object）删除。
@@ -304,6 +305,7 @@ func (s *ObjectService) Delete(ctx context.Context, name string, opt ...*ObjectD
 		uri:       "/" + encodeURIComponent(name),
 		method:    http.MethodDelete,
 		optHeader: optHeader,
+		optQuery:  optHeader,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
@@ -440,9 +442,10 @@ type ObjectDeleteMultiResult struct {
 	XMLName        xml.Name `xml:"DeleteResult"`
 	DeletedObjects []Object `xml:"Deleted,omitempty"`
 	Errors         []struct {
-		Key     string
-		Code    string
-		Message string
+		Key       string `xml:",omitempty"`
+		Code      string `xml:",omitempty"`
+		Message   string `xml:",omitempty"`
+		VersionId string `xml:",omitempty"`
 	} `xml:"Error,omitempty"`
 }
 
@@ -472,6 +475,7 @@ type Object struct {
 	LastModified string `xml:",omitempty"`
 	StorageClass string `xml:",omitempty"`
 	Owner        *Owner `xml:",omitempty"`
+	VersionId    string `xml:",omitempty"`
 }
 
 // MultiUploadOptions is the option of the multiupload,
@@ -615,6 +619,24 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize)
 	if err != nil {
 		return nil, nil, err
+	}
+	if partNum == 0 {
+		var opt0 *ObjectPutOptions
+		if opt.OptIni != nil {
+			opt0 = &ObjectPutOptions{
+				opt.OptIni.ACLHeaderOptions,
+				opt.OptIni.ObjectPutHeaderOptions,
+			}
+		}
+		rsp, err := s.PutFromFile(ctx, name, filepath, opt0)
+		if err != nil {
+			return nil, rsp, err
+		}
+		result := &CompleteMultipartUploadResult{
+			Key:  name,
+			ETag: rsp.Header.Get("ETag"),
+		}
+		return result, rsp, nil
 	}
 
 	// 2.Init

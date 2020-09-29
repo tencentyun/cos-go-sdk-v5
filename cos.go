@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 	"text/template"
 
 	"strconv"
@@ -21,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.8"
+	Version               = "0.7.10"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -354,4 +355,54 @@ type ACLXml struct {
 	XMLName           xml.Name `xml:"AccessControlPolicy"`
 	Owner             *Owner
 	AccessControlList []ACLGrant `xml:"AccessControlList>Grant,omitempty"`
+}
+
+func decodeACL(resp *Response, res *ACLXml) {
+	ItemMap := map[string]string{
+		"ACL":          "x-cos-acl",
+		"READ":         "x-cos-grant-read",
+		"WRITE":        "x-cos-grant-write",
+		"READ_ACP":     "x-cos-grant-read-acp",
+		"WRITE_ACP":    "x-cos-grant-write-acp",
+		"FULL_CONTROL": "x-cos-grant-full-control",
+	}
+	publicACL := make(map[string]int)
+	resACL := make(map[string][]string)
+	for _, item := range res.AccessControlList {
+		if item.Grantee == nil {
+			continue
+		}
+		if item.Grantee.ID == "qcs::cam::anyone:anyone" || item.Grantee.URI == "http://cam.qcloud.com/groups/global/AllUsers" {
+			publicACL[item.Permission] = 1
+		} else if item.Grantee.ID != res.Owner.ID {
+			resACL[item.Permission] = append(resACL[item.Permission], "id=\""+item.Grantee.ID+"\"")
+		}
+	}
+	if publicACL["FULL_CONTROL"] == 1 || (publicACL["READ"] == 1 && publicACL["WRITE"] == 1) {
+		resACL["ACL"] = []string{"public-read-write"}
+	} else if publicACL["READ"] == 1 {
+		resACL["ACL"] = []string{"public-read"}
+	} else {
+		resACL["ACL"] = []string{"private"}
+	}
+
+	for item, header := range ItemMap {
+		if len(resp.Header.Get(header)) > 0 || len(resACL[item]) == 0 {
+			continue
+		}
+		resp.Header.Set(header, uniqueGrantID(resACL[item]))
+	}
+}
+
+func uniqueGrantID(grantIDs []string) string {
+	res := []string{}
+	filter := make(map[string]int)
+	for _, id := range grantIDs {
+		if filter[id] != 0 {
+			continue
+		}
+		filter[id] = 1
+		res = append(res, id)
+	}
+	return strings.Join(res, ",")
 }
