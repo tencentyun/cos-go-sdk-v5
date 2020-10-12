@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -31,8 +32,9 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u}
+	bu, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	cu, _ := url.Parse("https://test-1259654469.ci.ap-guangzhou.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: bu, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -45,18 +47,25 @@ func main() {
 			},
 		},
 	})
-	opt := &cos.ObjectGetOptions{
-		CIProcess:    "sensitive-content-recognition",
-		CIDetectType: "porn,terrorist,politics,ads",
+	opt := &cos.PutVideoAuditingJobOptions{
+		InputObject: "demo.mp4",
+		Conf: &cos.VideoAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads",
+			Snapshot: &cos.PutVideoAuditingJobSnapshot{
+				Mode:         "Interval",
+				Start:        0.5,
+				TimeInterval: 50.5,
+				Count:        100,
+			},
+		},
 	}
 
-	// Case1 Download object into ReadCloser(). the body needs to be closed
-	name := "test.jpg"
-	resp, err := c.Object.Get(context.Background(), name, opt)
+	res, _, err := c.CI.PutVideoAuditingJob(context.Background(), opt)
 	log_status(err)
-	resp.Body.Close()
-	res := cos.GetRecognitionResult(resp.Body)
-	if res != nil {
-		fmt.Printf("%+v\n", res)
-	}
+	fmt.Printf("%+v\n", res)
+
+	time.Sleep(3 * time.Second)
+	res2, _, err := c.CI.GetVideoAuditingJob(context.Background(), res.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", res2)
 }

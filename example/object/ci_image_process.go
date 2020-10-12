@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -48,7 +47,7 @@ func main() {
 		},
 	})
 
-	pic := &cos.PicOperations{
+	opt := &cos.ImageProcessOptions{
 		IsPicInfo: 1,
 		Rules: []cos.PicOperationsRules{
 			{
@@ -57,12 +56,8 @@ func main() {
 			},
 		},
 	}
-	opt := &cos.CloudImageOptions{
-		PicOperations: cos.EncodePicOperations(pic),
-	}
 	name := "test.jpg"
-	res, _, err := c.Object.PostCI(context.Background(), name, opt)
-	data, _ := xml.Marshal(res)
-	fmt.Printf("%+v\n", string(data))
+	res, _, err := c.CI.ImageProcess(context.Background(), name, opt)
 	log_status(err)
+	fmt.Printf("%+v\n", res)
 }

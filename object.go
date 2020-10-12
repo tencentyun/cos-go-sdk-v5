@@ -35,10 +35,6 @@ type ObjectGetOptions struct {
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 
 	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
-
-	// CI 图片审核
-	CIProcess    string `header:"-" url:"ci-process" xml:"-"`
-	CIDetectType string `header:"-" url:"detect-type" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url
@@ -501,6 +497,7 @@ type Chunk struct {
 	OffSet int64
 	Size   int64
 	Done   bool
+	ETag   string
 }
 
 // jobs
@@ -662,8 +659,9 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 	defer fd.Close()
 	// 某个分块出错, 重置chunks
 	ret := func(e error) error {
-		for _, chunk := range chunks {
-			chunk.Done = false
+		for i, _ := range chunks {
+			chunks[i].Done = false
+			chunks[i].ETag = ""
 		}
 		return e
 	}
@@ -683,6 +681,7 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 			return ret(errors.New(fmt.Sprintf("CheckSum Failed in Part[%d]", part.PartNumber)))
 		}
 		chunks[partNumber].Done = true
+		chunks[partNumber].ETag = part.ETag
 	}
 	return nil
 }
@@ -706,6 +705,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	if err != nil {
 		return nil, nil, err
 	}
+	// filesize=0 , use simple upload
 	if partNum == 0 {
 		var opt0 *ObjectPutOptions
 		if opt.OptIni != nil {
@@ -787,7 +787,13 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	close(chjobs)
 
 	// 5.Recv the resp etag to complete
-	for i := 1; i <= partNum; i++ {
+	for i := 0; i < partNum; i++ {
+		if chunks[i].Done {
+			optcom.Parts = append(optcom.Parts, Object{
+				PartNumber: chunks[i].Number, ETag: chunks[i].ETag},
+			)
+			continue
+		}
 		res := <-chresults
 		// Notice one part fail can not get the etag according.
 		if res.Resp == nil || res.err != nil {
