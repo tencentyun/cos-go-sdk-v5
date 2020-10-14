@@ -19,7 +19,7 @@ func log_status(err error) {
 	}
 	if cos.IsNotFoundError(err) {
 		// WARN
-        fmt.Println("WARN: Resource is not existed")
+		fmt.Println("WARN: Resource is not existed")
 	} else if e, ok := cos.IsCOSError(err); ok {
 		fmt.Printf("ERROR: Code: %v\n", e.Code)
 		fmt.Printf("ERROR: Message: %v\n", e.Message)
@@ -44,20 +44,19 @@ func main() {
 				// Notice when put a large file and set need the request body, might happend out of memory error.
 				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
 
-	// Case1 normal put object
-	name := "test/objectPut.go"
+	// Case1 上传对象
+	name := "test/example"
 	f := strings.NewReader("test")
 
 	_, err := c.Object.Put(context.Background(), name, f, nil)
 	log_status(err)
 
-	// Case2 put object with the options
-	name = "test/put_option.go"
+	// Case2 使用options上传对象
 	f = strings.NewReader("test xxx")
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
@@ -71,7 +70,11 @@ func main() {
 	_, err = c.Object.Put(context.Background(), name, f, opt)
 	log_status(err)
 
-	// Case3 put object by local file path
+	// Case3 通过本地文件上传对象
 	_, err = c.Object.PutFromFile(context.Background(), name, "./test", nil)
 	log_status(err)
+
+	// Case4 查看上传进度
+	opt.ObjectPutHeaderOptions.Listener = &cos.DefaultProgressListener{}
+	_, err = c.Object.PutFromFile(context.Background(), name, "./test", opt)
 }

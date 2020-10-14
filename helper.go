@@ -5,8 +5,11 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 )
 
 // 计算 md5 或 sha1 时的分块大小
@@ -111,4 +114,29 @@ func DecodeURIComponent(s string) (string, error) {
 
 func EncodeURIComponent(s string) string {
 	return encodeURIComponent(s)
+}
+
+func GetReaderLen(reader io.Reader) (length int64, err error) {
+	switch v := reader.(type) {
+	case *bytes.Buffer:
+		length = int64(v.Len())
+	case *bytes.Reader:
+		length = int64(v.Len())
+	case *strings.Reader:
+		length = int64(v.Len())
+	case *os.File:
+		stat, ferr := v.Stat()
+		if ferr != nil {
+			err = fmt.Errorf("can't get reader length: %s", ferr.Error())
+		} else {
+			length = stat.Size()
+		}
+	case *io.LimitedReader:
+		length = int64(v.N)
+	case FixedLengthReader:
+		length = v.Size()
+	default:
+		err = fmt.Errorf("can't get reader content length, unkown reader type")
+	}
+	return
 }
