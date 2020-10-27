@@ -56,7 +56,7 @@ const (
 	kBucket = "cosgosdktest-1259654469"
 	kRegion = "ap-guangzhou"
 
-	// 跨区域复制需要的目标存储桶，地域不能与kBucket存储桶相同。
+	// 跨区域复制需要的目标存储桶，地域不能与kBucket存储桶相同, 目的存储桶需要开启多版本
 	kRepBucket = "cosgosdkreptest"
 	kRepRegion = "ap-chengdu"
 
@@ -85,9 +85,9 @@ func (s *CosTestSuite) SetupSuite() {
 	s.Region = p[2]
 
 	// Bucket name
-	pp := strings.Split(p[0], "-")
-	s.Bucket = pp[0]
-	s.Appid = pp[1]
+	pi := strings.LastIndex(p[0], "-")
+	s.Bucket = p[0][:pi]
+	s.Appid = p[0][pi+1:]
 
 	ib := &cos.BaseURL{BucketURL: bucketurl, BatchURL: batchurl}
 	s.Client = cos.NewClient(ib, &http.Client{
@@ -185,12 +185,12 @@ func (s *CosTestSuite) TestGetBucket() {
 }
 
 func (s *CosTestSuite) TestGetObjectVersions() {
-    opt := &cos.BucketGetObjectVersionsOptions {
+	opt := &cos.BucketGetObjectVersionsOptions{
 		Prefix:  "中文",
 		MaxKeys: 3,
 	}
-    _, _, err := s.Client.Bucket.GetObjectVersions(context.Background(), opt)
-    assert.Nil(s.T(), err, "GetObjectVersions Failed")
+	_, _, err := s.Client.Bucket.GetObjectVersions(context.Background(), opt)
+	assert.Nil(s.T(), err, "GetObjectVersions Failed")
 }
 
 func (s *CosTestSuite) TestGetBucketLocation() {
