@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.10"
+	Version               = "0.7.11"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -42,6 +42,8 @@ type BaseURL struct {
 	ServiceURL *url.URL
 	// 访问 job API 的基础 URL （不包含 path 部分）: http://example.com
 	BatchURL *url.URL
+	// 访问 CI 的基础 URL
+	CIURL *url.URL
 }
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
@@ -82,6 +84,7 @@ type Client struct {
 	Bucket  *BucketService
 	Object  *ObjectService
 	Batch   *BatchService
+	CI      *CIService
 }
 
 type service struct {
@@ -99,6 +102,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		baseURL.BucketURL = uri.BucketURL
 		baseURL.ServiceURL = uri.ServiceURL
 		baseURL.BatchURL = uri.BatchURL
+		baseURL.CIURL = uri.CIURL
 	}
 	if baseURL.ServiceURL == nil {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)
@@ -114,6 +118,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	c.Bucket = (*BucketService)(&c.common)
 	c.Object = (*ObjectService)(&c.common)
 	c.Batch = (*BatchService)(&c.common)
+	c.CI = (*CIService)(&c.common)
 	return c
 }
 
@@ -244,9 +249,6 @@ func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, er
 	}
 
 	resp, err = c.doAPI(ctx, req, opt.result, !opt.disableCloseBody)
-	if err != nil {
-		return
-	}
 	return
 }
 

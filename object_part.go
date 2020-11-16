@@ -42,12 +42,14 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 // ObjectUploadPartOptions is the options of upload-part
 type ObjectUploadPartOptions struct {
 	Expect          string `header:"Expect,omitempty" url:"-"`
-	XCosContentSHA1 string `header:"x-cos-content-sha1" url:"-"`
+	XCosContentSHA1 string `header:"x-cos-content-sha1,omitempty" url:"-"`
 	ContentLength   int    `header:"Content-Length,omitempty" url:"-"`
 
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+
+	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // UploadPart 请求实现在初始化以后的分块上传，支持的块的数量为1到10000，块的大小为1 MB 到5 GB。
@@ -242,5 +244,52 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 			return &res, resp, errors.New("response 200 OK, but body contains an error")
 		}
 	}
+	return &res, resp, err
+}
+
+type ObjectListUploadsOptions struct {
+	Delimiter      string `url:"Delimiter,omitempty"`
+	EncodingType   string `url:"EncodingType,omitempty"`
+	Prefix         string `url:"Prefix"`
+	MaxUploads     int    `url:"MaxUploads"`
+	KeyMarker      string `url:"KeyMarker"`
+	UploadIdMarker string `url:"UploadIDMarker"`
+}
+
+type ObjectListUploadsResult struct {
+	XMLName            xml.Name                  `xml:"ListMultipartUploadsResult"`
+	Bucket             string                    `xml:"Bucket,omitempty"`
+	EncodingType       string                    `xml:"Encoding-Type,omitempty"`
+	KeyMarker          string                    `xml:"KeyMarker,omitempty"`
+	UploadIdMarker     string                    `xml:"UploadIdMarker,omitempty"`
+	NextKeyMarker      string                    `xml:"NextKeyMarker,omitempty"`
+	NextUploadIdMarker string                    `xml:"NextUploadIdMarker,omitempty"`
+	MaxUploads         string                    `xml:"MaxUploads,omitempty"`
+	IsTruncated        bool                      `xml:"IsTruncated,omitempty"`
+	Prefix             string                    `xml:"Prefix,omitempty"`
+	Delimiter          string                    `xml:"Delimiter,omitempty"`
+	Upload             []ListUploadsResultUpload `xml:"Upload,omitempty"`
+	CommonPrefixes     []string                  `xml:"CommonPrefixes>Prefix,omitempty"`
+}
+
+type ListUploadsResultUpload struct {
+	Key          string     `xml:"Key,omitempty"`
+	UploadID     string     `xml:"UploadId,omitempty"`
+	StorageClass string     `xml:"StorageClass,omitempty"`
+	Initiator    *Initiator `xml:"Initiator,omitempty"`
+	Owner        *Owner     `xml:"Owner,omitempty"`
+	Initiated    string     `xml:"Initiated,omitempty"`
+}
+
+func (s *ObjectService) ListUploads(ctx context.Context, opt *ObjectListUploadsOptions) (*ObjectListUploadsResult, *Response, error) {
+	var res ObjectListUploadsResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/?uploads",
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
 	return &res, resp, err
 }

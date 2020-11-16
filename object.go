@@ -2,10 +2,12 @@ package cos
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,6 +33,8 @@ type ObjectGetOptions struct {
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+
+	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // presignedURLTestingOptions is the opt of presigned url
@@ -146,7 +150,8 @@ type ObjectPutHeaderOptions struct {
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 	//兼容其他自定义头部
-	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	XOptionHeader    *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	XCosTrafficLimit int          `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 }
 
 // ObjectPutOptions the options of put object
@@ -484,12 +489,15 @@ type MultiUploadOptions struct {
 	OptIni         *InitiateMultipartUploadOptions
 	PartSize       int64
 	ThreadPoolSize int
+	CheckPoint     bool
 }
 
 type Chunk struct {
 	Number int
 	OffSet int64
 	Size   int64
+	Done   bool
+	ETag   string
 }
 
 // jobs
@@ -506,6 +514,7 @@ type Jobs struct {
 type Results struct {
 	PartNumber int
 	Resp       *Response
+	err        error
 }
 
 func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
@@ -513,6 +522,7 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 		fd, err := os.Open(j.FilePath)
 		var res Results
 		if err != nil {
+			res.err = err
 			res.PartNumber = j.Chunk.Number
 			res.Resp = nil
 			results <- &res
@@ -528,6 +538,7 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 				&io.LimitedReader{R: fd, N: j.Chunk.Size}, j.Opt)
 			res.PartNumber = j.Chunk.Number
 			res.Resp = resp
+			res.err = err
 			if err != nil {
 				rt--
 				if rt == 0 {
@@ -601,6 +612,80 @@ func SplitFileIntoChunks(filePath string, partSize int64) ([]Chunk, int, error) 
 
 }
 
+func (s *ObjectService) getResumableUploadID(ctx context.Context, name string) (string, error) {
+	opt := &ObjectListUploadsOptions{
+		Prefix:       name,
+		EncodingType: "url",
+	}
+	res, _, err := s.ListUploads(ctx, opt)
+	if err != nil {
+		return "", err
+	}
+	if len(res.Upload) == 0 {
+		return "", nil
+	}
+	last := len(res.Upload) - 1
+	for last >= 0 {
+		decodeKey, _ := decodeURIComponent(res.Upload[last].Key)
+		if decodeKey == name {
+			return decodeURIComponent(res.Upload[last].UploadID)
+		}
+		last = last - 1
+	}
+	return "", nil
+}
+
+func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, filepath string, chunks []Chunk, partNum int) error {
+	var uploadedParts []Object
+	isTruncated := true
+	opt := &ObjectListPartsOptions{
+		EncodingType: "url",
+	}
+	for isTruncated {
+		res, _, err := s.ListParts(ctx, name, UploadID, opt)
+		if err != nil {
+			return err
+		}
+		if len(res.Parts) > 0 {
+			uploadedParts = append(uploadedParts, res.Parts...)
+		}
+		isTruncated = res.IsTruncated
+		opt.PartNumberMarker = res.NextPartNumberMarker
+	}
+	fd, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+	// 某个分块出错, 重置chunks
+	ret := func(e error) error {
+		for i, _ := range chunks {
+			chunks[i].Done = false
+			chunks[i].ETag = ""
+		}
+		return e
+	}
+	for _, part := range uploadedParts {
+		partNumber := part.PartNumber
+		if partNumber > partNum {
+			return ret(errors.New("Part Number is not consistent"))
+		}
+		partNumber = partNumber - 1
+		fd.Seek(chunks[partNumber].OffSet, os.SEEK_SET)
+		bs, err := ioutil.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
+		if err != nil {
+			return ret(err)
+		}
+		localMD5 := fmt.Sprintf("\"%x\"", md5.Sum(bs))
+		if localMD5 != part.ETag {
+			return ret(errors.New(fmt.Sprintf("CheckSum Failed in Part[%d]", part.PartNumber)))
+		}
+		chunks[partNumber].Done = true
+		chunks[partNumber].ETag = part.ETag
+	}
+	return nil
+}
+
 // MultiUpload/Upload 为高级upload接口，并发分块上传
 // 注意该接口目前只供参考
 //
@@ -620,6 +705,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	if err != nil {
 		return nil, nil, err
 	}
+	// filesize=0 , use simple upload
 	if partNum == 0 {
 		var opt0 *ObjectPutOptions
 		if opt.OptIni != nil {
@@ -639,13 +725,26 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		return result, rsp, nil
 	}
 
+	var uploadID string
+	resumableFlag := false
+	if opt.CheckPoint {
+		var err error
+		uploadID, err = s.getResumableUploadID(ctx, name)
+		if err == nil && uploadID != "" {
+			err = s.checkUploadedParts(ctx, name, uploadID, filepath, chunks, partNum)
+			resumableFlag = (err == nil)
+		}
+	}
+
 	// 2.Init
 	optini := opt.OptIni
-	res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
-	if err != nil {
-		return nil, nil, err
+	if !resumableFlag {
+		res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
+		if err != nil {
+			return nil, nil, err
+		}
+		uploadID = res.UploadID
 	}
-	uploadID := res.UploadID
 	var poolSize int
 	if opt.ThreadPoolSize > 0 {
 		poolSize = opt.ThreadPoolSize
@@ -665,11 +764,15 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 
 	// 4.Push jobs
 	for _, chunk := range chunks {
+		if chunk.Done {
+			continue
+		}
 		partOpt := &ObjectUploadPartOptions{}
 		if optini != nil && optini.ObjectPutHeaderOptions != nil {
 			partOpt.XCosSSECustomerAglo = optini.XCosSSECustomerAglo
 			partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
 			partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
+			partOpt.XCosTrafficLimit = optini.XCosTrafficLimit
 		}
 		job := &Jobs{
 			Name:       name,
@@ -684,12 +787,18 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	close(chjobs)
 
 	// 5.Recv the resp etag to complete
-	for i := 1; i <= partNum; i++ {
+	for i := 0; i < partNum; i++ {
+		if chunks[i].Done {
+			optcom.Parts = append(optcom.Parts, Object{
+				PartNumber: chunks[i].Number, ETag: chunks[i].ETag},
+			)
+			continue
+		}
 		res := <-chresults
 		// Notice one part fail can not get the etag according.
-		if res.Resp == nil {
+		if res.Resp == nil || res.err != nil {
 			// Some part already fail, can not to get the header inside.
-			return nil, nil, fmt.Errorf("UploadID %s, part %d failed to get resp content.", uploadID, res.PartNumber)
+			return nil, nil, fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
 		}
 		// Notice one part fail can not get the etag according.
 		etag := res.Resp.Header.Get("ETag")

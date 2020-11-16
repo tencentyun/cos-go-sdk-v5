@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // 计算 md5 或 sha1 时的分块大小
@@ -82,4 +83,20 @@ func encodeURIComponent(s string) string {
 	}
 	b.WriteString(s[written:])
 	return b.String()
+}
+
+func decodeURIComponent(s string) (string, error) {
+	decodeStr, err := url.QueryUnescape(s)
+	if err != nil {
+		return s, err
+	}
+	return decodeStr, err
+}
+
+func DecodeURIComponent(s string) (string, error) {
+	return DecodeURIComponent(s)
+}
+
+func EncodeURIComponent(s string) string {
+	return encodeURIComponent(s)
 }
