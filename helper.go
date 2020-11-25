@@ -45,7 +45,7 @@ func cloneRequest(r *http.Request) *http.Request {
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
 //
 // http://www.ecma-international.org/ecma-262/6.0/#sec-uri-syntax-and-semantics
-func encodeURIComponent(s string) string {
+func encodeURIComponent(s string, excluded ...[]byte) string {
 	var b bytes.Buffer
 	written := 0
 
@@ -70,6 +70,18 @@ func encodeURIComponent(s string) string {
 			if '0' <= c && c <= '9' {
 
 				continue
+			}
+			if len(excluded) > 0 {
+				conti := false
+				for _, ch := range excluded[0] {
+					if ch == c {
+						conti = true
+						break
+					}
+				}
+				if conti {
+					continue
+				}
 			}
 		}
 
