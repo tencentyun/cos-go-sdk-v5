@@ -115,12 +115,12 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		authTime = NewAuthTime(expired)
 	}
 	authorization := newAuthorization(ak, sk, req, authTime)
-	sign := encodeURIComponent(authorization)
+	sign := encodeURIComponent(authorization, []byte{'&','='})
 
 	if req.URL.RawQuery == "" {
-		req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
+		req.URL.RawQuery = fmt.Sprintf("%s", sign)
 	} else {
-		req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
+		req.URL.RawQuery = fmt.Sprintf("%s&%s", req.URL.RawQuery, sign)
 	}
 	return req.URL, nil
 
@@ -256,20 +256,26 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	}
 
 	var res ObjectCopyResult
-	if opt == nil {
-		opt = new(ObjectCopyOptions)
+	copyOpt := &ObjectCopyOptions{
+		&ObjectCopyHeaderOptions{},
+		&ACLHeaderOptions{},
 	}
-	if opt.ObjectCopyHeaderOptions == nil {
-		opt.ObjectCopyHeaderOptions = new(ObjectCopyHeaderOptions)
+	if opt != nil {
+		if opt.ObjectCopyHeaderOptions != nil {
+			*copyOpt.ObjectCopyHeaderOptions = *opt.ObjectCopyHeaderOptions
+		}
+		if opt.ACLHeaderOptions != nil {
+			*copyOpt.ACLHeaderOptions = *opt.ACLHeaderOptions
+		}
 	}
-	opt.XCosCopySource = u
+	copyOpt.XCosCopySource = u
 
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name),
 		method:    http.MethodPut,
 		body:      nil,
-		optHeader: opt,
+		optHeader: copyOpt,
 		result:    &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
