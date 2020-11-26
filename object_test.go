@@ -129,7 +129,7 @@ func TestObjectService_Options(t *testing.T) {
 	})
 
 	opt := &ObjectOptionsOptions{
-		Origin: "www.qq.com",
+		Origin:                     "www.qq.com",
 		AccessControlRequestMethod: "PUT",
 	}
 
