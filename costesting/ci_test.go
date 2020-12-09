@@ -226,6 +226,7 @@ func (s *CosTestSuite) TestVersionAndReplication() {
 	}
 	_, err := s.Client.Bucket.PutVersioning(context.Background(), opt)
 	assert.Nil(s.T(), err, "PutVersioning Failed")
+	time.Sleep(time.Second)
 	v, _, err := s.Client.Bucket.GetVersioning(context.Background())
 	assert.Nil(s.T(), err, "GetVersioning Failed")
 	assert.Equal(s.T(), "Enabled", v.Status, "Get Wrong Version status")
@@ -248,6 +249,7 @@ func (s *CosTestSuite) TestVersionAndReplication() {
 
 	_, err = s.Client.Bucket.PutBucketReplication(context.Background(), repOpt)
 	assert.Nil(s.T(), err, "PutBucketReplication Failed")
+	time.Sleep(time.Second)
 	vr, _, err := s.Client.Bucket.GetBucketReplication(context.Background())
 	assert.Nil(s.T(), err, "GetBucketReplication Failed")
 	for _, r := range vr.Rule {
