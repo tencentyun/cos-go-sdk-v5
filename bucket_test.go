@@ -152,14 +152,14 @@ func TestBucketService_Head(t *testing.T) {
 }
 
 func TestBucketService_GetObjectVersions(t *testing.T) {
-    setup()
-    defer teardown()
+	setup()
+	defer teardown()
 
-    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        testMethod(t, r, http.MethodGet)
-        w.WriteHeader(http.StatusOK)
-        vs := values{
-            "versions": "",
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.WriteHeader(http.StatusOK)
+		vs := values{
+			"versions":  "",
 			"delimiter": "/",
 		}
 		testFormValues(t, r, vs)
@@ -203,51 +203,51 @@ func TestBucketService_GetObjectVersions(t *testing.T) {
         </Owner>
     </DeleteMarker>
 </ListVersionsResult>`)
-    })
+	})
 
-    want := &BucketGetObjectVersionsResult {
-        XMLName: xml.Name { Local: "ListVersionsResult" },
-        Name: "examplebucket-1250000000",
-        MaxKeys: 1000,
-        IsTruncated: false,
-        Delimiter: "/",
-        CommonPrefixes: []string {
-            "example-folder-1/",
-            "example-folder-2/",
-        },
-        Version: []ListVersionsResultVersion {
-            {
-                Key: "example-object-1.jpg",
-                VersionId: "MTg0NDUxNzgxMjEzNTU3NTk1Mjg",
-                IsLatest: true,
-                LastModified: "2019-08-16T10:45:53.000Z",
-                ETag: "\"5d1143df07a17b23320d0da161e2819e\"",
-                Size: 30,
-                StorageClass: "STANDARD",
-                Owner: &Owner {
-                    ID: "1250000000",
-                    DisplayName: "1250000000",
-                },
-            },
-        },
-        DeleteMarker: []ListVersionsResultDeleteMarker {
-            {
-                Key: "example-object-1.jpg",
-                VersionId: "MTg0NDUxNzgxMjEzNjE1OTcxMzM",
-                IsLatest: false,
-                LastModified: "2019-08-16T10:45:47.000Z",
-                Owner: &Owner {
-                    ID: "1250000000",
-                    DisplayName: "1250000000",
-                },
-            },
-        },
-    }
-    opt := &BucketGetObjectVersionsOptions {
-        Delimiter: "/",
-    }
-    res, _, err := client.Bucket.GetObjectVersions(context.Background(), opt)
-    if err != nil {
+	want := &BucketGetObjectVersionsResult{
+		XMLName:     xml.Name{Local: "ListVersionsResult"},
+		Name:        "examplebucket-1250000000",
+		MaxKeys:     1000,
+		IsTruncated: false,
+		Delimiter:   "/",
+		CommonPrefixes: []string{
+			"example-folder-1/",
+			"example-folder-2/",
+		},
+		Version: []ListVersionsResultVersion{
+			{
+				Key:          "example-object-1.jpg",
+				VersionId:    "MTg0NDUxNzgxMjEzNTU3NTk1Mjg",
+				IsLatest:     true,
+				LastModified: "2019-08-16T10:45:53.000Z",
+				ETag:         "\"5d1143df07a17b23320d0da161e2819e\"",
+				Size:         30,
+				StorageClass: "STANDARD",
+				Owner: &Owner{
+					ID:          "1250000000",
+					DisplayName: "1250000000",
+				},
+			},
+		},
+		DeleteMarker: []ListVersionsResultDeleteMarker{
+			{
+				Key:          "example-object-1.jpg",
+				VersionId:    "MTg0NDUxNzgxMjEzNjE1OTcxMzM",
+				IsLatest:     false,
+				LastModified: "2019-08-16T10:45:47.000Z",
+				Owner: &Owner{
+					ID:          "1250000000",
+					DisplayName: "1250000000",
+				},
+			},
+		},
+	}
+	opt := &BucketGetObjectVersionsOptions{
+		Delimiter: "/",
+	}
+	res, _, err := client.Bucket.GetObjectVersions(context.Background(), opt)
+	if err != nil {
 		t.Fatalf("Bucket.GetObjectVersions returned error: %v", err)
 	}
 	if !reflect.DeepEqual(res, want) {

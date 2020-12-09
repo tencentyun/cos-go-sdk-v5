@@ -50,6 +50,9 @@ type ObjectUploadPartOptions struct {
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 
 	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
+
+	// 上传进度, ProgressCompleteEvent不能表示对应API调用成功，API是否调用成功的判断标准为返回err==nil
+	Listener ProgressListener `header:"-" url:"-" xml:"-"`
 }
 
 // UploadPart 请求实现在初始化以后的分块上传，支持的块的数量为1到10000，块的大小为1 MB 到5 GB。
@@ -61,6 +64,13 @@ type ObjectUploadPartOptions struct {
 //
 // https://www.qcloud.com/document/product/436/7750
 func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, partNumber int, r io.Reader, opt *ObjectUploadPartOptions) (*Response, error) {
+	if opt != nil && opt.Listener != nil {
+		totalBytes, err := GetReaderLen(r)
+		if err != nil {
+			return nil, err
+		}
+		r = TeeReader(r, nil, totalBytes, opt.Listener)
+	}
 	u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,

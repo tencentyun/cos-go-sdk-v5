@@ -48,13 +48,14 @@ type PicImageInfo struct {
 	Quality int    `xml:"Quality,omitempty"`
 }
 type PicProcessObject struct {
-	Key      string `xml:"Key,omitempty"`
-	Location string `xml:"Location,omitempty"`
-	Format   string `xml:"Format,omitempty"`
-	Width    int    `xml:"Width,omitempty"`
-	Height   int    `xml:"Height,omitempty"`
-	Size     int    `xml:"Size,omitempty"`
-	Quality  int    `xml:"Quality,omitempty"`
+	Key             string `xml:"Key,omitempty"`
+	Location        string `xml:"Location,omitempty"`
+	Format          string `xml:"Format,omitempty"`
+	Width           int    `xml:"Width,omitempty"`
+	Height          int    `xml:"Height,omitempty"`
+	Size            int    `xml:"Size,omitempty"`
+	Quality         int    `xml:"Quality,omitempty"`
+	WatermarkStatus int    `xml:"WatermarkStatus,omitempty"`
 }
 
 type picOperationsHeader struct {
@@ -171,7 +172,7 @@ type VideoAuditingJobDetail struct {
 	CreationTime  string                       `xml:",omitempty"`
 	Object        string                       `xml:",omitempty"`
 	SnapshotCount string                       `xml:",omitempty"`
-	result        int                          `xml:",omitempty"`
+	Result        int                          `xml:",omitempty"`
 	PornInfo      *RecognitionInfo             `xml:",omitempty"`
 	TerrorismInfo *RecognitionInfo             `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo             `xml:",omitempty"`

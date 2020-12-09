@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strings"
+	"time"
 
 	"net/http"
 
@@ -47,34 +47,13 @@ func main() {
 				ResponseBody:   false,
 			},
 		},
+		Timeout: 5 * time.Second, // HTTP超时时间
 	})
 
 	// Case1 上传对象
 	name := "test/example"
-	f := strings.NewReader("test")
-
-	_, err := c.Object.Put(context.Background(), name, f, nil)
-	log_status(err)
-
-	// Case2 使用options上传对象
-	f = strings.NewReader("test xxx")
-	opt := &cos.ObjectPutOptions{
-		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentType: "text/html",
-		},
-		ACLHeaderOptions: &cos.ACLHeaderOptions{
-			//XCosACL: "public-read",
-			XCosACL: "private",
-		},
-	}
-	_, err = c.Object.Put(context.Background(), name, f, opt)
-	log_status(err)
-
 	// Case3 通过本地文件上传对象
-	_, err = c.Object.PutFromFile(context.Background(), name, "./test", nil)
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second) // context超时时间
+	_, err := c.Object.PutFromFile(ctx, name, "./test", nil)           // 请求的超时时间为 min{context超时时间， HTTP超时时间}
 	log_status(err)
-
-	// Case4 查看上传进度
-	opt.ObjectPutHeaderOptions.Listener = &cos.DefaultProgressListener{}
-	_, err = c.Object.PutFromFile(context.Background(), name, "./test", opt)
 }

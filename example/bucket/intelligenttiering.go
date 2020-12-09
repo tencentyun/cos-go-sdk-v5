@@ -48,13 +48,13 @@ func main() {
 		},
 	})
 
-	opt := &cos.BucketPutIntelligentTieringOptions {
-        Status: "Enabled",
-        Transition: &cos.BucketIntelligentTieringTransition {
-            Days: 30,
-        },
-    }
-    _, err := c.Bucket.PutIntelligentTiering(context.Background(), opt)
+	opt := &cos.BucketPutIntelligentTieringOptions{
+		Status: "Enabled",
+		Transition: &cos.BucketIntelligentTieringTransition{
+			Days: 30,
+		},
+	}
+	_, err := c.Bucket.PutIntelligentTiering(context.Background(), opt)
 	log_status(err)
 	res, _, err := c.Bucket.GetIntelligentTiering(context.Background())
 	log_status(err)

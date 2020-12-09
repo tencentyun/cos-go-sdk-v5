@@ -49,9 +49,26 @@ func main() {
 		},
 	})
 
+	// Case1 多线程上传对象
+	opt := &cos.MultiUploadOptions{
+		ThreadPoolSize: 3,
+	}
 	v, _, err := c.Object.Upload(
-		context.Background(), "gomulput1G", "./test1G", nil,
+		context.Background(), "gomulput1G", "./test1G", opt,
 	)
 	log_status(err)
-	fmt.Println(v)
+	fmt.Printf("Case1 done, %v\n", v)
+
+	// Case2 多线程上传对象，查看上传进度
+	opt.OptIni = &cos.InitiateMultipartUploadOptions{
+		nil,
+		&cos.ObjectPutHeaderOptions{
+			Listener: &cos.DefaultProgressListener{},
+		},
+	}
+	v, _, err = c.Object.Upload(
+		context.Background(), "gomulput1G", "./test1G", opt,
+	)
+	log_status(err)
+	fmt.Printf("Case2 done, %v\n", v)
 }
