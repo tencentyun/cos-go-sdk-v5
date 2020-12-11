@@ -31,21 +31,23 @@ func EncodePicOperations(pic *PicOperations) string {
 }
 
 type ImageProcessResult struct {
-	XMLName       xml.Name          `xml:"UploadResult"`
-	OriginalInfo  *PicOriginalInfo  `xml:"OriginalInfo,omitempty"`
-	ProcessObject *PicProcessObject `xml:"ProcessResults>Object,omitempty"`
+	XMLName        xml.Name          `xml:"UploadResult"`
+	OriginalInfo   *PicOriginalInfo  `xml:"OriginalInfo,omitempty"`
+	ProcessResults *PicProcessObject `xml:"ProcessResults>Object,omitempty"`
 }
 type PicOriginalInfo struct {
 	Key       string        `xml:"Key,omitempty"`
 	Location  string        `xml:"Location,omitempty"`
 	ImageInfo *PicImageInfo `xml:"ImageInfo,omitempty"`
+	ETag      string        `xml:"ETag,omitempty"`
 }
 type PicImageInfo struct {
-	Format  string `xml:"Format,omitempty"`
-	Width   int    `xml:"Width,omitempty"`
-	Height  int    `xml:"Height,omitempty"`
-	Size    int    `xml:"Size,omitempty"`
-	Quality int    `xml:"Quality,omitempty"`
+	Format      string `xml:"Format,omitempty"`
+	Width       int    `xml:"Width,omitempty"`
+	Height      int    `xml:"Height,omitempty"`
+	Quality     int    `xml:"Quality,omitempty"`
+	Ave         string `xml:"Ave,omitempty"`
+	Orientation int    `xml:"Orientation,omitempty"`
 }
 type PicProcessObject struct {
 	Key             string `xml:"Key,omitempty"`
@@ -55,6 +57,7 @@ type PicProcessObject struct {
 	Height          int    `xml:"Height,omitempty"`
 	Size            int    `xml:"Size,omitempty"`
 	Quality         int    `xml:"Quality,omitempty"`
+	ETag            string `xml:"ETag,omitempty"`
 	WatermarkStatus int    `xml:"WatermarkStatus,omitempty"`
 }
 

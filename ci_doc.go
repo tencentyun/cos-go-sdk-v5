@@ -261,10 +261,11 @@ type DocPreviewOptions struct {
 
 func (s *CIService) DocPreview(ctx context.Context, name string, opt *DocPreviewOptions) (*Response, error) {
 	sendOpt := sendOptions{
-		baseURL:  s.client.BaseURL.BucketURL,
-		uri:      "/" + encodeURIComponent(name) + "?ci-process=doc-preview",
-		optQuery: opt,
-		method:   http.MethodGet,
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=doc-preview",
+		optQuery:         opt,
+		method:           http.MethodGet,
+		disableCloseBody: true,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
