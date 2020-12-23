@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,9 @@ import (
 	"os"
 	"strings"
 )
+
+// 单次上传文件最大为5GB
+const singleUploadMaxLength = 5 * 1024 * 1024 * 1024
 
 // 计算 md5 或 sha1 时的分块大小
 const calDigestBlockSize = 1024 * 1024 * 10
@@ -139,4 +143,12 @@ func GetReaderLen(reader io.Reader) (length int64, err error) {
 		err = fmt.Errorf("can't get reader content length, unkown reader type")
 	}
 	return
+}
+
+func CheckReaderLen(reader io.Reader) error {
+	nlen, err := GetReaderLen(reader)
+	if err != nil || nlen < singleUploadMaxLength {
+		return nil
+	}
+	return errors.New("The single object size you upload can not be larger than 5GB")
 }

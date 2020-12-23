@@ -41,16 +41,17 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 
 // ObjectUploadPartOptions is the options of upload-part
 type ObjectUploadPartOptions struct {
-	Expect          string `header:"Expect,omitempty" url:"-"`
-	XCosContentSHA1 string `header:"x-cos-content-sha1,omitempty" url:"-"`
-	ContentLength   int    `header:"Content-Length,omitempty" url:"-"`
-
+	Expect                string `header:"Expect,omitempty" url:"-"`
+	XCosContentSHA1       string `header:"x-cos-content-sha1,omitempty" url:"-"`
+	ContentLength         int    `header:"Content-Length,omitempty" url:"-"`
+	ContentMD5            string `header:"Content-MD5,omitempty" url:"-"`
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKeyMD5 string `header:"x-cos-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
 
 	XCosTrafficLimit int `header:"x-cos-traffic-limit,omitempty" url:"-" xml:"-"`
 
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 	// 上传进度, ProgressCompleteEvent不能表示对应API调用成功，API是否调用成功的判断标准为返回err==nil
 	Listener ProgressListener `header:"-" url:"-" xml:"-"`
 }
@@ -64,6 +65,9 @@ type ObjectUploadPartOptions struct {
 //
 // https://www.qcloud.com/document/product/436/7750
 func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, partNumber int, r io.Reader, opt *ObjectUploadPartOptions) (*Response, error) {
+	if err := CheckReaderLen(r); err != nil {
+		return nil, err
+	}
 	if opt != nil && opt.Listener != nil {
 		totalBytes, err := GetReaderLen(r)
 		if err != nil {
