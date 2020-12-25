@@ -882,6 +882,31 @@ func (s *CosTestSuite) TestReferer() {
 	assert.Equal(s.T(), opt.EmptyReferConfiguration, res.EmptyReferConfiguration, "GetReferer Failed")
 }
 
+func (s *CosTestSuite) TestAccelerate() {
+	opt := &cos.BucketPutAccelerateOptions{
+		Status: "Enabled",
+		Type:   "COS",
+	}
+	_, err := s.Client.Bucket.PutAccelerate(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutAccelerate Failed")
+
+	time.Sleep(time.Second)
+	res, _, err := s.Client.Bucket.GetAccelerate(context.Background())
+	assert.Nil(s.T(), err, "GetAccelerate Failed")
+	assert.Equal(s.T(), opt.Status, res.Status, "GetAccelerate Failed")
+	assert.Equal(s.T(), opt.Type, res.Type, "GetAccelerate Failed")
+
+	opt.Status = "Suspended"
+	_, err = s.Client.Bucket.PutAccelerate(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutAccelerate Failed")
+
+	time.Sleep(time.Second)
+	res, _, err = s.Client.Bucket.GetAccelerate(context.Background())
+	assert.Nil(s.T(), err, "GetAccelerate Failed")
+	assert.Equal(s.T(), opt.Status, res.Status, "GetAccelerate Failed")
+	assert.Equal(s.T(), opt.Type, res.Type, "GetAccelerate Failed")
+}
+
 // End of api test
 
 // All methods that begin with "Test" are run as tests within a

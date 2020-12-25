@@ -127,7 +127,7 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		authTime = NewAuthTime(expired)
 	}
 	authorization := newAuthorization(ak, sk, req, authTime)
-	sign := encodeURIComponent(authorization, []byte{'&','='})
+	sign := encodeURIComponent(authorization, []byte{'&', '='})
 
 	if req.URL.RawQuery == "" {
 		req.URL.RawQuery = fmt.Sprintf("%s", sign)
@@ -181,6 +181,9 @@ type ObjectPutOptions struct {
 //
 // https://www.qcloud.com/document/product/436/7749
 func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, opt *ObjectPutOptions) (*Response, error) {
+	if err := CheckReaderLen(r); err != nil {
+		return nil, err
+	}
 	if opt != nil && opt.Listener != nil {
 		totalBytes, err := GetReaderLen(r)
 		if err != nil {
@@ -802,28 +805,30 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	progressCallback(listener, event)
 
 	// 4.Push jobs
-	for _, chunk := range chunks {
-		if chunk.Done {
-			continue
+	go func() {
+		for _, chunk := range chunks {
+			if chunk.Done {
+				continue
+			}
+			partOpt := &ObjectUploadPartOptions{}
+			if optini != nil && optini.ObjectPutHeaderOptions != nil {
+				partOpt.XCosSSECustomerAglo = optini.XCosSSECustomerAglo
+				partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
+				partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
+				partOpt.XCosTrafficLimit = optini.XCosTrafficLimit
+			}
+			job := &Jobs{
+				Name:       name,
+				RetryTimes: 3,
+				FilePath:   filepath,
+				UploadId:   uploadID,
+				Chunk:      chunk,
+				Opt:        partOpt,
+			}
+			chjobs <- job
 		}
-		partOpt := &ObjectUploadPartOptions{}
-		if optini != nil && optini.ObjectPutHeaderOptions != nil {
-			partOpt.XCosSSECustomerAglo = optini.XCosSSECustomerAglo
-			partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
-			partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
-			partOpt.XCosTrafficLimit = optini.XCosTrafficLimit
-		}
-		job := &Jobs{
-			Name:       name,
-			RetryTimes: 3,
-			FilePath:   filepath,
-			UploadId:   uploadID,
-			Chunk:      chunk,
-			Opt:        partOpt,
-		}
-		chjobs <- job
-	}
-	close(chjobs)
+		close(chjobs)
+	}()
 
 	// 5.Recv the resp etag to complete
 	for i := 0; i < partNum; i++ {
@@ -854,6 +859,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		event = newProgressEvent(ProgressDataEvent, chunks[res.PartNumber-1].Size, consumedBytes, totalBytes)
 		progressCallback(listener, event)
 	}
+	close(chresults)
 	sort.Sort(ObjectList(optcom.Parts))
 
 	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)

@@ -97,6 +97,10 @@ func (r *teeReader) Close() error {
 	return nil
 }
 
+func (r *teeReader) Size() int64 {
+	return r.totalBytes
+}
+
 func TeeReader(reader io.Reader, writer io.Writer, total int64, listener ProgressListener) *teeReader {
 	return &teeReader{
 		reader:        reader,

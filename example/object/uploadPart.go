@@ -79,10 +79,10 @@ func main() {
 	resp, err := c.Object.UploadPart(
 		context.Background(), name, uploadID, 1, fd, opt,
 	)
+	log_status(err)
 	optcom.Parts = append(optcom.Parts, cos.Object{
 		PartNumber: 1, ETag: resp.Header.Get("ETag"),
 	})
-	log_status(err)
 
 	f := strings.NewReader("test heoo")
 	resp, err = c.Object.UploadPart(
