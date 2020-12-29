@@ -258,6 +258,8 @@ type ObjectCopyResult struct {
 	XMLName      xml.Name `xml:"CopyObjectResult"`
 	ETag         string   `xml:"ETag,omitempty"`
 	LastModified string   `xml:"LastModified,omitempty"`
+	CRC64        string   `xml:"CRC64,omitempty"`
+	VersionId    string   `xml:"VersionId,omitempty"`
 }
 
 // Copy 调用 PutObjectCopy 请求实现将一个文件从源路径复制到目标路径。建议文件大小 1M 到 5G，
@@ -588,8 +590,8 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	}
 }
 
-func DividePart(fileSize int64) (int64, int64) {
-	partSize := int64(1 * 1024 * 1024)
+func DividePart(fileSize int64, last int) (int64, int64) {
+	partSize := int64(last * 1024 * 1024)
 	partNum := fileSize / partSize
 	for partNum >= 10000 {
 		partSize = partSize * 2
@@ -621,7 +623,7 @@ func SplitFileIntoChunks(filePath string, partSize int64) (int64, []Chunk, int, 
 			return 0, nil, 0, errors.New("Too many parts, out of 10000")
 		}
 	} else {
-		partNum, partSize = DividePart(stat.Size())
+		partNum, partSize = DividePart(stat.Size(), 1)
 	}
 
 	var chunks []Chunk
@@ -866,6 +868,9 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	progressCallback(listener, event)
 
 	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
+	if err != nil {
+		s.AbortMultipartUpload(ctx, name, uploadID)
+	}
 
 	return v, resp, err
 }

@@ -152,3 +152,33 @@ func CheckReaderLen(reader io.Reader) error {
 	}
 	return errors.New("The single object size you upload can not be larger than 5GB")
 }
+
+func CopyOptionsToMulti(opt *ObjectCopyOptions) *InitiateMultipartUploadOptions {
+	if opt == nil {
+		return nil
+	}
+	optini := &InitiateMultipartUploadOptions{
+		opt.ACLHeaderOptions,
+		&ObjectPutHeaderOptions{},
+	}
+	if opt.ObjectCopyHeaderOptions == nil {
+		return optini
+	}
+	optini.ObjectPutHeaderOptions = &ObjectPutHeaderOptions{
+		CacheControl:             opt.ObjectCopyHeaderOptions.CacheControl,
+		ContentDisposition:       opt.ObjectCopyHeaderOptions.ContentDisposition,
+		ContentEncoding:          opt.ObjectCopyHeaderOptions.ContentEncoding,
+		ContentType:              opt.ObjectCopyHeaderOptions.ContentType,
+		ContentLanguage:          opt.ObjectCopyHeaderOptions.ContentLanguage,
+		Expect:                   opt.ObjectCopyHeaderOptions.Expect,
+		Expires:                  opt.ObjectCopyHeaderOptions.Expires,
+		XCosMetaXXX:              opt.ObjectCopyHeaderOptions.XCosMetaXXX,
+		XCosStorageClass:         opt.ObjectCopyHeaderOptions.XCosStorageClass,
+		XCosServerSideEncryption: opt.ObjectCopyHeaderOptions.XCosServerSideEncryption,
+		XCosSSECustomerAglo:      opt.ObjectCopyHeaderOptions.XCosSSECustomerAglo,
+		XCosSSECustomerKey:       opt.ObjectCopyHeaderOptions.XCosSSECustomerKey,
+		XCosSSECustomerKeyMD5:    opt.ObjectCopyHeaderOptions.XCosSSECustomerKeyMD5,
+		XOptionHeader:            opt.ObjectCopyHeaderOptions.XOptionHeader,
+	}
+	return optini
+}
