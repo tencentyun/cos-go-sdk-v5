@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"sort"
+	"strings"
 )
 
 // InitiateMultipartUploadOptions is the option of InitateMultipartUpload
@@ -306,4 +309,207 @@ func (s *ObjectService) ListUploads(ctx context.Context, opt *ObjectListUploadsO
 	}
 	resp, err := s.client.send(ctx, sendOpt)
 	return &res, resp, err
+}
+
+type MultiCopyOptions struct {
+	OptCopy        *ObjectCopyOptions
+	PartSize       int64
+	ThreadPoolSize int
+}
+
+type CopyJobs struct {
+	Name       string
+	UploadId   string
+	RetryTimes int
+	Chunk      Chunk
+	Opt        *ObjectCopyPartOptions
+}
+
+type CopyResults struct {
+	PartNumber int
+	Resp       *Response
+	err        error
+	res        *CopyPartResult
+}
+
+func copyworker(s *ObjectService, jobs <-chan *CopyJobs, results chan<- *CopyResults) {
+	for j := range jobs {
+		var copyres CopyResults
+		j.Opt.XCosCopySourceRange = fmt.Sprintf("bytes=%d-%d", j.Chunk.OffSet, j.Chunk.OffSet+j.Chunk.Size-1)
+		rt := j.RetryTimes
+		for {
+			res, resp, err := s.CopyPart(context.Background(), j.Name, j.UploadId, j.Chunk.Number, j.Opt.XCosCopySource, j.Opt)
+			copyres.PartNumber = j.Chunk.Number
+			copyres.Resp = resp
+			copyres.err = err
+			copyres.res = res
+			if err != nil {
+				rt--
+				if rt == 0 {
+					results <- &copyres
+					break
+				}
+				continue
+			}
+			results <- &copyres
+			break
+		}
+	}
+}
+
+func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *ObjectHeadOptions, id []string) (resp *Response, err error) {
+	surl := strings.SplitN(sourceURL, "/", 2)
+	if len(surl) < 2 {
+		err = errors.New(fmt.Sprintf("sourceURL format error: %s", sourceURL))
+		return
+	}
+
+	u, err := url.Parse(fmt.Sprintf("https://%s", surl[0]))
+	if err != nil {
+		return
+	}
+	b := &BaseURL{BucketURL: u}
+	client := NewClient(b, &http.Client{
+		Transport: s.client.client.Transport,
+	})
+	if len(id) > 0 {
+		resp, err = client.Object.Head(ctx, surl[1], nil, id[0])
+	} else {
+		resp, err = client.Object.Head(ctx, surl[1], nil)
+	}
+	return
+}
+
+func SplitCopyFileIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error) {
+	var partNum int64
+	if partSize > 0 {
+		partSize = partSize * 1024 * 1024
+		partNum = totalBytes / partSize
+		if partNum >= 10000 {
+			return nil, 0, errors.New("Too many parts, out of 10000")
+		}
+	} else {
+		partNum, partSize = DividePart(totalBytes, 64)
+	}
+
+	var chunks []Chunk
+	var chunk = Chunk{}
+	for i := int64(0); i < partNum; i++ {
+		chunk.Number = int(i + 1)
+		chunk.OffSet = i * partSize
+		chunk.Size = partSize
+		chunks = append(chunks, chunk)
+	}
+
+	if totalBytes%partSize > 0 {
+		chunk.Number = len(chunks) + 1
+		chunk.OffSet = int64(len(chunks)) * partSize
+		chunk.Size = totalBytes % partSize
+		chunks = append(chunks, chunk)
+		partNum++
+	}
+	return chunks, int(partNum), nil
+}
+
+func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL string, opt *MultiCopyOptions, id ...string) (*ObjectCopyResult, *Response, error) {
+	resp, err := s.innerHead(ctx, sourceURL, nil, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	totalBytes := resp.ContentLength
+	surl := strings.SplitN(sourceURL, "/", 2)
+	if len(surl) < 2 {
+		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
+	}
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("%s/%s?versionId=%s", surl[0], encodeURIComponent(surl[1]), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1]))
+	} else {
+		return nil, nil, errors.New("wrong params")
+	}
+
+	if opt == nil {
+		opt = &MultiCopyOptions{}
+	}
+	chunks, partNum, err := SplitCopyFileIntoChunks(totalBytes, opt.PartSize)
+	if err != nil {
+		return nil, nil, err
+	}
+	if partNum == 0 || totalBytes < singleUploadMaxLength {
+		if len(id) > 0 {
+			return s.Copy(ctx, name, sourceURL, opt.OptCopy, id[0])
+		} else {
+			return s.Copy(ctx, name, sourceURL, opt.OptCopy)
+		}
+	}
+	optini := CopyOptionsToMulti(opt.OptCopy)
+	var uploadID string
+	res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
+	if err != nil {
+		return nil, nil, err
+	}
+	uploadID = res.UploadID
+
+	var poolSize int
+	if opt.ThreadPoolSize > 0 {
+		poolSize = opt.ThreadPoolSize
+	} else {
+		poolSize = 1
+	}
+
+	chjobs := make(chan *CopyJobs, 100)
+	chresults := make(chan *CopyResults, 10000)
+	optcom := &CompleteMultipartUploadOptions{}
+
+	for w := 1; w <= poolSize; w++ {
+		go copyworker(s, chjobs, chresults)
+	}
+
+	go func() {
+		for _, chunk := range chunks {
+			partOpt := &ObjectCopyPartOptions{
+				XCosCopySource: u,
+			}
+			job := &CopyJobs{
+				Name:       name,
+				RetryTimes: 3,
+				UploadId:   uploadID,
+				Chunk:      chunk,
+				Opt:        partOpt,
+			}
+			chjobs <- job
+		}
+		close(chjobs)
+	}()
+
+	err = nil
+	for i := 0; i < partNum; i++ {
+		res := <-chresults
+		if res.res == nil || res.err != nil {
+			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
+			break
+		}
+		etag := res.res.ETag
+		optcom.Parts = append(optcom.Parts, Object{
+			PartNumber: res.PartNumber, ETag: etag},
+		)
+	}
+	close(chresults)
+	if err != nil {
+		return nil, nil, err
+	}
+	sort.Sort(ObjectList(optcom.Parts))
+
+	v, resp, err := s.CompleteMultipartUpload(ctx, name, uploadID, optcom)
+	if err != nil {
+		s.AbortMultipartUpload(ctx, name, uploadID)
+	}
+	cpres := &ObjectCopyResult{
+		ETag:      v.ETag,
+		CRC64:     resp.Header.Get("x-cos-hash-crc64ecma"),
+		VersionId: resp.Header.Get("x-cos-version-id"),
+	}
+	return cpres, resp, err
 }
