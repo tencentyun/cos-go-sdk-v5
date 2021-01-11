@@ -113,7 +113,7 @@ func decodeURIComponent(s string) (string, error) {
 }
 
 func DecodeURIComponent(s string) (string, error) {
-	return DecodeURIComponent(s)
+	return decodeURIComponent(s)
 }
 
 func EncodeURIComponent(s string) string {
