@@ -563,12 +563,12 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 			results <- &res
 		}
 
-		fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 		// UploadPart do not support the chunk trsf, so need to add the content-length
 		j.Opt.ContentLength = int(j.Chunk.Size)
 
 		rt := j.RetryTimes
 		for {
+			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			resp, err := s.UploadPart(context.Background(), j.Name, j.UploadId, j.Chunk.Number,
 				&io.LimitedReader{R: fd, N: j.Chunk.Size}, j.Opt)
 			res.PartNumber = j.Chunk.Number
