@@ -907,6 +907,52 @@ func (s *CosTestSuite) TestAccelerate() {
 	assert.Equal(s.T(), opt.Type, res.Type, "GetAccelerate Failed")
 }
 
+func (s *CosTestSuite) TestMultiCopy() {
+	u := "http://" + kRepBucket + "-" + s.Appid + ".cos." + kRepRegion + ".myqcloud.com"
+	iu, _ := url.Parse(u)
+	ib := &cos.BaseURL{BucketURL: iu}
+	c := cos.NewClient(ib, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+		},
+	})
+
+	opt := &cos.BucketPutOptions{
+		XCosACL: "public-read",
+	}
+
+	// Notice in intranet the bucket host sometimes has i/o timeout problem
+	r, err := c.Bucket.Put(context.Background(), opt)
+	if err != nil && r.StatusCode == 409 {
+		fmt.Println("BucketAlreadyOwnedByYou")
+	} else if err != nil {
+		assert.Nil(s.T(), err, "PutBucket Failed")
+	}
+
+	source := "test/objectMove1" + time.Now().Format(time.RFC3339)
+	expected := "test"
+	f := strings.NewReader(expected)
+
+	r, err = c.Object.Put(context.Background(), source, f, nil)
+	assert.Nil(s.T(), err, "PutObject Failed")
+
+	time.Sleep(3 * time.Second)
+	// Copy file
+	soruceURL := fmt.Sprintf("%s/%s", iu.Host, source)
+	dest := "test/objectMove1" + time.Now().Format(time.RFC3339)
+	_, _, err = s.Client.Object.MultiCopy(context.Background(), dest, soruceURL, nil)
+	assert.Nil(s.T(), err, "MultiCopy Failed")
+
+	// Check content
+	resp, err := s.Client.Object.Get(context.Background(), dest, nil)
+	assert.Nil(s.T(), err, "GetObject Failed")
+	bs, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	result := string(bs)
+	assert.Equal(s.T(), expected, result, "MultiCopy Failed, wrong content")
+}
+
 // End of api test
 
 // All methods that begin with "Test" are run as tests within a
