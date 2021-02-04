@@ -3,7 +3,6 @@ package cos
 // Basic imports
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -113,6 +112,20 @@ func (s *CosTestSuite) SetupSuite() {
 // Service API
 func (s *CosTestSuite) TestGetService() {
 	_, _, err := s.Client.Service.Get(context.Background())
+	assert.Nil(s.T(), err, "GetService Failed")
+}
+
+func (s *CosTestSuite) TestGetRegionService() {
+	u, _ := url.Parse("http://cos.ap-guangzhou.myqcloud.com")
+	b := &cos.BaseURL{ServiceURL: u}
+	client := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+		},
+	})
+
+	_, _, err := client.Service.Get(context.Background())
 	assert.Nil(s.T(), err, "GetService Failed")
 }
 
@@ -735,6 +748,7 @@ func (s *CosTestSuite) TestMultiUpload() {
 	assert.Nil(s.T(), err, "remove tmp file failed")
 }
 
+/*
 func (s *CosTestSuite) TestBatch() {
 	client := cos.NewClient(s.Client.BaseURL, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -841,6 +855,7 @@ func (s *CosTestSuite) TestBatch() {
 	assert.Equal(s.T(), res4.Status, "Ready", "status failed")
 	assert.Equal(s.T(), res4.StatusUpdateReason, "to test", "StatusUpdateReason failed")
 }
+*/
 
 func (s *CosTestSuite) TestEncryption() {
 	opt := &cos.BucketPutEncryptionOptions{
@@ -852,6 +867,7 @@ func (s *CosTestSuite) TestEncryption() {
 	_, err := s.Client.Bucket.PutEncryption(context.Background(), opt)
 	assert.Nil(s.T(), err, "PutEncryption Failed")
 
+	time.Sleep(time.Second * 2)
 	res, _, err := s.Client.Bucket.GetEncryption(context.Background())
 	assert.Nil(s.T(), err, "GetEncryption Failed")
 	assert.Equal(s.T(), opt.Rule.SSEAlgorithm, res.Rule.SSEAlgorithm, "GetEncryption Failed")
