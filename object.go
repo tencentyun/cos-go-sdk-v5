@@ -626,7 +626,7 @@ func SplitFileIntoChunks(filePath string, partSize int64) (int64, []Chunk, int, 
 			return 0, nil, 0, errors.New("Too many parts, out of 10000")
 		}
 	} else {
-		partNum, partSize = DividePart(stat.Size(), 1)
+		partNum, partSize = DividePart(stat.Size(), 64)
 	}
 
 	var chunks []Chunk
