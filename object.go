@@ -513,7 +513,7 @@ func (s *ObjectService) DeleteMulti(ctx context.Context, opt *ObjectDeleteMultiO
 type Object struct {
 	Key          string `xml:",omitempty"`
 	ETag         string `xml:",omitempty"`
-	Size         int    `xml:",omitempty"`
+	Size         int64  `xml:",omitempty"`
 	PartNumber   int    `xml:",omitempty"`
 	LastModified string `xml:",omitempty"`
 	StorageClass string `xml:",omitempty"`
@@ -836,35 +836,43 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	}()
 
 	// 5.Recv the resp etag to complete
+	err = nil
 	for i := 0; i < partNum; i++ {
 		if chunks[i].Done {
 			optcom.Parts = append(optcom.Parts, Object{
 				PartNumber: chunks[i].Number, ETag: chunks[i].ETag},
 			)
-			consumedBytes += chunks[i].Size
-			event = newProgressEvent(ProgressDataEvent, chunks[i].Size, consumedBytes, totalBytes)
-			progressCallback(listener, event)
+			if err == nil {
+				consumedBytes += chunks[i].Size
+				event = newProgressEvent(ProgressDataEvent, chunks[i].Size, consumedBytes, totalBytes)
+				progressCallback(listener, event)
+			}
 			continue
 		}
 		res := <-chresults
 		// Notice one part fail can not get the etag according.
 		if res.Resp == nil || res.err != nil {
 			// Some part already fail, can not to get the header inside.
-			err := fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
-			event = newProgressEvent(ProgressFailedEvent, 0, consumedBytes, totalBytes, err)
-			progressCallback(listener, event)
-			return nil, nil, err
+			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
+			continue
 		}
 		// Notice one part fail can not get the etag according.
 		etag := res.Resp.Header.Get("ETag")
 		optcom.Parts = append(optcom.Parts, Object{
 			PartNumber: res.PartNumber, ETag: etag},
 		)
-		consumedBytes += chunks[res.PartNumber-1].Size
-		event = newProgressEvent(ProgressDataEvent, chunks[res.PartNumber-1].Size, consumedBytes, totalBytes)
-		progressCallback(listener, event)
+		if err == nil {
+			consumedBytes += chunks[res.PartNumber-1].Size
+			event = newProgressEvent(ProgressDataEvent, chunks[res.PartNumber-1].Size, consumedBytes, totalBytes)
+			progressCallback(listener, event)
+		}
 	}
 	close(chresults)
+	if err != nil {
+		event = newProgressEvent(ProgressFailedEvent, 0, consumedBytes, totalBytes, err)
+		progressCallback(listener, event)
+		return nil, nil, err
+	}
 	sort.Sort(ObjectList(optcom.Parts))
 
 	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)

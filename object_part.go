@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 )
 
 // InitiateMultipartUploadOptions is the option of InitateMultipartUpload
@@ -349,6 +350,7 @@ func copyworker(s *ObjectService, jobs <-chan *CopyJobs, results chan<- *CopyRes
 					results <- &copyres
 					break
 				}
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 			results <- &copyres
@@ -389,7 +391,7 @@ func SplitCopyFileIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, er
 			return nil, 0, errors.New("Too many parts, out of 10000")
 		}
 	} else {
-		partNum, partSize = DividePart(totalBytes, 64)
+		partNum, partSize = DividePart(totalBytes, 128)
 	}
 
 	var chunks []Chunk
@@ -483,13 +485,12 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 		}
 		close(chjobs)
 	}()
-
 	err = nil
 	for i := 0; i < partNum; i++ {
 		res := <-chresults
 		if res.res == nil || res.err != nil {
 			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
-			break
+			continue
 		}
 		etag := res.res.ETag
 		optcom.Parts = append(optcom.Parts, Object{
