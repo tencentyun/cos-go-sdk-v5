@@ -15,7 +15,7 @@ import (
 )
 
 type JSONInputSerialization struct {
-	Type string `xml:"Type"`
+	Type string `xml:"Type,omitempty"`
 }
 
 type CSVInputSerialization struct {
