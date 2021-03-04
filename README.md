@@ -93,3 +93,14 @@ Object API:
 * [x] Complete Multipart Upload（使用示例：[object/completeMultipartUpload.go](./example/object/completeMultipartUpload.go)）
 * [x] Abort Multipart Upload（使用示例：[object/abortMultipartUpload.go](./example/object/abortMultipartUpload.go)）
 * [x] Mutipart Upload（使用示例：[object/MutiUpload.go](./example/object/MutiUpload.go)）
+
+
+数据处理 API:
+
+* [x] 媒体处理（使用示例：[ci_media.go](./example/media_process/media_process.go)）
+* [x] 文档处理（使用示例：[ci_doc.go](./example/doc_process/ci_doc_process.go)）
+
+
+内容审核 API:
+
+* [x] 视频审核（使用示例：[ci_doc.go](./example/content_auditing/ci_video_auditing_job.go)）
