@@ -10,7 +10,7 @@ type JobInput struct {
 	Object string `xml:"Object,omitempty"`
 }
 
-type JobOutput struct {	
+type JobOutput struct {
 	Region string `xml:"Region,omitempty"`
 	Bucket string `xml:"Bucket,omitempty"`
 	Object string `xml:"Object,omitempty"`
@@ -21,114 +21,113 @@ type Container struct {
 }
 
 type Video struct {
-	Codec string `xml:"Codec"`
-	Width string `xml:"Width"`
-	Height string `xml:"Height"`
-	Fps string `xml:"Fps"`
-	Remove string `xml:"Remove"`
-	Profile string `xml:"Profile"`
-	Bitrate string `xml:"Bitrate"`
-	Crf string `xml:"Crf"`
-	Gop string `xml:"Gop"`
-	Preset string `xml:"Preset"`
-	Bufsize string `xml:"Bufsize"`
-	Maxrate string `xml:"Maxrate"`
-	HlsTsTime string `xml:"HlsTsTime"`
-	Pixfmt string `xml:"Pixfmt"`
+	Codec         string `xml:"Codec"`
+	Width         string `xml:"Width"`
+	Height        string `xml:"Height"`
+	Fps           string `xml:"Fps"`
+	Remove        string `xml:"Remove"`
+	Profile       string `xml:"Profile"`
+	Bitrate       string `xml:"Bitrate"`
+	Crf           string `xml:"Crf"`
+	Gop           string `xml:"Gop"`
+	Preset        string `xml:"Preset"`
+	Bufsize       string `xml:"Bufsize"`
+	Maxrate       string `xml:"Maxrate"`
+	HlsTsTime     string `xml:"HlsTsTime"`
+	Pixfmt        string `xml:"Pixfmt"`
 	LongShortMode string `xml:"LongShortMode"`
 }
 
 type TimeInterval struct {
-	Start string `xml:"Start"`
+	Start    string `xml:"Start"`
 	Duration string `xml:"Duration"`
 }
 
 type Audio struct {
-	Codec string `xml:"Codec"`
+	Codec      string `xml:"Codec"`
 	Samplerate string `xml:"Samplerate"`
-	Bitrate string `xml:"Bitrate"`
-	Channels string `xml:"Channels"`
-	Remove string `xml:"Remove"`
+	Bitrate    string `xml:"Bitrate"`
+	Channels   string `xml:"Channels"`
+	Remove     string `xml:"Remove"`
 }
 
 type TransConfig struct {
-	AdjDarMethod string `xml:"AdjDarMethod"`
-	IsCheckReso string `xml:"IsCheckReso"`
-	ResoAdjMethod string `xml:"ResoAdjMethod"`
-	IsCheckVideoBitrate string `xml:"IsCheckVideoBitrate"`
+	AdjDarMethod          string `xml:"AdjDarMethod"`
+	IsCheckReso           string `xml:"IsCheckReso"`
+	ResoAdjMethod         string `xml:"ResoAdjMethod"`
+	IsCheckVideoBitrate   string `xml:"IsCheckVideoBitrate"`
 	VideoBitrateAdjMethod string `xml:"VideoBitrateAdjMethod"`
-	IsCheckAudioBitrate string `xml:"IsCheckAudioBitrate"`
+	IsCheckAudioBitrate   string `xml:"IsCheckAudioBitrate"`
 	AudioBitrateAdjMethod string `xml:"AudioBitrateAdjMethod"`
 }
 
 type Transcode struct {
 	Container    *Container    `xml:"Container,omitempty"`
-	Video        *Video        `xml:"Video,omitempty"`	
+	Video        *Video        `xml:"Video,omitempty"`
 	TimeInterval *TimeInterval `xml:"TimeInterval,omitempty"`
-	Audio        *Audio        `xml:"Audio,omitempty"` 
+	Audio        *Audio        `xml:"Audio,omitempty"`
 	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
 }
 
 type Image struct {
-	Url string `xml:"Url,omitempty"`
-	Mode  string `xml:"Mode,omitempty"`
-	Width string `xml:"Width,omitempty"`
-	Height string `xml:"Height,omitempty"`
+	Url          string `xml:"Url,omitempty"`
+	Mode         string `xml:"Mode,omitempty"`
+	Width        string `xml:"Width,omitempty"`
+	Height       string `xml:"Height,omitempty"`
 	Transparency string `xml:"Transparency,omitempty"`
-	Background string `xml:"Background,omitempty"`
+	Background   string `xml:"Background,omitempty"`
 }
 
-
 type Text struct {
-	FontSize string `xml:"FontSize,omitempty"`
-	FontType string `xml:"FontType,omitempty"`
-	FontColor string `xml:"FontColor,omitempty"`
+	FontSize     string `xml:"FontSize,omitempty"`
+	FontType     string `xml:"FontType,omitempty"`
+	FontColor    string `xml:"FontColor,omitempty"`
 	Transparency string `xml:"Transparency,omitempty"`
-	Text string `xml:"Text,omitempty"`
+	Text         string `xml:"Text,omitempty"`
 }
 
 type Watermark struct {
-	Type string `xml:"Type,omitempty"`
-	Pos  string `xml:"Pos,omitempty"`
-	LocMode string `xml:"LocMode,omitempty"`
-	Dx      string `xml:"Dx,omitempty"`
-	Dy      string `xml:"Dy,omitempty"`
+	Type      string `xml:"Type,omitempty"`
+	Pos       string `xml:"Pos,omitempty"`
+	LocMode   string `xml:"LocMode,omitempty"`
+	Dx        string `xml:"Dx,omitempty"`
+	Dy        string `xml:"Dy,omitempty"`
 	StartTime string `xml:"StartTime,omitempty"`
-	EndTime string `xml:"EndTime,omitempty"`
-	Image   *Image `xml:"Image,omitempty"`
-	Text    *Text `xml:"Text,omitempty"`
+	EndTime   string `xml:"EndTime,omitempty"`
+	Image     *Image `xml:"Image,omitempty"`
+	Text      *Text  `xml:"Text,omitempty"`
 }
 
 type MediaProcessJobOperation struct {
-	Output           *JobOutput       `xml:"Output,omitempty"`
-	Transcode        *Transcode       `xml:"Transcode,omitempty"`
-	Watermark        *Watermark       `xml:"Watermark,omitempty"`
-	TemplateId       string           `xml:"TemplateId,omitempty"` 
-	WatermarkTemplateId []string      `xml:"WatermarkTemplateId,omitempty"`
+	Output              *JobOutput `xml:"Output,omitempty"`
+	Transcode           *Transcode `xml:"Transcode,omitempty"`
+	Watermark           *Watermark `xml:"Watermark,omitempty"`
+	TemplateId          string     `xml:"TemplateId,omitempty"`
+	WatermarkTemplateId []string   `xml:"WatermarkTemplateId,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
-	XMLName   xml.Name                `xml:"Request"`
-	Tag       string                  `xml:"Tag,omitempty"`
-	Input     *JobInput     `xml:"Input,omitempty"`
+	XMLName   xml.Name                  `xml:"Request"`
+	Tag       string                    `xml:"Tag,omitempty"`
+	Input     *JobInput                 `xml:"Input,omitempty"`
 	Operation *MediaProcessJobOperation `xml:"Operation,omitempty"`
-	QueueId   string                  `xml:"QueueId,omitempty"`	
+	QueueId   string                    `xml:"QueueId,omitempty"`
 }
 
 type MediaProcessJobDetail struct {
-	Code         string                  `xml:"Code,omitempty"`
-	Message      string                  `xml:"Message,omitempty"`
-	JobId        string                  `xml:"JobId,omitempty"`
-	Tag          string                  `xml:"Tag,omitempty"`
-	State        string                  `xml:"State,omitempty"`
-	CreationTime string                  `xml:"CreationTime,omitempty"`
-	QueueId      string                  `xml:"QueueId,omitempty"`
-	Input        *JobInput     `xml:"Input,omitempty"`
-	Operation    *MediaProcessJobOperation `xml:"Operation,omitempty"`	
+	Code         string                    `xml:"Code,omitempty"`
+	Message      string                    `xml:"Message,omitempty"`
+	JobId        string                    `xml:"JobId,omitempty"`
+	Tag          string                    `xml:"Tag,omitempty"`
+	State        string                    `xml:"State,omitempty"`
+	CreationTime string                    `xml:"CreationTime,omitempty"`
+	QueueId      string                    `xml:"QueueId,omitempty"`
+	Input        *JobInput                 `xml:"Input,omitempty"`
+	Operation    *MediaProcessJobOperation `xml:"Operation,omitempty"`
 }
 
 type CreateMediaJobsResult struct {
-	XMLName    xml.Name            `xml:"Response"`
+	XMLName    xml.Name              `xml:"Response"`
 	JobsDetail MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
@@ -143,12 +142,12 @@ func (s *CIService) CreateMediaJobs(ctx context.Context, opt *CreateMediaJobsOpt
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
-} 
+}
 
 type DescribeMediaProcessJobResult struct {
-	XMLName        xml.Name             `xml:"Response"`
+	XMLName        xml.Name               `xml:"Response"`
 	JobsDetail     *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
-	NonExistJobIds string               `xml:"NonExistJobIds,omitempty"`
+	NonExistJobIds string                 `xml:"NonExistJobIds,omitempty"`
 }
 
 func (s *CIService) DescribeMediaJobs(ctx context.Context, jobid string) (*DescribeMediaProcessJobResult, *Response, error) {
@@ -201,23 +200,23 @@ type DescribeMediaProcessQueuesOptions struct {
 }
 
 type DescribeMediaProcessQueuesResult struct {
-	XMLName      xml.Name          `xml:"Response"`
-	RequestId    string            `xml:"RequestId,omitempty"`
-	TotalCount   int               `xml:"TotalCount,omitempty"`
-	PageNumber   int               `xml:"PageNumber,omitempty"`
-	PageSize     int               `xml:"PageSize,omitempty"`
+	XMLName      xml.Name            `xml:"Response"`
+	RequestId    string              `xml:"RequestId,omitempty"`
+	TotalCount   int                 `xml:"TotalCount,omitempty"`
+	PageNumber   int                 `xml:"PageNumber,omitempty"`
+	PageSize     int                 `xml:"PageSize,omitempty"`
 	QueueList    []MediaProcessQueue `xml:"QueueList,omitempty"`
-	NonExistPIDs []string          `xml:"NonExistPIDs,omitempty"`
+	NonExistPIDs []string            `xml:"NonExistPIDs,omitempty"`
 }
 
 type MediaProcessQueue struct {
-	QueueId       string                       `xml:"QueueId,omitempty"`
-	Name          string                       `xml:"Name,omitempty"`
-	State         string                       `xml:"State,omitempty"`
-	MaxSize       int                          `xml:"MaxSize,omitempty"`
-	MaxConcurrent int                          `xml:"MaxConcurrent,omitempty"`
-	UpdateTime    string                       `xml:"UpdateTime,omitempty"`
-	CreateTime    string                       `xml:"CreateTime,omitempty"`
+	QueueId       string                         `xml:"QueueId,omitempty"`
+	Name          string                         `xml:"Name,omitempty"`
+	State         string                         `xml:"State,omitempty"`
+	MaxSize       int                            `xml:"MaxSize,omitempty"`
+	MaxConcurrent int                            `xml:"MaxConcurrent,omitempty"`
+	UpdateTime    string                         `xml:"UpdateTime,omitempty"`
+	CreateTime    string                         `xml:"CreateTime,omitempty"`
 	NotifyConfig  *MediaProcessQueueNotifyConfig `xml:"NotifyConfig,omitempty"`
 }
 
@@ -242,16 +241,16 @@ func (s *CIService) DescribeMediaProcessQueues(ctx context.Context, opt *Describ
 }
 
 type UpdateMediaProcessQueueOptions struct {
-	XMLName      xml.Name                     `xml:"Request"`
-	Name         string                       `xml:"Name,omitempty"`
-	QueueID      string                       `xml:"QueueID,omitempty"`
-	State        string                       `xml:"State,omitempty"`
+	XMLName      xml.Name                       `xml:"Request"`
+	Name         string                         `xml:"Name,omitempty"`
+	QueueID      string                         `xml:"QueueID,omitempty"`
+	State        string                         `xml:"State,omitempty"`
 	NotifyConfig *MediaProcessQueueNotifyConfig `xml:"NotifyConfig,omitempty"`
 }
 
 type UpdateMediaProcessQueueResult struct {
-	XMLName   xml.Name         `xml:"Response"`
-	RequestId string           `xml:"RequestId"`
+	XMLName   xml.Name           `xml:"Response"`
+	RequestId string             `xml:"RequestId"`
 	Queue     *MediaProcessQueue `xml:"Queue"`
 }
 
@@ -277,17 +276,17 @@ type DescribeMediaProcessBucketsOptions struct {
 }
 
 type DescribeMediaProcessBucketsResult struct {
-	XMLName       xml.Name           `xml:"Response"`
-	RequestId     string             `xml:"RequestId,omitempty"`
-	TotalCount    int                `xml:"TotalCount,omitempty"`
-	PageNumber    int                `xml:"PageNumber,omitempty"`
-	PageSize      int                `xml:"PageSize,omitempty"`
+	XMLName         xml.Name             `xml:"Response"`
+	RequestId       string               `xml:"RequestId,omitempty"`
+	TotalCount      int                  `xml:"TotalCount,omitempty"`
+	PageNumber      int                  `xml:"PageNumber,omitempty"`
+	PageSize        int                  `xml:"PageSize,omitempty"`
 	MediaBucketList []MediaProcessBucket `xml:"MediaBucketList,omitempty"`
 }
 type MediaProcessBucket struct {
-	BucketId      string `xml:"BucketId,omitempty"`
-	Region        string `xml:"Region,omitempty"`
-	CreateTime    string `xml:"CreateTime,omitempty"`
+	BucketId   string `xml:"BucketId,omitempty"`
+	Region     string `xml:"Region,omitempty"`
+	CreateTime string `xml:"CreateTime,omitempty"`
 }
 
 func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *DescribeMediaProcessBucketsOptions) (*DescribeMediaProcessBucketsResult, *Response, error) {

@@ -80,7 +80,7 @@ func main() {
 					Codec: "AAC",
 				},
 				TimeInterval: &cos.TimeInterval{
-					Start: "10",
+					Start:    "10",
 					Duration: "",
 				},
 			},
