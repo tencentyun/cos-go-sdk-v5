@@ -47,7 +47,6 @@ func main() {
 			},
 		},
 	})
-	fmt.Printf("%+v\n", os.Getenv("COS_SECRETID"))
 	// DescribeMediaProcessQueues
 	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
 		QueueIds:   "",
