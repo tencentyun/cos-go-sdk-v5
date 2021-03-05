@@ -31,7 +31,7 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://jojoliang-batch-1253960454.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
