@@ -39,7 +39,7 @@ type JSONOutputSerialization struct {
 }
 
 type CSVOutputSerialization struct {
-	QuoteFileds          string `xml:"QuoteFileds,omitempty"`
+	QuoteFields          string `xml:"QuoteFields,omitempty"`
 	RecordDelimiter      string `xml:"RecordDelimiter,omitempty"`
 	FieldDelimiter       string `xml:"FieldDelimiter,omitempty"`
 	QuoteCharacter       string `xml:"QuoteCharacter,omitempty"`

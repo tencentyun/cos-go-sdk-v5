@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"io"
 	"net/http"
+	"os"
 )
 
 type CIService service
@@ -200,4 +202,42 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+// ci put https://cloud.tencent.com/document/product/460/18147
+func (s *CIService) Put(ctx context.Context, name string, r io.Reader, opt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
+	if err := CheckReaderLen(r); err != nil {
+		return nil, nil, err
+	}
+	if opt != nil && opt.Listener != nil {
+		totalBytes, err := GetReaderLen(r)
+		if err != nil {
+			return nil, nil, err
+		}
+		r = TeeReader(r, nil, totalBytes, opt.Listener)
+	}
+
+	var res ImageProcessResult
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(name),
+		method:    http.MethodPut,
+		body:      r,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+
+	return &res, resp, err
+}
+
+// ci put object from local file
+func (s *CIService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
+	fd, err := os.Open(filePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer fd.Close()
+
+	return s.Put(ctx, name, fd, opt)
 }
