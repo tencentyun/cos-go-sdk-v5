@@ -524,10 +524,11 @@ type Object struct {
 // MultiUploadOptions is the option of the multiupload,
 // ThreadPoolSize default is one
 type MultiUploadOptions struct {
-	OptIni         *InitiateMultipartUploadOptions
-	PartSize       int64
-	ThreadPoolSize int
-	CheckPoint     bool
+	OptIni             *InitiateMultipartUploadOptions
+	PartSize           int64
+	ThreadPoolSize     int
+	CheckPoint         bool
+	EnableVerification bool
 }
 
 type Chunk struct {
@@ -738,10 +739,20 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	if opt == nil {
 		opt = &MultiUploadOptions{}
 	}
+	var localcrc uint64
 	// 1.Get the file chunk
 	totalBytes, chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize)
 	if err != nil {
 		return nil, nil, err
+	}
+	// 校验
+	if opt.EnableVerification {
+		fd, err := os.Open(filepath)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer fd.Close()
+		localcrc, err = calCRC64(fd)
 	}
 	// filesize=0 , use simple upload
 	if partNum == 0 {
@@ -881,8 +892,16 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
 	if err != nil {
 		s.AbortMultipartUpload(ctx, name, uploadID)
+		return v, resp, err
 	}
 
+	if resp != nil && opt.EnableVerification {
+		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
+		icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
+		if icoscrc != localcrc {
+			return v, resp, fmt.Errorf("verification failed, want:%v, return:%v", localcrc, icoscrc)
+		}
+	}
 	return v, resp, err
 }
 
