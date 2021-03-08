@@ -51,7 +51,8 @@ func main() {
 
 	// Case1 多线程上传对象
 	opt := &cos.MultiUploadOptions{
-		ThreadPoolSize: 3,
+		EnableVerification: true,
+		ThreadPoolSize:     5,
 	}
 	v, _, err := c.Object.Upload(
 		context.Background(), "gomulput1G", "./test1G", opt,
@@ -71,4 +72,5 @@ func main() {
 	)
 	log_status(err)
 	fmt.Printf("Case2 done, %v\n", v)
+
 }

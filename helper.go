@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"hash/crc64"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,6 +32,17 @@ func calSHA1Digest(msg []byte) []byte {
 	m := sha1.New()
 	m.Write(msg)
 	return m.Sum(nil)
+}
+
+func calCRC64(fd io.Reader) (uint64, error) {
+	tb := crc64.MakeTable(crc64.ECMA)
+	hash := crc64.New(tb)
+	_, err := io.Copy(hash, fd)
+	if err != nil {
+		return 0, err
+	}
+	sum := hash.Sum64()
+	return sum, nil
 }
 
 // cloneRequest returns a clone of the provided *http.Request. The clone is a
