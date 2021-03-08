@@ -895,7 +895,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		return v, resp, err
 	}
 
-	if opt.EnableVerification {
+	if resp != nil && opt.EnableVerification {
 		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
 		icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
 		if icoscrc != localcrc {
