@@ -771,6 +771,13 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			Key:  name,
 			ETag: rsp.Header.Get("ETag"),
 		}
+		if rsp != nil && opt.EnableVerification {
+			scoscrc := rsp.Header.Get("x-cos-hash-crc64ecma")
+			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
+			if icoscrc != localcrc {
+				return result, rsp, fmt.Errorf("verification failed, want:%v, return:%v", localcrc, icoscrc)
+			}
+		}
 		return result, rsp, nil
 	}
 
