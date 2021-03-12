@@ -71,7 +71,7 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 }
 
 type Config struct {
-	DisableCRC bool
+	EnableCRC bool
 }
 
 // Client is a client manages communication with the COS API.
@@ -119,7 +119,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		UserAgent: userAgent,
 		BaseURL:   baseURL,
 		Conf: &Config{
-			DisableCRC: false,
+			EnableCRC: true,
 		},
 	}
 	c.common.client = c
