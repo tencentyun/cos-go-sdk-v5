@@ -746,7 +746,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		return nil, nil, err
 	}
 	// 校验
-	if opt.EnableVerification {
+	if s.client.Conf.EnableCRC {
 		fd, err := os.Open(filepath)
 		if err != nil {
 			return nil, nil, err
@@ -771,7 +771,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			Key:  name,
 			ETag: rsp.Header.Get("ETag"),
 		}
-		if rsp != nil && opt.EnableVerification {
+		if rsp != nil && s.client.Conf.EnableCRC {
 			scoscrc := rsp.Header.Get("x-cos-hash-crc64ecma")
 			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
 			if icoscrc != localcrc {
@@ -902,7 +902,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		return v, resp, err
 	}
 
-	if resp != nil && opt.EnableVerification {
+	if resp != nil && s.client.Conf.EnableCRC {
 		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
 		icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
 		if icoscrc != localcrc {

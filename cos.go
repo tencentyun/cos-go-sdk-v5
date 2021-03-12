@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.21"
+	Version               = "0.7.22"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -70,6 +70,10 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 	return u
 }
 
+type Config struct {
+	EnableCRC bool
+}
+
 // Client is a client manages communication with the COS API.
 type Client struct {
 	client *http.Client
@@ -85,6 +89,8 @@ type Client struct {
 	Object  *ObjectService
 	Batch   *BatchService
 	CI      *CIService
+
+	Conf *Config
 }
 
 type service struct {
@@ -112,6 +118,9 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		client:    httpClient,
 		UserAgent: userAgent,
 		BaseURL:   baseURL,
+		Conf: &Config{
+			EnableCRC: true,
+		},
 	}
 	c.common.client = c
 	c.Service = (*ServiceService)(&c.common)
