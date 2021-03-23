@@ -2,6 +2,7 @@ package cos
 
 import (
 	"fmt"
+	"hash"
 	"io"
 )
 
@@ -99,6 +100,15 @@ func (r *teeReader) Close() error {
 
 func (r *teeReader) Size() int64 {
 	return r.totalBytes
+}
+
+func (r *teeReader) Crc64() uint64 {
+	if r.writer != nil {
+		if th, ok := r.writer.(hash.Hash64); ok {
+			return th.Sum64()
+		}
+	}
+	return 0
 }
 
 func TeeReader(reader io.Reader, writer io.Writer, total int64, listener ProgressListener) *teeReader {

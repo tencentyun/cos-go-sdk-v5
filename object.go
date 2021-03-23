@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"hash/crc64"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -147,7 +148,7 @@ type ObjectPutHeaderOptions struct {
 	ContentEncoding    string `header:"Content-Encoding,omitempty" url:"-"`
 	ContentType        string `header:"Content-Type,omitempty" url:"-"`
 	ContentMD5         string `header:"Content-MD5,omitempty" url:"-"`
-	ContentLength      int    `header:"Content-Length,omitempty" url:"-"`
+	ContentLength      int64  `header:"Content-Length,omitempty" url:"-"`
 	ContentLanguage    string `header:"Content-Language,omitempty" url:"-"`
 	Expect             string `header:"Expect,omitempty" url:"-"`
 	Expires            string `header:"Expires,omitempty" url:"-"`
@@ -179,26 +180,27 @@ type ObjectPutOptions struct {
 
 // Put Object请求可以将一个文件（Oject）上传至指定Bucket。
 //
-// 当 r 不是 bytes.Buffer/bytes.Reader/strings.Reader 时，必须指定 opt.ObjectPutHeaderOptions.ContentLength
-//
 // https://www.qcloud.com/document/product/436/7749
 func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, opt *ObjectPutOptions) (*Response, error) {
 	if err := CheckReaderLen(r); err != nil {
 		return nil, err
 	}
-	if opt != nil && opt.Listener != nil {
-		totalBytes, err := GetReaderLen(r)
-		if err != nil {
-			return nil, err
-		}
-		r = TeeReader(r, nil, totalBytes, opt.Listener)
+	totalBytes, err := GetReaderLen(r)
+	if err != nil && opt != nil && opt.Listener != nil {
+		return nil, err
 	}
-
+	reader := TeeReader(r, nil, totalBytes, nil)
+	if s.client.Conf.EnableCRC {
+		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	}
+	if opt != nil && opt.Listener != nil {
+		reader.listener = opt.Listener
+	}
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name),
 		method:    http.MethodPut,
-		body:      r,
+		body:      reader,
 		optHeader: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
@@ -556,38 +558,54 @@ type Results struct {
 	err        error
 }
 
+func LimitReadCloser(r io.Reader, n int64) io.Reader {
+	var lc LimitedReadCloser
+	lc.R = r
+	lc.N = n
+	return &lc
+}
+
+type LimitedReadCloser struct {
+	io.LimitedReader
+}
+
+func (lc *LimitedReadCloser) Close() error {
+	if r, ok := lc.R.(io.ReadCloser); ok {
+		return r.Close()
+	}
+	return nil
+}
+
 func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
-		fd, err := os.Open(j.FilePath)
-		var res Results
-		if err != nil {
-			res.err = err
-			res.PartNumber = j.Chunk.Number
-			res.Resp = nil
-			results <- &res
-		}
-
-		// UploadPart do not support the chunk trsf, so need to add the content-length
-		j.Opt.ContentLength = int(j.Chunk.Size)
+		j.Opt.ContentLength = j.Chunk.Size
 
 		rt := j.RetryTimes
 		for {
+			// http.Request.Body can be Closed in request
+			fd, err := os.Open(j.FilePath)
+			var res Results
+			if err != nil {
+				res.err = err
+				res.PartNumber = j.Chunk.Number
+				res.Resp = nil
+				results <- &res
+				break
+			}
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			resp, err := s.UploadPart(context.Background(), j.Name, j.UploadId, j.Chunk.Number,
-				&io.LimitedReader{R: fd, N: j.Chunk.Size}, j.Opt)
+				LimitReadCloser(fd, j.Chunk.Size), j.Opt)
 			res.PartNumber = j.Chunk.Number
 			res.Resp = resp
 			res.err = err
 			if err != nil {
 				rt--
 				if rt == 0 {
-					fd.Close()
 					results <- &res
 					break
 				}
 				continue
 			}
-			fd.Close()
 			results <- &res
 			break
 		}

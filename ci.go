@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"hash/crc64"
 	"io"
 	"net/http"
 	"os"
@@ -209,12 +210,16 @@ func (s *CIService) Put(ctx context.Context, name string, r io.Reader, opt *Obje
 	if err := CheckReaderLen(r); err != nil {
 		return nil, nil, err
 	}
+	totalBytes, err := GetReaderLen(r)
+	if err != nil && opt != nil && opt.Listener != nil {
+		return nil, nil, err
+	}
+	reader := TeeReader(r, nil, totalBytes, nil)
+	if s.client.Conf.EnableCRC {
+		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	}
 	if opt != nil && opt.Listener != nil {
-		totalBytes, err := GetReaderLen(r)
-		if err != nil {
-			return nil, nil, err
-		}
-		r = TeeReader(r, nil, totalBytes, opt.Listener)
+		reader.listener = opt.Listener
 	}
 
 	var res ImageProcessResult
@@ -222,7 +227,7 @@ func (s *CIService) Put(ctx context.Context, name string, r io.Reader, opt *Obje
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name),
 		method:    http.MethodPut,
-		body:      r,
+		body:      reader,
 		optHeader: opt,
 		result:    &res,
 	}

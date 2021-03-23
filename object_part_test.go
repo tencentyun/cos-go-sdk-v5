@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"hash/crc64"
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -102,11 +104,14 @@ func TestObjectService_UploadPart(t *testing.T) {
 		testFormValues(t, r, vs)
 
 		b, _ := ioutil.ReadAll(r.Body)
+		tb := crc64.MakeTable(crc64.ECMA)
+		crc := crc64.Update(0, tb, b)
 		v := string(b)
 		want := "hello"
 		if !reflect.DeepEqual(v, want) {
 			t.Errorf("Object.UploadPart request body: %#v, want %#v", v, want)
 		}
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
 	})
 
 	r := bytes.NewReader([]byte("hello"))
