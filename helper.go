@@ -159,6 +159,20 @@ func GetReaderLen(reader io.Reader) (length int64, err error) {
 	return
 }
 
+func IsLenReader(reader io.Reader) bool {
+	switch reader.(type) {
+	case *bytes.Buffer:
+		return true
+	case *bytes.Reader:
+		return true
+	case *strings.Reader:
+		return true
+	default:
+		return false
+	}
+	return false
+}
+
 func CheckReaderLen(reader io.Reader) error {
 	nlen, err := GetReaderLen(reader)
 	if err != nil || nlen < singleUploadMaxLength {

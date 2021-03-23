@@ -206,13 +206,20 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 }
 
 // ci put https://cloud.tencent.com/document/product/460/18147
-func (s *CIService) Put(ctx context.Context, name string, r io.Reader, opt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
+func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
 	if err := CheckReaderLen(r); err != nil {
 		return nil, nil, err
 	}
+	opt := cloneObjectPutOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
 	if err != nil && opt != nil && opt.Listener != nil {
 		return nil, nil, err
+	}
+	if err == nil {
+		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
+		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+			opt.ContentLength = totalBytes
+		}
 	}
 	reader := TeeReader(r, nil, totalBytes, nil)
 	if s.client.Conf.EnableCRC {

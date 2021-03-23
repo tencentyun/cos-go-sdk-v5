@@ -181,13 +181,20 @@ type ObjectPutOptions struct {
 // Put Object请求可以将一个文件（Oject）上传至指定Bucket。
 //
 // https://www.qcloud.com/document/product/436/7749
-func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, opt *ObjectPutOptions) (*Response, error) {
+func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*Response, error) {
 	if err := CheckReaderLen(r); err != nil {
 		return nil, err
 	}
+	opt := cloneObjectPutOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
 	if err != nil && opt != nil && opt.Listener != nil {
 		return nil, err
+	}
+	if err == nil {
+		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
+		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+			opt.ContentLength = totalBytes
+		}
 	}
 	reader := TeeReader(r, nil, totalBytes, nil)
 	if s.client.Conf.EnableCRC {
