@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"hash/crc64"
 	"io"
 	"net/http"
 	"net/url"
@@ -47,7 +48,7 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 type ObjectUploadPartOptions struct {
 	Expect                string `header:"Expect,omitempty" url:"-"`
 	XCosContentSHA1       string `header:"x-cos-content-sha1,omitempty" url:"-"`
-	ContentLength         int    `header:"Content-Length,omitempty" url:"-"`
+	ContentLength         int64  `header:"Content-Length,omitempty" url:"-"`
 	ContentMD5            string `header:"Content-MD5,omitempty" url:"-"`
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
@@ -68,16 +69,29 @@ type ObjectUploadPartOptions struct {
 // 当 r 不是 bytes.Buffer/bytes.Reader/strings.Reader 时，必须指定 opt.ContentLength
 //
 // https://www.qcloud.com/document/product/436/7750
-func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, partNumber int, r io.Reader, opt *ObjectUploadPartOptions) (*Response, error) {
+func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, partNumber int, r io.Reader, uopt *ObjectUploadPartOptions) (*Response, error) {
 	if err := CheckReaderLen(r); err != nil {
 		return nil, err
 	}
-	if opt != nil && opt.Listener != nil {
-		totalBytes, err := GetReaderLen(r)
-		if err != nil {
-			return nil, err
+	// opt 不为 nil
+	opt := cloneObjectUploadPartOptions(uopt)
+	totalBytes, err := GetReaderLen(r)
+	if err != nil && opt.Listener != nil {
+		return nil, err
+	}
+	// 分块上传不支持 Chunk 上传
+	if err == nil {
+		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader需用户指定ContentLength
+		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+			opt.ContentLength = totalBytes
 		}
-		r = TeeReader(r, nil, totalBytes, opt.Listener)
+	}
+	reader := TeeReader(r, nil, totalBytes, nil)
+	if s.client.Conf.EnableCRC {
+		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	}
+	if opt != nil && opt.Listener != nil {
+		reader.listener = opt.Listener
 	}
 	u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
 	sendOpt := sendOptions{
@@ -85,7 +99,7 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 		uri:       u,
 		method:    http.MethodPut,
 		optHeader: opt,
-		body:      r,
+		body:      reader,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err

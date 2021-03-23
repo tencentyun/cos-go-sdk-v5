@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"hash/crc64"
 	"io"
 	"net/http"
 	"os"
@@ -205,16 +206,27 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 }
 
 // ci put https://cloud.tencent.com/document/product/460/18147
-func (s *CIService) Put(ctx context.Context, name string, r io.Reader, opt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
+func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
 	if err := CheckReaderLen(r); err != nil {
 		return nil, nil, err
 	}
-	if opt != nil && opt.Listener != nil {
-		totalBytes, err := GetReaderLen(r)
-		if err != nil {
-			return nil, nil, err
+	opt := cloneObjectPutOptions(uopt)
+	totalBytes, err := GetReaderLen(r)
+	if err != nil && opt != nil && opt.Listener != nil {
+		return nil, nil, err
+	}
+	if err == nil {
+		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
+		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+			opt.ContentLength = totalBytes
 		}
-		r = TeeReader(r, nil, totalBytes, opt.Listener)
+	}
+	reader := TeeReader(r, nil, totalBytes, nil)
+	if s.client.Conf.EnableCRC {
+		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	}
+	if opt != nil && opt.Listener != nil {
+		reader.listener = opt.Listener
 	}
 
 	var res ImageProcessResult
@@ -222,7 +234,7 @@ func (s *CIService) Put(ctx context.Context, name string, r io.Reader, opt *Obje
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name),
 		method:    http.MethodPut,
-		body:      r,
+		body:      reader,
 		optHeader: opt,
 		result:    &res,
 	}

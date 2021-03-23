@@ -149,12 +149,28 @@ func GetReaderLen(reader io.Reader) (length int64, err error) {
 		}
 	case *io.LimitedReader:
 		length = int64(v.N)
+	case *LimitedReadCloser:
+		length = int64(v.N)
 	case FixedLengthReader:
 		length = v.Size()
 	default:
 		err = fmt.Errorf("can't get reader content length, unkown reader type")
 	}
 	return
+}
+
+func IsLenReader(reader io.Reader) bool {
+	switch reader.(type) {
+	case *bytes.Buffer:
+		return true
+	case *bytes.Reader:
+		return true
+	case *strings.Reader:
+		return true
+	default:
+		return false
+	}
+	return false
 }
 
 func CheckReaderLen(reader io.Reader) error {
@@ -193,4 +209,30 @@ func CopyOptionsToMulti(opt *ObjectCopyOptions) *InitiateMultipartUploadOptions 
 		XOptionHeader:            opt.ObjectCopyHeaderOptions.XOptionHeader,
 	}
 	return optini
+}
+
+// 浅拷贝ObjectPutOptions
+func cloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
+	res := &ObjectPutOptions{
+		&ACLHeaderOptions{},
+		&ObjectPutHeaderOptions{},
+	}
+	if opt != nil {
+		if opt.ACLHeaderOptions != nil {
+			*res.ACLHeaderOptions = *opt.ACLHeaderOptions
+		}
+		if opt.ObjectPutHeaderOptions != nil {
+			*res.ObjectPutHeaderOptions = *opt.ObjectPutHeaderOptions
+		}
+	}
+	return res
+}
+
+// 浅拷贝ObjectUploadPartOptions
+func cloneObjectUploadPartOptions(opt *ObjectUploadPartOptions) *ObjectUploadPartOptions {
+	var res ObjectUploadPartOptions
+	if opt != nil {
+		res = *opt
+	}
+	return &res
 }

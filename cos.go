@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.22"
+	Version               = "0.7.23"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -215,6 +215,18 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 		// even though there was an error, we still return the response
 		// in case the caller wants to inspect it further
 		return response, err
+	}
+
+	// need CRC64 verification
+	if reader, ok := req.Body.(*teeReader); ok {
+		if c.Conf.EnableCRC && reader.writer != nil {
+			localcrc := reader.Crc64()
+			scoscrc := response.Header.Get("x-cos-hash-crc64ecma")
+			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
+			if icoscrc != localcrc {
+				return response, fmt.Errorf("verification failed, want:%v, return:%v", localcrc, icoscrc)
+			}
+		}
 	}
 
 	if result != nil {
