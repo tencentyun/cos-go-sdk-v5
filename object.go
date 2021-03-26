@@ -217,14 +217,24 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 
 // PutFromFile put object from local file
 // Notice that when use this put large file need set non-body of debug req/resp, otherwise will out of memory
-func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (*Response, error) {
-	fd, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
+func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (resp *Response, err error) {
+	nr := 0
+	for nr < 3 {
+		var fd *os.File
+		fd, err = os.Open(filePath)
+		if err != nil {
+			return
+		}
+		resp, err = s.Put(ctx, name, fd, opt)
+		if err != nil {
+			nr++
+			fd.Close()
+			continue
+		}
+		fd.Close()
+		break
 	}
-	defer fd.Close()
-
-	return s.Put(ctx, name, fd, opt)
+	return
 }
 
 // ObjectCopyHeaderOptions is the head option of the Copy
