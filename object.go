@@ -783,7 +783,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		}
 	}
 	// filesize=0 , use simple upload
-	if partNum == 0 || totalBytes <= singleUploadThreshold {
+	if partNum == 0 || partNum == 1 {
 		var opt0 *ObjectPutOptions
 		if opt.OptIni != nil {
 			opt0 = &ObjectPutOptions{
