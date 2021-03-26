@@ -778,9 +778,12 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		}
 		defer fd.Close()
 		localcrc, err = calCRC64(fd)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	// filesize=0 , use simple upload
-	if partNum == 0 {
+	if partNum == 0 || totalBytes <= singleUploadThreshold {
 		var opt0 *ObjectPutOptions
 		if opt.OptIni != nil {
 			opt0 = &ObjectPutOptions{

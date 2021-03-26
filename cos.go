@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.23"
+	Version               = "0.7.24"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -71,7 +71,8 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 }
 
 type Config struct {
-	EnableCRC bool
+	EnableCRC        bool
+	RequestBodyClose bool
 }
 
 // Client is a client manages communication with the COS API.
@@ -119,7 +120,8 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		UserAgent: userAgent,
 		BaseURL:   baseURL,
 		Conf: &Config{
-			EnableCRC: true,
+			EnableCRC:        true,
+			RequestBodyClose: false,
 		},
 	}
 	c.common.client = c
@@ -181,6 +183,9 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	}
 	if c.Host != "" {
 		req.Host = c.Host
+	}
+	if c.Conf.RequestBodyClose {
+		req.Close = true
 	}
 	return
 }
