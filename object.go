@@ -220,9 +220,9 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (resp *Response, err error) {
 	nr := 0
 	for nr < 3 {
-		var fd *os.File
-		fd, err = os.Open(filePath)
-		if err != nil {
+		fd, e := os.Open(filePath)
+		if e != nil {
+			err = e
 			return
 		}
 		resp, err = s.Put(ctx, name, fd, opt)
