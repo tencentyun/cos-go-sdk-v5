@@ -16,6 +16,7 @@ import (
 
 // 单次上传文件最大为5GB
 const singleUploadMaxLength = 5 * 1024 * 1024 * 1024
+const singleUploadThreshold = 32 * 1024 * 1024
 
 // 计算 md5 或 sha1 时的分块大小
 const calDigestBlockSize = 1024 * 1024 * 10
