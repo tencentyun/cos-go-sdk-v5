@@ -182,6 +182,9 @@ type ObjectPutOptions struct {
 //
 // https://www.qcloud.com/document/product/436/7749
 func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*Response, error) {
+	if r == nil {
+		return nil, fmt.Errorf("reader is nil")
+	}
 	if err := CheckReaderLen(r); err != nil {
 		return nil, err
 	}

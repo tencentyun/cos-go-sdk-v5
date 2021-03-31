@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"net/url"
 	"os"
-
-	"net/http"
-
-	"fmt"
+	"strings"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -40,32 +39,24 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
 				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
+	// 创建文件夹
+	name := "example/"
+	_, err := c.Object.Put(context.Background(), name, strings.NewReader(""), nil)
+	log_status(err)
 
-	name := "test/uploadFile.go"
-	f, err := os.Open("test")
-	if err != nil {
-		log_status(err)
-		return
-	}
-	s, err := f.Stat()
-	if err != nil {
-		log_status(err)
-		return
-	}
-	opt := &cos.ObjectPutOptions{
-		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentLength: s.Size(),
-		},
-	}
-	//opt.ContentLength = s.Size()
+	// 查看文件夹是否存在
+	_, err = c.Object.Head(context.Background(), name, nil)
+	log_status(err)
 
-	_, err = c.Object.Put(context.Background(), name, f, opt)
+	// 删除文件夹
+	_, err = c.Object.Delete(context.Background(), name)
 	log_status(err)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"os"
+	"strings"
 
 	"net/http"
 
@@ -41,31 +42,27 @@ func main() {
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
-				RequestBody:    false,
+				RequestBody:    true,
 				ResponseHeader: true,
 				ResponseBody:   true,
 			},
 		},
 	})
 
-	name := "test/uploadFile.go"
-	f, err := os.Open("test")
-	if err != nil {
-		log_status(err)
-		return
-	}
-	s, err := f.Stat()
-	if err != nil {
-		log_status(err)
-		return
-	}
-	opt := &cos.ObjectPutOptions{
-		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentLength: s.Size(),
-		},
-	}
-	//opt.ContentLength = s.Size()
+	source := "test/oldfile"
+	f := strings.NewReader("test")
 
-	_, err = c.Object.Put(context.Background(), name, f, opt)
+	// 上传文件
+	_, err := c.Object.Put(context.Background(), source, f, nil)
 	log_status(err)
+
+	// 重命名
+	dest := "test/newfile"
+	soruceURL := fmt.Sprintf("%s/%s", u.Host, source)
+	_, _, err := c.Object.Copy(context.Background(), dest, soruceURL, nil)
+	log_status(err)
+	if err == nil {
+		_, err = c.Object.Delete(context.Background(), source, nil)
+		log_status(err)
+	}
 }

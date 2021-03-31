@@ -74,7 +74,7 @@ func main() {
 	}
 	opt := &cos.ObjectUploadPartOptions{
 		Listener:      &cos.DefaultProgressListener{},
-		ContentLength: int(stat.Size()),
+		ContentLength: stat.Size(),
 	}
 	resp, err := c.Object.UploadPart(
 		context.Background(), name, uploadID, 1, fd, opt,

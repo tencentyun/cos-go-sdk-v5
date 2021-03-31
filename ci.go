@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"hash/crc64"
 	"io"
 	"net/http"
@@ -207,6 +208,9 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 
 // ci put https://cloud.tencent.com/document/product/460/18147
 func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
+	if r == nil {
+		return nil, nil, fmt.Errorf("reader is nil")
+	}
 	if err := CheckReaderLen(r); err != nil {
 		return nil, nil, err
 	}
