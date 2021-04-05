@@ -8,12 +8,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"hash/crc64"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -513,4 +515,81 @@ func TestObjectService_Upload2(t *testing.T) {
 		}
 		retry++
 	}
+}
+
+func TestObjectService_Download(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "rsp.file" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	totalBytes := int64(1024 * 1024 * 10)
+	b := make([]byte, totalBytes)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := crc64.Update(0, tb, b)
+
+	retryMap := make(map[int64]int)
+	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(localcrc, 10))
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if retryMap[start] == 0 {
+			retryMap[start]++
+			w.WriteHeader(http.StatusGatewayTimeout)
+		} else if retryMap[start] == 1 {
+			retryMap[start]++
+			w.WriteHeader(http.StatusGatewayTimeout)
+			return
+			fd, err := os.Open(filePath)
+			if err != nil {
+				t.Fatalf("open file failed: %v", err)
+			}
+			defer fd.Close()
+			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(localcrc, 10))
+			fd.Seek(start, os.SEEK_SET)
+			n, err := io.Copy(w, LimitReadCloser(fd, (end-start)/2))
+			if err != nil || int64(n) != (end-start)/2 {
+				t.Fatalf("write file failed:%v, n:%v", err, n)
+			}
+
+		} else {
+			fd, err := os.Open(filePath)
+			if err != nil {
+				t.Fatalf("open file failed: %v", err)
+			}
+			defer fd.Close()
+			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(localcrc, 10))
+			fd.Seek(start, os.SEEK_SET)
+			n, err := io.Copy(w, LimitReadCloser(fd, end-start+1))
+			if err != nil || int64(n) != end-start+1 {
+				t.Fatalf("write file failed:%v, n:%v", err, n)
+			}
+		}
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.file" + time.Now().Format(time.RFC3339)
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err != nil {
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+	os.Remove(downPath)
 }

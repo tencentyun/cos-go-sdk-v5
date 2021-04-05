@@ -237,3 +237,26 @@ func cloneObjectUploadPartOptions(opt *ObjectUploadPartOptions) *ObjectUploadPar
 	}
 	return &res
 }
+
+type RangeOptions struct {
+	HasStart bool
+	HasEnd   bool
+	Start    int64
+	End      int64
+}
+
+func FormatRangeOptions(opt *RangeOptions) string {
+	if opt == nil {
+		return ""
+	}
+	if opt.HasStart && opt.HasEnd {
+		return fmt.Sprintf("bytes=%v-%v", opt.Start, opt.End)
+	}
+	if opt.HasStart {
+		return fmt.Sprintf("bytes=%v-", opt.Start)
+	}
+	if opt.HasEnd {
+		return fmt.Sprintf("bytes=-%v", opt.End)
+	}
+	return "bytes=-"
+}

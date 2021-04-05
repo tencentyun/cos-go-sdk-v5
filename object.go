@@ -553,6 +553,12 @@ type MultiUploadOptions struct {
 	EnableVerification bool
 }
 
+type MultiDownloadOptions struct {
+	Opt            *ObjectGetOptions
+	PartSize       int64
+	ThreadPoolSize int
+}
+
 type Chunk struct {
 	Number int
 	OffSet int64
@@ -570,6 +576,7 @@ type Jobs struct {
 	Chunk      Chunk
 	Data       io.Reader
 	Opt        *ObjectUploadPartOptions
+	DownOpt    *ObjectGetOptions
 }
 
 type Results struct {
@@ -625,6 +632,48 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 					break
 				}
 				continue
+			}
+			results <- &res
+			break
+		}
+	}
+}
+
+func downloadWorker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
+	for j := range jobs {
+		opt := &RangeOptions{
+			HasStart: true,
+			HasEnd:   true,
+			Start:    j.Chunk.OffSet,
+			End:      j.Chunk.OffSet + j.Chunk.Size - 1,
+		}
+		j.DownOpt.Range = FormatRangeOptions(opt)
+		rt := j.RetryTimes
+		for {
+			var res Results
+			res.PartNumber = j.Chunk.Number
+			resp, err := s.Get(context.Background(), j.Name, j.DownOpt)
+			res.err = err
+			res.Resp = resp
+			if err != nil {
+				rt--
+				if rt == 0 {
+					results <- &res
+					break
+				}
+				continue
+			}
+			defer resp.Body.Close()
+			fd, err := os.OpenFile(j.FilePath, os.O_WRONLY, 0660)
+			if err != nil {
+				res.err = err
+				results <- &res
+				break
+			}
+			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
+			n, err := io.Copy(fd, LimitReadCloser(resp.Body, j.Chunk.Size))
+			if n != j.Chunk.Size || err != nil {
+				res.err = fmt.Errorf("io.Copy Failed, read:%v, size:%v, err:%v", n, j.Chunk.Size, err)
 			}
 			results <- &res
 			break
@@ -951,6 +1000,150 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		}
 	}
 	return v, resp, err
+}
+
+func SplitSizeIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error) {
+	var partNum int64
+	if partSize > 0 {
+		partSize = partSize * 1024 * 1024
+		partNum = totalBytes / partSize
+		if partNum >= 10000 {
+			return nil, 0, errors.New("Too manry parts, out of 10000")
+		}
+	} else {
+		partNum, partSize = DividePart(totalBytes, 64)
+	}
+
+	var chunks []Chunk
+	var chunk = Chunk{}
+	for i := int64(0); i < partNum; i++ {
+		chunk.Number = int(i + 1)
+		chunk.OffSet = i * partSize
+		chunk.Size = partSize
+		chunks = append(chunks, chunk)
+	}
+
+	if totalBytes%partSize > 0 {
+		chunk.Number = len(chunks) + 1
+		chunk.OffSet = int64(len(chunks)) * partSize
+		chunk.Size = totalBytes % partSize
+		chunks = append(chunks, chunk)
+		partNum++
+	}
+
+	return chunks, int(partNum), nil
+}
+
+func (s *ObjectService) Download(ctx context.Context, name string, filepath string, opt *MultiDownloadOptions) (*Response, error) {
+	// 参数校验
+	if opt == nil {
+		opt = &MultiDownloadOptions{}
+	}
+	if opt.Opt != nil && opt.Opt.Range != "" {
+		return nil, fmt.Errorf("does not supported Range Get")
+	}
+	// 获取文件长度和CRC
+	var coscrc string
+	resp, err := s.Head(ctx, name, nil)
+	if err != nil {
+		return resp, err
+	}
+	coscrc = resp.Header.Get("x-cos-hash-crc64ecma")
+	strTotalBytes := resp.Header.Get("Content-Length")
+	totalBytes, err := strconv.ParseInt(strTotalBytes, 10, 64)
+	if err != nil {
+		return resp, err
+	}
+
+	// 切分
+	chunks, partNum, err := SplitSizeIntoChunks(totalBytes, opt.PartSize)
+	if err != nil {
+		return resp, err
+	}
+	// 直接下载到文件
+	if partNum == 0 || partNum == 1 {
+		rsp, err := s.GetToFile(ctx, name, filepath, opt.Opt)
+		if err != nil {
+			return rsp, err
+		}
+		if coscrc != "" && s.client.Conf.EnableCRC {
+			icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
+			fd, err := os.Open(filepath)
+			if err != nil {
+				return rsp, err
+			}
+			localcrc, err := calCRC64(fd)
+			if err != nil {
+				return rsp, err
+			}
+			if localcrc != icoscrc {
+				return rsp, fmt.Errorf("verification failed, want:%v, return:%v", icoscrc, localcrc)
+			}
+		}
+		return rsp, err
+	}
+	nfile, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	if err != nil {
+		return resp, err
+	}
+	nfile.Close()
+	var poolSize int
+	if opt.ThreadPoolSize > 0 {
+		poolSize = opt.ThreadPoolSize
+	} else {
+		poolSize = 1
+	}
+	chjobs := make(chan *Jobs, 100)
+	chresults := make(chan *Results, 10000)
+	for w := 1; w <= poolSize; w++ {
+		go downloadWorker(s, chjobs, chresults)
+	}
+
+	go func() {
+		for _, chunk := range chunks {
+			var downOpt ObjectGetOptions
+			if opt.Opt != nil {
+				downOpt = *opt.Opt
+			}
+			job := &Jobs{
+				Name:       name,
+				RetryTimes: 3,
+				FilePath:   filepath,
+				Chunk:      chunk,
+				DownOpt:    &downOpt,
+			}
+			chjobs <- job
+		}
+		close(chjobs)
+	}()
+
+	err = nil
+	for i := 0; i < partNum; i++ {
+		res := <-chresults
+		if res.Resp == nil || res.err != nil {
+			err = fmt.Errorf("part %d get resp Content. error: %s", res.PartNumber, res.err.Error())
+			continue
+		}
+	}
+	close(chresults)
+	if err != nil {
+		return nil, err
+	}
+	if coscrc != "" && s.client.Conf.EnableCRC {
+		icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
+		fd, err := os.Open(filepath)
+		if err != nil {
+			return resp, err
+		}
+		localcrc, err := calCRC64(fd)
+		if err != nil {
+			return resp, err
+		}
+		if localcrc != icoscrc {
+			return resp, fmt.Errorf("verification failed, want:%v, return:%v", icoscrc, localcrc)
+		}
+	}
+	return resp, err
 }
 
 type ObjectPutTaggingOptions struct {
