@@ -673,8 +673,9 @@ func downloadWorker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			n, err := io.Copy(fd, LimitReadCloser(resp.Body, j.Chunk.Size))
 			if n != j.Chunk.Size || err != nil {
-				res.err = fmt.Errorf("io.Copy Failed, read:%v, size:%v, err:%v", n, j.Chunk.Size, err)
+				res.err = fmt.Errorf("io.Copy Failed, nread:%v, want:%v, err:%v", n, j.Chunk.Size, err)
 			}
+			fd.Close()
 			results <- &res
 			break
 		}
@@ -1040,7 +1041,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		opt = &MultiDownloadOptions{}
 	}
 	if opt.Opt != nil && opt.Opt.Range != "" {
-		return nil, fmt.Errorf("does not supported Range Get")
+		return nil, fmt.Errorf("Download doesn't support Range Options")
 	}
 	// 获取文件长度和CRC
 	var coscrc string
@@ -1048,6 +1049,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	if err != nil {
 		return resp, err
 	}
+	// 如果对象不存在x-cos-hash-crc64ecma，则跳过不做校验
 	coscrc = resp.Header.Get("x-cos-hash-crc64ecma")
 	strTotalBytes := resp.Header.Get("Content-Length")
 	totalBytes, err := strconv.ParseInt(strTotalBytes, 10, 64)
@@ -1072,6 +1074,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			if err != nil {
 				return rsp, err
 			}
+			defer fd.Close()
 			localcrc, err := calCRC64(fd)
 			if err != nil {
 				return rsp, err
@@ -1082,11 +1085,13 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		}
 		return rsp, err
 	}
+	// 创建文件
 	nfile, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	if err != nil {
 		return resp, err
 	}
 	nfile.Close()
+
 	var poolSize int
 	if opt.ThreadPoolSize > 0 {
 		poolSize = opt.ThreadPoolSize
@@ -1104,6 +1109,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			var downOpt ObjectGetOptions
 			if opt.Opt != nil {
 				downOpt = *opt.Opt
+				downOpt.Listener = nil // listener need to set nil
 			}
 			job := &Jobs{
 				Name:       name,
@@ -1135,6 +1141,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		if err != nil {
 			return resp, err
 		}
+		defer fd.Close()
 		localcrc, err := calCRC64(fd)
 		if err != nil {
 			return resp, err

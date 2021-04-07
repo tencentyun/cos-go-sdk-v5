@@ -10,6 +10,7 @@ import (
 	"hash/crc64"
 	"io"
 	"io/ioutil"
+	math_rand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -528,19 +529,19 @@ func TestObjectService_Download(t *testing.T) {
 	}
 	defer os.Remove(filePath)
 	// 源文件内容
-	totalBytes := int64(1024 * 1024 * 10)
+	totalBytes := int64(1024*1024*9 + 123)
 	b := make([]byte, totalBytes)
 	_, err = rand.Read(b)
 	newfile.Write(b)
 	newfile.Close()
 	tb := crc64.MakeTable(crc64.ECMA)
-	localcrc := crc64.Update(0, tb, b)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
 
 	retryMap := make(map[int64]int)
 	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodHead {
 			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
-			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(localcrc, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
 			return
 		}
 		strRange := r.Header.Get("Range")
@@ -549,36 +550,21 @@ func TestObjectService_Download(t *testing.T) {
 		start, _ := strconv.ParseInt(slice2[0], 10, 64)
 		end, _ := strconv.ParseInt(slice2[1], 10, 64)
 		if retryMap[start] == 0 {
+			// 重试校验1
 			retryMap[start]++
 			w.WriteHeader(http.StatusGatewayTimeout)
 		} else if retryMap[start] == 1 {
+			// 重试检验2
 			retryMap[start]++
-			w.WriteHeader(http.StatusGatewayTimeout)
-			return
-			fd, err := os.Open(filePath)
-			if err != nil {
-				t.Fatalf("open file failed: %v", err)
-			}
-			defer fd.Close()
-			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(localcrc, 10))
-			fd.Seek(start, os.SEEK_SET)
-			n, err := io.Copy(w, LimitReadCloser(fd, (end-start)/2))
-			if err != nil || int64(n) != (end-start)/2 {
-				t.Fatalf("write file failed:%v, n:%v", err, n)
-			}
-
+			io.Copy(w, bytes.NewBuffer(b[start:end]))
+		} else if retryMap[start] == 2 {
+			// 重试检验3
+			retryMap[start]++
+			st := math_rand.Int63n(totalBytes - 1024*1024)
+			et := st + end - start
+			io.Copy(w, bytes.NewBuffer(b[st:et+1]))
 		} else {
-			fd, err := os.Open(filePath)
-			if err != nil {
-				t.Fatalf("open file failed: %v", err)
-			}
-			defer fd.Close()
-			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(localcrc, 10))
-			fd.Seek(start, os.SEEK_SET)
-			n, err := io.Copy(w, LimitReadCloser(fd, end-start+1))
-			if err != nil || int64(n) != end-start+1 {
-				t.Fatalf("write file failed:%v, n:%v", err, n)
-			}
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
 		}
 	})
 
@@ -587,9 +573,20 @@ func TestObjectService_Download(t *testing.T) {
 		PartSize:       1,
 	}
 	downPath := "down.file" + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
 	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
-	if err != nil {
+	if err == nil {
+		// 长度不一致 Failed
 		t.Fatalf("Object.Upload returned error: %v", err)
 	}
-	os.Remove(downPath)
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err == nil {
+		// CRC不一致
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err != nil {
+		// 正确
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
 }
