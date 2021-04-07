@@ -187,7 +187,8 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 	}
 	opt := cloneObjectPutOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
-	if err != nil && opt != nil && opt.Listener != nil {
+	// see https://github.com/tencentyun/cos-go-sdk-v5/issues/118
+	if err != nil && opt != nil && opt.ObjectPutHeaderOptions != nil && opt.Listener != nil {
 		return nil, err
 	}
 	if err == nil {
