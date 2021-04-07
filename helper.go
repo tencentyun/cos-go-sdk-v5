@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"github.com/mozillazg/go-httpheader"
 	"hash/crc64"
 	"io"
 	"net/http"
@@ -236,4 +237,58 @@ func cloneObjectUploadPartOptions(opt *ObjectUploadPartOptions) *ObjectUploadPar
 		res = *opt
 	}
 	return &res
+}
+
+type RangeOptions struct {
+	HasStart bool
+	HasEnd   bool
+	Start    int64
+	End      int64
+}
+
+func FormatRangeOptions(opt *RangeOptions) string {
+	if opt == nil {
+		return ""
+	}
+	if opt.HasStart && opt.HasEnd {
+		return fmt.Sprintf("bytes=%v-%v", opt.Start, opt.End)
+	}
+	if opt.HasStart {
+		return fmt.Sprintf("bytes=%v-", opt.Start)
+	}
+	if opt.HasEnd {
+		return fmt.Sprintf("bytes=-%v", opt.End)
+	}
+	return "bytes=-"
+}
+
+var deliverHeader = map[string]bool{}
+
+func isDeliverHeader(key string) bool {
+	for k, v := range deliverHeader {
+		if key == k && v {
+			return true
+		}
+	}
+	return strings.HasPrefix(key, privateHeaderPrefix)
+}
+
+func deliverInitOptions(opt *InitiateMultipartUploadOptions) (*http.Header, error) {
+	if opt == nil {
+		return nil, nil
+	}
+	h, err := httpheader.Header(opt)
+	if err != nil {
+		return nil, err
+	}
+	header := &http.Header{}
+	for key, values := range h {
+		key = strings.ToLower(key)
+		if isDeliverHeader(key) {
+			for _, value := range values {
+				header.Add(key, value)
+			}
+		}
+	}
+	return header, nil
 }

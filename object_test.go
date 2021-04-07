@@ -8,12 +8,15 @@ import (
 	"encoding/xml"
 	"fmt"
 	"hash/crc64"
+	"io"
 	"io/ioutil"
+	math_rand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -512,5 +515,78 @@ func TestObjectService_Upload2(t *testing.T) {
 			t.Fatalf("Put Error: %v", err)
 		}
 		retry++
+	}
+}
+
+func TestObjectService_Download(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "rsp.file" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	totalBytes := int64(1024*1024*9 + 123)
+	b := make([]byte, totalBytes)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	retryMap := make(map[int64]int)
+	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if retryMap[start] == 0 {
+			// 重试校验1
+			retryMap[start]++
+			w.WriteHeader(http.StatusGatewayTimeout)
+		} else if retryMap[start] == 1 {
+			// 重试检验2
+			retryMap[start]++
+			io.Copy(w, bytes.NewBuffer(b[start:end]))
+		} else if retryMap[start] == 2 {
+			// 重试检验3
+			retryMap[start]++
+			st := math_rand.Int63n(totalBytes - 1024*1024)
+			et := st + end - start
+			io.Copy(w, bytes.NewBuffer(b[st:et+1]))
+		} else {
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+		}
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.file" + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err == nil {
+		// 长度不一致 Failed
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err == nil {
+		// CRC不一致
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err != nil {
+		// 正确
+		t.Fatalf("Object.Upload returned error: %v", err)
 	}
 }

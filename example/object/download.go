@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"os"
 
-	"net/http"
-
 	"fmt"
-
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
@@ -40,32 +38,20 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
+				RequestHeader:  false,
 				RequestBody:    false,
-				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseHeader: false,
+				ResponseBody:   false,
 			},
 		},
 	})
 
-	name := "test/uploadFile.go"
-	f, err := os.Open("test")
-	if err != nil {
-		log_status(err)
-		return
+	opt := &cos.MultiDownloadOptions{
+		ThreadPoolSize: 5,
 	}
-	s, err := f.Stat()
-	if err != nil {
-		log_status(err)
-		return
-	}
-	opt := &cos.ObjectPutOptions{
-		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentLength: s.Size(),
-		},
-	}
-	//opt.ContentLength = s.Size()
-
-	_, err = c.Object.Put(context.Background(), name, f, opt)
+	resp, err := c.Object.Download(
+		context.Background(), "test", "./test1G", opt,
+	)
 	log_status(err)
+	fmt.Printf("done, %v\n", resp.Header)
 }

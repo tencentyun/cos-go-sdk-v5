@@ -100,7 +100,7 @@ func (s *CosTestSuite) SetupSuite() {
 		XCosACL: "public-read",
 	}
 	r, err := s.Client.Bucket.Put(context.Background(), opt)
-	if err != nil && r.StatusCode == 409 {
+	if err != nil && r != nil && r.StatusCode == 409 {
 		fmt.Println("BucketAlreadyOwnedByYou")
 	} else if err != nil {
 		assert.Nil(s.T(), err, "PutBucket Failed")
@@ -142,7 +142,7 @@ func (s *CosTestSuite) TestPutHeadDeleteBucket() {
 		},
 	})
 	r, err := client.Bucket.Put(context.Background(), nil)
-	if err != nil && r.StatusCode == 409 {
+	if err != nil && r != nil && r.StatusCode == 409 {
 		fmt.Println("BucketAlreadyOwnedByYou")
 	} else if err != nil {
 		assert.Nil(s.T(), err, "PutBucket Failed")
@@ -507,6 +507,37 @@ func (s *CosTestSuite) TestPutGetDeleteObjectByUpload_10MB() {
 	assert.Nil(s.T(), err, "remove local file Failed")
 }
 
+func (s *CosTestSuite) TestPutGetDeleteObjectByUploadAndDownload_10MB() {
+	// Create tmp file
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	assert.Nil(s.T(), err, "create tmp file Failed")
+	defer newfile.Close()
+
+	name := "test/objectUpload" + time.Now().Format(time.RFC3339)
+	b := make([]byte, 1024*1024*10)
+	_, err = rand.Read(b)
+
+	newfile.Write(b)
+	opt := &cos.MultiUploadOptions{
+		PartSize:       1,
+		ThreadPoolSize: 3,
+	}
+	_, _, err = s.Client.Object.Upload(context.Background(), name, filePath, opt)
+	assert.Nil(s.T(), err, "PutObject Failed")
+
+	// Over write tmp file
+	_, err = s.Client.Object.Download(context.Background(), name, filePath, nil)
+	assert.Nil(s.T(), err, "DownloadObject Failed")
+
+	_, err = s.Client.Object.Delete(context.Background(), name)
+	assert.Nil(s.T(), err, "DeleteObject Failed")
+
+	// remove the local tmp file
+	err = os.Remove(filePath)
+	assert.Nil(s.T(), err, "remove local file Failed")
+}
+
 func (s *CosTestSuite) TestPutGetDeleteObjectSpecialName() {
 	f := strings.NewReader("test")
 	name := s.SepFileName + time.Now().Format(time.RFC3339)
@@ -606,7 +637,7 @@ func (s *CosTestSuite) TestCopyObject() {
 
 	// Notice in intranet the bucket host sometimes has i/o timeout problem
 	r, err := c.Bucket.Put(context.Background(), opt)
-	if err != nil && r.StatusCode == 409 {
+	if err != nil && r != nil && r.StatusCode == 409 {
 		fmt.Println("BucketAlreadyOwnedByYou")
 	} else if err != nil {
 		assert.Nil(s.T(), err, "PutBucket Failed")
@@ -971,7 +1002,7 @@ func (s *CosTestSuite) TestMultiCopy() {
 
 	// Notice in intranet the bucket host sometimes has i/o timeout problem
 	r, err := c.Bucket.Put(context.Background(), opt)
-	if err != nil && r.StatusCode == 409 {
+	if err != nil && r != nil && r.StatusCode == 409 {
 		fmt.Println("BucketAlreadyOwnedByYou")
 	} else if err != nil {
 		assert.Nil(s.T(), err, "PutBucket Failed")

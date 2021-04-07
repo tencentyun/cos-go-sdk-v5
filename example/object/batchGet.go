@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"net/url"
 	"os"
-
-	"net/http"
-
-	"fmt"
+	"path/filepath"
+	"sync"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -32,6 +32,17 @@ func log_status(err error) {
 	}
 }
 
+func upload(wg *sync.WaitGroup, c *cos.Client, keysCh <-chan string) {
+	defer wg.Done()
+	for key := range keysCh {
+		// 下载文件到当前目录
+		_, filename := filepath.Split(key)
+		_, err := c.Object.GetToFile(context.Background(), key, filename, nil)
+		if err != nil {
+			log_status(err)
+		}
+	}
+}
 func main() {
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -40,32 +51,25 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
 				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
-
-	name := "test/uploadFile.go"
-	f, err := os.Open("test")
-	if err != nil {
-		log_status(err)
-		return
+	keysCh := make(chan string, 2)
+	keys := []string{"test/test1", "test/test2", "test/test3"}
+	var wg sync.WaitGroup
+	threadpool := 2
+	for i := 0; i < threadpool; i++ {
+		wg.Add(1)
+		go upload(&wg, c, keysCh)
 	}
-	s, err := f.Stat()
-	if err != nil {
-		log_status(err)
-		return
+	for _, key := range keys {
+		keysCh <- key
 	}
-	opt := &cos.ObjectPutOptions{
-		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentLength: s.Size(),
-		},
-	}
-	//opt.ContentLength = s.Size()
-
-	_, err = c.Object.Put(context.Background(), name, f, opt)
-	log_status(err)
+	close(keysCh)
+	wg.Wait()
 }
