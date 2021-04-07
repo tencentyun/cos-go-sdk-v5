@@ -914,6 +914,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	var consumedBytes int64
 	if opt.OptIni != nil {
 		listener = opt.OptIni.Listener
+		optcom.XOptionHeader, _ = deliverInitOptions(opt.OptIni)
 	}
 	event := newProgressEvent(ProgressStartedEvent, 0, 0, totalBytes)
 	progressCallback(listener, event)

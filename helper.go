@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"github.com/mozillazg/go-httpheader"
 	"hash/crc64"
 	"io"
 	"net/http"
@@ -259,4 +260,35 @@ func FormatRangeOptions(opt *RangeOptions) string {
 		return fmt.Sprintf("bytes=-%v", opt.End)
 	}
 	return "bytes=-"
+}
+
+var deliverHeader = map[string]bool{}
+
+func isDeliverHeader(key string) bool {
+	for k, v := range deliverHeader {
+		if key == k && v {
+			return true
+		}
+	}
+	return strings.HasPrefix(key, privateHeaderPrefix)
+}
+
+func deliverInitOptions(opt *InitiateMultipartUploadOptions) (*http.Header, error) {
+	if opt == nil {
+		return nil, nil
+	}
+	h, err := httpheader.Header(opt)
+	if err != nil {
+		return nil, err
+	}
+	header := &http.Header{}
+	for key, values := range h {
+		key = strings.ToLower(key)
+		if isDeliverHeader(key) {
+			for _, value := range values {
+				header.Add(key, value)
+			}
+		}
+	}
+	return header, nil
 }
