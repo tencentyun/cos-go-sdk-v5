@@ -40,7 +40,10 @@ func (s *CryptoObjectService) InitiateMultipartUpload(ctx context.Context, name 
 		opt.XOptionHeader.Add(COSClientSideEncryptionUnencryptedContentMD5, opt.ContentMD5)
 		opt.ContentMD5 = ""
 	}
-	opt.XOptionHeader.Add(COSClientSideEncryptionUnencryptedContentLength, strconv.FormatInt(cryptoCtx.DataSize, 10))
+	if cryptoCtx.DataSize > 0 {
+		opt.XOptionHeader.Add(COSClientSideEncryptionDataSize, strconv.FormatInt(cryptoCtx.DataSize, 10))
+	}
+	opt.XOptionHeader.Add(COSClientSideEncryptionPartSize, strconv.FormatInt(cryptoCtx.PartSize, 10))
 	addCryptoHeaders(opt.XOptionHeader, contentCipher.GetCipherData())
 
 	return s.ObjectService.InitiateMultipartUpload(ctx, name, opt)
