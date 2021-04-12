@@ -77,10 +77,13 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 		return nil, err
 	}
 	// opt 不为 nil
-	opt := cloneObjectUploadPartOptions(uopt)
+	opt := CloneObjectUploadPartOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
 	if err != nil && opt.Listener != nil {
-		return nil, err
+		if opt.ContentLength == 0 {
+			return nil, err
+		}
+		totalBytes = opt.ContentLength
 	}
 	// 分块上传不支持 Chunk 上传
 	if err == nil {

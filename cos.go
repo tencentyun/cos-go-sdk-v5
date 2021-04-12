@@ -133,6 +133,26 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	return c
 }
 
+type Credential struct {
+    SecretID string
+    SecretKey string
+    SessionToken string
+}
+
+func (c *Client) GetCredential() *Credential {
+    auth, ok := c.client.Transport.(*AuthorizationTransport)
+    if !ok {
+        return nil
+    }
+    auth.rwLocker.Lock()
+    defer auth.rwLocker.Unlock()
+    return &Credential{
+        SecretID: auth.SecretID,
+        SecretKey: auth.SecretKey,
+        SessionToken: auth.SessionToken,
+    }
+}
+
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
 	uri, err = addURLOptions(uri, optQuery)
 	if err != nil {

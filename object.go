@@ -200,10 +200,13 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 	if err := CheckReaderLen(r); err != nil {
 		return nil, err
 	}
-	opt := cloneObjectPutOptions(uopt)
+	opt := CloneObjectPutOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
 	if err != nil && opt != nil && opt.Listener != nil {
-		return nil, err
+		if opt.ContentLength == 0 {
+			return nil, err
+		}
+		totalBytes = opt.ContentLength
 	}
 	if err == nil {
 		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
@@ -630,6 +633,35 @@ func (lc *LimitedReadCloser) Close() error {
 	return nil
 }
 
+type DiscardReadCloser struct {
+	RC      io.ReadCloser
+	Discard int
+}
+
+func (drc *DiscardReadCloser) Read(data []byte) (int, error) {
+	n, err := drc.RC.Read(data)
+	if drc.Discard == 0 || n <= 0 {
+		return n, err
+	}
+
+	if n <= drc.Discard {
+		drc.Discard -= n
+		return 0, err
+	}
+
+	realLen := n - drc.Discard
+	copy(data[0:realLen], data[drc.Discard:n])
+	drc.Discard = 0
+	return realLen, err
+}
+
+func (drc *DiscardReadCloser) Close() error {
+	if rc, ok := drc.RC.(io.ReadCloser); ok {
+		return rc.Close()
+	}
+	return nil
+}
+
 func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
 		j.Opt.ContentLength = j.Chunk.Size
@@ -736,7 +768,6 @@ func SplitFileIntoChunks(filePath string, partSize int64) (int64, []Chunk, int, 
 	}
 	var partNum int64
 	if partSize > 0 {
-		partSize = partSize * 1024 * 1024
 		partNum = stat.Size() / partSize
 		if partNum >= 10000 {
 			return 0, nil, 0, errors.New("Too many parts, out of 10000")
@@ -855,7 +886,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	}
 	var localcrc uint64
 	// 1.Get the file chunk
-	totalBytes, chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize)
+	totalBytes, chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize*1024*1024)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1035,7 +1066,6 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 func SplitSizeIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error) {
 	var partNum int64
 	if partSize > 0 {
-		partSize = partSize * 1024 * 1024
 		partNum = totalBytes / partSize
 		if partNum >= 10000 {
 			return nil, 0, errors.New("Too manry parts, out of 10000")
@@ -1130,7 +1160,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	}
 
 	// 切分
-	chunks, partNum, err := SplitSizeIntoChunks(totalBytes, opt.PartSize)
+	chunks, partNum, err := SplitSizeIntoChunks(totalBytes, opt.PartSize*1024*1024)
 	if err != nil {
 		return resp, err
 	}
