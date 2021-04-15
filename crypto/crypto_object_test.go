@@ -120,6 +120,45 @@ func (s *CosTestSuite) TestPutGetDeleteObject_Normal_10MB() {
 	assert.Nil(s.T(), err, "DeleteObject Failed")
 }
 
+func (s *CosTestSuite) TestPutGetDeleteObject_VersionID() {
+	name := "test/objectPut" + time.Now().Format(time.RFC3339)
+	originData := make([]byte, 1024*1024*10+1)
+	_, err := rand.Read(originData)
+	f := bytes.NewReader(originData)
+
+	opt := &cos.BucketPutVersionOptions{
+		Status: "Enabled",
+	}
+	_, err = s.CClient.Bucket.PutVersioning(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutVersioning Failed")
+	time.Sleep(3 * time.Second)
+
+	// 加密存储
+	resp, err := s.CClient.Object.Put(context.Background(), name, f, nil)
+	assert.Nil(s.T(), err, "PutObject Failed")
+	versionId := resp.Header.Get("x-cos-version-id")
+
+	_, err = s.CClient.Object.Delete(context.Background(), name)
+	assert.Nil(s.T(), err, "DeleteObject Failed")
+
+	// 解密读取
+	resp, err = s.CClient.Object.Get(context.Background(), name, nil, versionId)
+	assert.Nil(s.T(), err, "GetObject Failed")
+	defer resp.Body.Close()
+	decryptedData, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal(s.T(), bytes.Compare(originData, decryptedData), 0, "decryptData != originData")
+
+	delopt := &cos.ObjectDeleteOptions{
+		VersionId: versionId,
+	}
+	_, err = s.CClient.Object.Delete(context.Background(), name, delopt)
+	assert.Nil(s.T(), err, "DeleteObject Failed")
+
+	opt.Status = "Suspended"
+	_, err = s.CClient.Bucket.PutVersioning(context.Background(), opt)
+	assert.Nil(s.T(), err, "PutVersioning Failed")
+}
+
 func (s *CosTestSuite) TestPutGetDeleteObject_ZeroFile() {
 	name := "test/objectPut" + time.Now().Format(time.RFC3339)
 	// 加密存储
@@ -372,6 +411,122 @@ func (s *CosTestSuite) TestPutGetDeleteObject_WithListenerAndRange() {
 	defer resp.Body.Close()
 	decryptedData, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(s.T(), bytes.Compare(originData, decryptedData), 0, "decryptData != originData")
+
+	_, err = s.CClient.Object.Delete(context.Background(), name)
+	assert.Nil(s.T(), err, "DeleteObject Failed")
+}
+
+func (s *CosTestSuite) TestPutGetDeleteObject_Copy() {
+	name := "test/objectPut" + time.Now().Format(time.RFC3339)
+	contentLength := 1024*1024*10 + 1
+	originData := make([]byte, contentLength)
+	_, err := rand.Read(originData)
+	f := bytes.NewReader(originData)
+
+	// 加密存储
+	popt := &cos.ObjectPutOptions{
+		nil,
+		&cos.ObjectPutHeaderOptions{
+			Listener: &cos.DefaultProgressListener{},
+		},
+	}
+	resp, err := s.CClient.Object.Put(context.Background(), name, f, popt)
+	assert.Nil(s.T(), err, "PutObject Failed")
+	encryptedDataCRC := resp.Header.Get("x-cos-hash-crc64ecma")
+	time.Sleep(3 * time.Second)
+	sourceURL := fmt.Sprintf("%s/%s", s.CClient.BaseURL.BucketURL.Host, name)
+	{
+		// x-cos-metadata-directive必须为Copy，否则丢失加密信息，无法解密
+		dest := "test/ObjectCopy1" + time.Now().Format(time.RFC3339)
+		res, _, err := s.CClient.Object.Copy(context.Background(), dest, sourceURL, nil)
+		assert.Nil(s.T(), err, "ObjectCopy Failed")
+		assert.Equal(s.T(), encryptedDataCRC, res.CRC64, "CRC isn't consistent, return:%v, want:%v", res.CRC64, encryptedDataCRC)
+
+		// Range解密读取
+		for i := 0; i < 3; i++ {
+			math_rand.Seed(time.Now().UnixNano())
+			rangeStart := math_rand.Intn(contentLength)
+			rangeEnd := rangeStart + math_rand.Intn(contentLength-rangeStart)
+			if rangeEnd == rangeStart || rangeStart >= contentLength-1 {
+				continue
+			}
+			opt := &cos.ObjectGetOptions{
+				Range:    fmt.Sprintf("bytes=%v-%v", rangeStart, rangeEnd),
+				Listener: &cos.DefaultProgressListener{},
+			}
+			resp, err := s.CClient.Object.Get(context.Background(), dest, opt)
+			assert.Nil(s.T(), err, "GetObject Failed")
+			defer resp.Body.Close()
+			decryptedData, _ := ioutil.ReadAll(resp.Body)
+			assert.Equal(s.T(), bytes.Compare(originData[rangeStart:rangeEnd+1], decryptedData), 0, "decryptData != originData")
+		}
+		// 解密读取
+		resp, err := s.CClient.Object.Get(context.Background(), dest, nil)
+		assert.Nil(s.T(), err, "GetObject Failed")
+		defer resp.Body.Close()
+		decryptedData, _ := ioutil.ReadAll(resp.Body)
+		assert.Equal(s.T(), bytes.Compare(originData, decryptedData), 0, "decryptData != originData")
+
+		_, err = s.CClient.Object.Delete(context.Background(), dest)
+		assert.Nil(s.T(), err, "DeleteObject Failed")
+	}
+	{
+		// x-cos-metadata-directive必须为Copy，否则丢失加密信息，无法解密
+		opt := &cos.ObjectCopyOptions{
+			&cos.ObjectCopyHeaderOptions{
+				XCosMetadataDirective: "Replaced",
+			},
+			nil,
+		}
+		dest := "test/ObjectCopy2" + time.Now().Format(time.RFC3339)
+		res, _, err := s.CClient.Object.Copy(context.Background(), dest, sourceURL, opt)
+		assert.Nil(s.T(), err, "ObjectCopy Failed")
+		assert.Equal(s.T(), encryptedDataCRC, res.CRC64, "CRC isn't consistent, return:%v, want:%v", res.CRC64, encryptedDataCRC)
+
+		// 解密读取
+		resp, err := s.CClient.Object.Get(context.Background(), dest, nil)
+		assert.Nil(s.T(), err, "GetObject Failed")
+		defer resp.Body.Close()
+		decryptedData, _ := ioutil.ReadAll(resp.Body)
+		assert.NotEqual(s.T(), bytes.Compare(originData, decryptedData), 0, "decryptData != originData")
+
+		_, err = s.CClient.Object.Delete(context.Background(), dest)
+		assert.Nil(s.T(), err, "DeleteObject Failed")
+	}
+	{
+		// MultiCopy若是分块拷贝，则无法拷贝元数据
+		dest := "test/ObjectCopy3" + time.Now().Format(time.RFC3339)
+		res, _, err := s.CClient.Object.MultiCopy(context.Background(), dest, sourceURL, nil)
+		assert.Nil(s.T(), err, "ObjectMultiCopy Failed")
+		assert.Equal(s.T(), encryptedDataCRC, res.CRC64, "CRC isn't consistent, return:%v, want:%v", res.CRC64, encryptedDataCRC)
+		// Range解密读取
+		for i := 0; i < 3; i++ {
+			math_rand.Seed(time.Now().UnixNano())
+			rangeStart := math_rand.Intn(contentLength)
+			rangeEnd := rangeStart + math_rand.Intn(contentLength-rangeStart)
+			if rangeEnd == rangeStart || rangeStart >= contentLength-1 {
+				continue
+			}
+			opt := &cos.ObjectGetOptions{
+				Range:    fmt.Sprintf("bytes=%v-%v", rangeStart, rangeEnd),
+				Listener: &cos.DefaultProgressListener{},
+			}
+			resp, err := s.CClient.Object.Get(context.Background(), dest, opt)
+			assert.Nil(s.T(), err, "GetObject Failed")
+			defer resp.Body.Close()
+			decryptedData, _ := ioutil.ReadAll(resp.Body)
+			assert.Equal(s.T(), bytes.Compare(originData[rangeStart:rangeEnd+1], decryptedData), 0, "decryptData != originData")
+		}
+		// 解密读取
+		resp, err := s.CClient.Object.Get(context.Background(), dest, nil)
+		assert.Nil(s.T(), err, "GetObject Failed")
+		defer resp.Body.Close()
+		decryptedData, _ := ioutil.ReadAll(resp.Body)
+		assert.Equal(s.T(), bytes.Compare(originData, decryptedData), 0, "decryptData != originData")
+
+		_, err = s.CClient.Object.Delete(context.Background(), dest)
+		assert.Nil(s.T(), err, "DeleteObject Failed")
+	}
 
 	_, err = s.CClient.Object.Delete(context.Background(), name)
 	assert.Nil(s.T(), err, "DeleteObject Failed")

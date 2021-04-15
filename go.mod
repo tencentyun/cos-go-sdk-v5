@@ -8,4 +8,5 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/mozillazg/go-httpheader v0.2.1
 	github.com/stretchr/testify v1.3.0
+	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
 )

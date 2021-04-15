@@ -184,6 +184,19 @@ func CheckReaderLen(reader io.Reader) error {
 	return errors.New("The single object size you upload can not be larger than 5GB")
 }
 
+func cloneHeader(opt *http.Header) *http.Header {
+	if opt == nil {
+		return nil
+	}
+	h := make(http.Header, len(*opt))
+	for k, vv := range *opt {
+		vv2 := make([]string, len(vv))
+		copy(vv2, vv)
+		h[k] = vv2
+	}
+	return &h
+}
+
 func CopyOptionsToMulti(opt *ObjectCopyOptions) *InitiateMultipartUploadOptions {
 	if opt == nil {
 		return nil
@@ -214,7 +227,6 @@ func CopyOptionsToMulti(opt *ObjectCopyOptions) *InitiateMultipartUploadOptions 
 	return optini
 }
 
-// 浅拷贝ObjectPutOptions
 func CloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
 	res := &ObjectPutOptions{
 		&ACLHeaderOptions{},
@@ -226,6 +238,8 @@ func CloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
 		}
 		if opt.ObjectPutHeaderOptions != nil {
 			*res.ObjectPutHeaderOptions = *opt.ObjectPutHeaderOptions
+			res.XCosMetaXXX = cloneHeader(opt.XCosMetaXXX)
+			res.XOptionHeader = cloneHeader(opt.XOptionHeader)
 		}
 	}
 	return res
@@ -242,16 +256,18 @@ func CloneInitiateMultipartUploadOptions(opt *InitiateMultipartUploadOptions) *I
 		}
 		if opt.ObjectPutHeaderOptions != nil {
 			*res.ObjectPutHeaderOptions = *opt.ObjectPutHeaderOptions
+			res.XCosMetaXXX = cloneHeader(opt.XCosMetaXXX)
+			res.XOptionHeader = cloneHeader(opt.XOptionHeader)
 		}
 	}
 	return res
 }
 
-// 浅拷贝ObjectUploadPartOptions
 func CloneObjectUploadPartOptions(opt *ObjectUploadPartOptions) *ObjectUploadPartOptions {
 	var res ObjectUploadPartOptions
 	if opt != nil {
 		res = *opt
+		res.XOptionHeader = cloneHeader(opt.XOptionHeader)
 	}
 	return &res
 }
@@ -260,8 +276,22 @@ func CloneObjectGetOptions(opt *ObjectGetOptions) *ObjectGetOptions {
 	var res ObjectGetOptions
 	if opt != nil {
 		res = *opt
+		res.XOptionHeader = cloneHeader(opt.XOptionHeader)
 	}
 	return &res
+}
+
+func CloneCompleteMultipartUploadOptions(opt *CompleteMultipartUploadOptions) *CompleteMultipartUploadOptions {
+    var res CompleteMultipartUploadOptions
+    if opt != nil {
+        res.XMLName = opt.XMLName
+        if len(opt.Parts) > 0 {
+            res.Parts = make([]Object, len(opt.Parts))
+            copy(res.Parts, opt.Parts)
+        }
+        res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+    }
+    return &res
 }
 
 type RangeOptions struct {

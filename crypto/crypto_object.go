@@ -71,6 +71,7 @@ func (s *CryptoObjectService) Put(ctx context.Context, name string, r io.Reader,
 		opt.XOptionHeader.Add(COSClientSideEncryptionUnencryptedContentLength, strconv.FormatInt(opt.ContentLength, 10))
 		opt.ContentLength = cc.GetEncryptedLen(opt.ContentLength)
 	}
+	opt.XOptionHeader.Add(UserAgent, s.cryptoClient.userAgent)
 	addCryptoHeaders(opt.XOptionHeader, cc.GetCipherData())
 
 	return s.ObjectService.Put(ctx, name, reader, opt)
@@ -96,14 +97,14 @@ func (s *CryptoObjectService) PutFromFile(ctx context.Context, name, filePath st
 	return
 }
 
-func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.ObjectGetOptions) (*cos.Response, error) {
-	meta, err := s.ObjectService.Head(ctx, name, nil)
+func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.ObjectGetOptions, id ...string) (*cos.Response, error) {
+	meta, err := s.ObjectService.Head(ctx, name, nil, id...)
 	if err != nil {
 		return meta, err
 	}
 	_isEncrypted := isEncrypted(&meta.Header)
 	if !_isEncrypted {
-		return s.ObjectService.Get(ctx, name, opt)
+		return s.ObjectService.Get(ctx, name, opt, id...)
 	}
 
 	envelope := getEnvelopeFromHeader(&meta.Header)
@@ -120,6 +121,10 @@ func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.Obj
 		return nil, fmt.Errorf("get content cipher from envelope failed: %v, object:%v", err, name)
 	}
 
+	opt = cos.CloneObjectGetOptions(opt)
+	if opt.XOptionHeader == nil {
+		opt.XOptionHeader = &http.Header{}
+	}
 	optRange, err := cos.GetRangeOptions(opt)
 	if err != nil {
 		return nil, err
@@ -132,7 +137,6 @@ func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.Obj
 		discardAlignLen = optRange.Start - adjustStart
 		if discardAlignLen > 0 {
 			optRange.Start = adjustStart
-			opt = cos.CloneObjectGetOptions(opt)
 			opt.Range = cos.FormatRangeOptions(optRange)
 		}
 
@@ -143,7 +147,8 @@ func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.Obj
 			return nil, fmt.Errorf("ContentCipher Clone failed:%v, bject:%v", err, name)
 		}
 	}
-	resp, err := s.ObjectService.Get(ctx, name, opt)
+	opt.XOptionHeader.Add(UserAgent, s.cryptoClient.userAgent)
+	resp, err := s.ObjectService.Get(ctx, name, opt, id...)
 	if err != nil {
 		return resp, err
 	}
@@ -161,8 +166,8 @@ func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.Obj
 	return resp, err
 }
 
-func (s *CryptoObjectService) GetToFile(ctx context.Context, name, localpath string, opt *cos.ObjectGetOptions) (*cos.Response, error) {
-	resp, err := s.Get(ctx, name, opt)
+func (s *CryptoObjectService) GetToFile(ctx context.Context, name, localpath string, opt *cos.ObjectGetOptions, id ...string) (*cos.Response, error) {
+	resp, err := s.Get(ctx, name, opt, id...)
 	if err != nil {
 		return resp, err
 	}

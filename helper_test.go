@@ -1,7 +1,10 @@
 package cos
 
 import (
+	"encoding/xml"
 	"fmt"
+	"net/http"
+	"reflect"
 	"testing"
 )
 
@@ -21,4 +24,74 @@ func Test_calMD5Digest(t *testing.T) {
 
 		t.Errorf("calMD5Digest request md5: %+v, want %+v", got, want)
 	}
+}
+
+func Test_cloneHeader(t *testing.T) {
+	ori := http.Header{}
+	opt := &ori
+	opt.Add("TestHeader1", "h1")
+	opt.Add("TestHeader1", "h2")
+	res := cloneHeader(opt)
+	if !reflect.DeepEqual(res, opt) {
+		t.Errorf("cloneHeader, returned:%+v, want:%+v", res, opt)
+	}
+	if !reflect.DeepEqual(ori, *opt) {
+		t.Errorf("cloneHeader, returned:%+v, want:%+v", *opt, ori)
+	}
+	res.Add("cloneHeader1", "c1")
+	res.Add("cloneHeader2", "c2")
+	if v := opt.Get("cloneHeader1"); v != "" {
+		t.Errorf("cloneHeader, returned:%+v, want:%+v", res, opt)
+	}
+	if v := opt.Get("cloneHeader2"); v != "" {
+		t.Errorf("cloneHeader, returned:%+v, want:%+v", res, opt)
+	}
+	opt = &http.Header{}
+	res = cloneHeader(opt)
+	if !reflect.DeepEqual(res, opt) {
+		t.Errorf("cloneHeader, returned:%+v, want:%+v", res, opt)
+	}
+}
+
+func Test_CloneCompleteMultipartUploadOptions(t *testing.T) {
+	ori := CompleteMultipartUploadOptions{
+		XMLName: xml.Name{Local: "CompleteMultipartUploadResult"},
+		Parts: []Object{
+			{
+				Key:  "Key1",
+				ETag: "Etag1",
+			},
+			{
+				Key:  "Key2",
+				ETag: "Etag2",
+			},
+		},
+		XOptionHeader: &http.Header{},
+	}
+	ori.XOptionHeader.Add("Test", "value")
+	opt := &ori
+	res := CloneCompleteMultipartUploadOptions(opt)
+	if !reflect.DeepEqual(res, opt) {
+		t.Errorf("CloneCompleteMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
+	}
+	if !reflect.DeepEqual(ori, *opt) {
+		t.Errorf("CloneCompleteMultipartUploadOptions, returned:%+v,want:%+v", *opt, ori)
+	}
+	res.XOptionHeader.Add("TestClone", "value")
+	if v := opt.XOptionHeader.Get("TestClone"); v != "" {
+		t.Errorf("CloneCompleteMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
+	}
+	opt = &CompleteMultipartUploadOptions{}
+	res = CloneCompleteMultipartUploadOptions(opt)
+	if !reflect.DeepEqual(res, opt) {
+		t.Errorf("CloneCompleteMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
+	}
+	res.Parts = append(res.Parts, Object{Key: "K", ETag: "T"})
+	if len(opt.Parts) > 0 {
+		t.Errorf("CloneCompleteMultipartUploadOptions Failed")
+	}
+	if reflect.DeepEqual(res, opt) {
+		t.Errorf("CloneCompleteMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
+	}
+
 }

@@ -44,6 +44,7 @@ func (s *CryptoObjectService) InitiateMultipartUpload(ctx context.Context, name 
 		opt.XOptionHeader.Add(COSClientSideEncryptionDataSize, strconv.FormatInt(cryptoCtx.DataSize, 10))
 	}
 	opt.XOptionHeader.Add(COSClientSideEncryptionPartSize, strconv.FormatInt(cryptoCtx.PartSize, 10))
+	opt.XOptionHeader.Add(UserAgent, s.cryptoClient.userAgent)
 	addCryptoHeaders(opt.XOptionHeader, contentCipher.GetCipherData())
 
 	return s.ObjectService.InitiateMultipartUpload(ctx, name, opt)
@@ -54,6 +55,10 @@ func (s *CryptoObjectService) UploadPart(ctx context.Context, name, uploadID str
 		return nil, fmt.Errorf("CryptoContext's PartSize is zero")
 	}
 	opt = cos.CloneObjectUploadPartOptions(opt)
+	if opt.XOptionHeader == nil {
+		opt.XOptionHeader = &http.Header{}
+	}
+	opt.XOptionHeader.Add(UserAgent, s.cryptoClient.userAgent)
 	if cryptoCtx.ContentCipher == nil {
 		return nil, fmt.Errorf("ContentCipher is nil, Please call the InitiateMultipartUpload")
 	}
@@ -76,4 +81,17 @@ func (s *CryptoObjectService) UploadPart(ctx context.Context, name, uploadID str
 		return nil, err
 	}
 	return s.ObjectService.UploadPart(ctx, name, uploadID, partNumber, reader, opt)
+}
+
+func (s *CryptoObjectService) CompleteMultipartUpload(ctx context.Context, name, uploadID string, opt *cos.CompleteMultipartUploadOptions) (*cos.CompleteMultipartUploadResult, *cos.Response, error) {
+	opt = cos.CloneCompleteMultipartUploadOptions(opt)
+	if opt.XOptionHeader == nil {
+		opt.XOptionHeader = &http.Header{}
+	}
+	opt.XOptionHeader.Add(UserAgent, s.cryptoClient.userAgent)
+	return s.ObjectService.CompleteMultipartUpload(ctx, name, uploadID, opt)
+}
+
+func (s *CryptoObjectService) CopyPart(ctx context.Context, name, uploadID string, partNumber int, sourceURL string, opt *cos.ObjectCopyPartOptions) (*cos.CopyPartResult, *cos.Response, error) {
+	return nil, nil, fmt.Errorf("CryptoObjectService doesn't support CopyPart")
 }

@@ -134,23 +134,23 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 }
 
 type Credential struct {
-    SecretID string
-    SecretKey string
-    SessionToken string
+	SecretID     string
+	SecretKey    string
+	SessionToken string
 }
 
 func (c *Client) GetCredential() *Credential {
-    auth, ok := c.client.Transport.(*AuthorizationTransport)
-    if !ok {
-        return nil
-    }
-    auth.rwLocker.Lock()
-    defer auth.rwLocker.Unlock()
-    return &Credential{
-        SecretID: auth.SecretID,
-        SecretKey: auth.SecretKey,
-        SessionToken: auth.SessionToken,
-    }
+	auth, ok := c.client.Transport.(*AuthorizationTransport)
+	if !ok {
+		return nil
+	}
+	auth.rwLocker.Lock()
+	defer auth.rwLocker.Unlock()
+	return &Credential{
+		SecretID:     auth.SecretID,
+		SecretKey:    auth.SecretKey,
+		SessionToken: auth.SessionToken,
+	}
 }
 
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
@@ -195,8 +195,10 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	if contentMD5 != "" {
 		req.Header["Content-MD5"] = []string{contentMD5}
 	}
-	if c.UserAgent != "" {
-		req.Header.Set("User-Agent", c.UserAgent)
+	if v := req.Header.Get("User-Agent"); v == "" || !strings.HasPrefix(v, userAgent) {
+		if c.UserAgent != "" {
+			req.Header.Set("User-Agent", c.UserAgent)
+		}
 	}
 	if req.Header.Get("Content-Type") == "" && contentType != "" {
 		req.Header.Set("Content-Type", contentType)

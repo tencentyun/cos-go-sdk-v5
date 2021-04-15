@@ -19,7 +19,7 @@ const (
 	COSClientSideEncryptionUnencryptedContentMD5           = "x-cos-meta-client-side-encryption-unencrypted-content-md5"
 	COSClientSideEncryptionDataSize                        = "x-cos-meta-client-side-encryption-data-size"
 	COSClientSideEncryptionPartSize                        = "x-cos-meta-client-side-encryption-part-size"
-	COSClientUserAgent                                     = "User-Agent"
+	UserAgent                                              = "User-Agent"
 )
 
 const (
