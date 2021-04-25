@@ -23,7 +23,13 @@ func TestBucketService_GetLifecycle(t *testing.T) {
 	<Rule>
 		<ID>1234</ID>
 		<Filter>
-			<Prefix>test</Prefix>
+            <And>
+                <Prefix>test</Prefix>
+                <Tag>
+                    <Key>key</Key>
+                    <Value>value</Value>
+                </Tag>
+            </And>
 		</Filter>
 		<Status>Enabled</Status>
 		<Transition>
@@ -53,8 +59,15 @@ func TestBucketService_GetLifecycle(t *testing.T) {
 		XMLName: xml.Name{Local: "LifecycleConfiguration"},
 		Rules: []BucketLifecycleRule{
 			{
-				ID:         "1234",
-				Filter:     &BucketLifecycleFilter{Prefix: "test"},
+				ID: "1234",
+				Filter: &BucketLifecycleFilter{
+					And: &BucketLifecycleAndOperator{
+						Prefix: "test",
+						Tag: []BucketTaggingTag{
+							{Key: "key", Value: "value"},
+						},
+					},
+				},
 				Status:     "Enabled",
 				Transition: &BucketLifecycleTransition{Days: 10, StorageClass: "Standard"},
 			},

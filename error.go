@@ -30,8 +30,12 @@ func (r *ErrorResponse) Error() string {
 	if TraceID == "" {
 		TraceID = r.Response.Header.Get("X-Cos-Trace-Id")
 	}
+	decodeURL, err := decodeURIComponent(r.Response.Request.URL.String())
+	if err != nil {
+		decodeURL = r.Response.Request.URL.String()
+	}
 	return fmt.Sprintf("%v %v: %d %v(Message: %v, RequestId: %v, TraceId: %v)",
-		r.Response.Request.Method, r.Response.Request.URL,
+		r.Response.Request.Method, decodeURL,
 		r.Response.StatusCode, r.Code, r.Message, RequestID, TraceID)
 }
 
