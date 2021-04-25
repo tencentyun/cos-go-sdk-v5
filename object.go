@@ -106,6 +106,11 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 	return resp, nil
 }
 
+type PresignedURLOptions struct {
+	Query  *url.Values  `xml:"-" url:"-" header:"-"`
+	Header *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
 // GetPresignedURL get the object presigned to down or upload file by url
 func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}) (*url.URL, error) {
 	sendOpt := sendOptions{
@@ -114,6 +119,12 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		method:    httpMethod,
 		optQuery:  opt,
 		optHeader: opt,
+	}
+	if popt, ok := opt.(*PresignedURLOptions); ok {
+		qs := popt.Query.Encode()
+		if qs != "" {
+			sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+		}
 	}
 	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
 	if err != nil {

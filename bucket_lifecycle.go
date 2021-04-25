@@ -6,9 +6,16 @@ import (
 	"net/http"
 )
 
+type BucketLifecycleAndOperator struct {
+	Prefix string             `xml:"Prefix,omitempty"`
+	Tag    []BucketTaggingTag `xml:"Tag,omitempty"`
+}
+
 // BucketLifecycleFilter is the param of BucketLifecycleRule
 type BucketLifecycleFilter struct {
-	Prefix string `xml:"Prefix,omitempty"`
+	Prefix string                      `xml:"Prefix,omitempty"`
+	Tag    *BucketTaggingTag           `xml:"Tag,omitempty"`
+	And    *BucketLifecycleAndOperator `xml:"And,omitempty"`
 }
 
 // BucketLifecycleExpiration is the param of BucketLifecycleRule
