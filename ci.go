@@ -182,11 +182,11 @@ func (s *CIService) PutVideoAuditingJob(ctx context.Context, opt *PutVideoAuditi
 }
 
 type GetVideoAuditingJobResult struct {
-	XMLName        xml.Name                `xml:"Response"`
-	JobsDetail     *VideoAuditingJobDetail `xml:",omitempty"`
-	NonExistJobIds string                  `xml:",omitempty"`
+	XMLName        xml.Name           `xml:"Response"`
+	JobsDetail     *AuditingJobDetail `xml:",omitempty"`
+	NonExistJobIds string             `xml:",omitempty"`
 }
-type VideoAuditingJobDetail struct {
+type AuditingJobDetail struct {
 	Code          string                       `xml:",omitempty"`
 	Message       string                       `xml:",omitempty"`
 	JobId         string                       `xml:",omitempty"`
@@ -222,7 +222,47 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 	return &res, resp, err
 }
 
+type PutAudioAuditingJobOptions struct {
+	XMLName     xml.Name              `xml:"Request"`
+	InputObject string                `xml:"Input>Object"`
+	Conf        *AudioAuditingJobConf `xml:"Conf"`
+}
+type AudioAuditingJobConf struct {
+	DetectType string `xml:",omitempty"`
+	Callback   string `xml:",omitempty"`
+}
+type PutAudioAuditingJobResult PutVideoAuditingJobResult
+type GetAudioAuditingJobResult GetVideoAuditingJobResult
+
+// 音频审核-创建任务 https://cloud.tencent.com/document/product/460/53395
+func (s *CIService) PutAudioAuditingJob(ctx context.Context, opt *PutAudioAuditingJobOptions) (*PutAudioAuditingJobResult, *Response, error) {
+	var res PutAudioAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/audio/auditing",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// 音频审核-查询任务 https://cloud.tencent.com/document/product/460/53396
+func (s *CIService) GetAudioAuditingJob(ctx context.Context, jobid string) (*GetAudioAuditingJobResult, *Response, error) {
+	var res GetAudioAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/audio/auditing/" + jobid,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // 图片持久化处理-上传时处理 https://cloud.tencent.com/document/product/460/18147
+// 盲水印-上传时添加 https://cloud.tencent.com/document/product/460/19017
 // 二维码识别-上传时识别 https://cloud.tencent.com/document/product/460/37513
 func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
 	if r == nil {
