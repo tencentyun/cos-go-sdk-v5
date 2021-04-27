@@ -59,4 +59,36 @@ func main() {
 	// 删除文件夹
 	_, err = c.Object.Delete(context.Background(), name)
 	log_status(err)
+
+	// 上传到虚拟目录
+	dir := "exampledir/"
+	filename := "exampleobject"
+	key := dir + filename
+	f := strings.NewReader("test file")
+	_, err = c.Object.Put(context.Background(), key, f, nil)
+	log_status(err)
+
+	// 删除文件夹内所有文件
+	var marker string
+	opt := &cos.BucketGetOptions{
+		Prefix:  dir,
+		MaxKeys: 1000,
+	}
+	isTruncated := true
+	for isTruncated {
+		opt.Marker = marker
+		v, _, err := c.Bucket.Get(context.Background(), opt)
+		if err != nil {
+			log_status(err)
+			break
+		}
+		for _, content := range v.Contents {
+			_, err = c.Object.Delete(context.Background(), content.Key)
+			if err != nil {
+				log_status(err)
+			}
+		}
+		isTruncated = v.IsTruncated
+		marker = v.NextMarker
+	}
 }
