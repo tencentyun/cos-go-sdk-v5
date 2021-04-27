@@ -1,14 +1,18 @@
 package cos
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"hash/crc64"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type CIService service
@@ -54,15 +58,24 @@ type PicImageInfo struct {
 	Orientation int    `xml:"Orientation,omitempty"`
 }
 type PicProcessObject struct {
-	Key             string `xml:"Key,omitempty"`
-	Location        string `xml:"Location,omitempty"`
-	Format          string `xml:"Format,omitempty"`
-	Width           int    `xml:"Width,omitempty"`
-	Height          int    `xml:"Height,omitempty"`
-	Size            int    `xml:"Size,omitempty"`
-	Quality         int    `xml:"Quality,omitempty"`
-	ETag            string `xml:"ETag,omitempty"`
-	WatermarkStatus int    `xml:"WatermarkStatus,omitempty"`
+	Key             string       `xml:"Key,omitempty"`
+	Location        string       `xml:"Location,omitempty"`
+	Format          string       `xml:"Format,omitempty"`
+	Width           int          `xml:"Width,omitempty"`
+	Height          int          `xml:"Height,omitempty"`
+	Size            int          `xml:"Size,omitempty"`
+	Quality         int          `xml:"Quality,omitempty"`
+	ETag            string       `xml:"ETag,omitempty"`
+	WatermarkStatus int          `xml:"WatermarkStatus,omitempty"`
+	CodeStatus      int          `xml:"CodeStatus,omitempty"`
+	QRcodeInfo      []QRcodeInfo `xml:"QRcodeInfo,omitempty"`
+}
+type QRcodeInfo struct {
+	CodeUrl      string        `xml:"CodeUrl,omitempty"`
+	CodeLocation *CodeLocation `xml:"CodeLocation,omitempty"`
+}
+type CodeLocation struct {
+	Point []string `xml:"Point,omitempty"`
 }
 
 type picOperationsHeader struct {
@@ -110,9 +123,10 @@ type RecognitionInfo struct {
 }
 
 // 图片审核 https://cloud.tencent.com/document/product/460/37318
-func (s *CIService) ImageRecognition(ctx context.Context, name string, opt *ImageRecognitionOptions) (*ImageRecognitionResult, *Response, error) {
-	if opt != nil && opt.CIProcess == "" {
-		opt.CIProcess = "sensitive-content-recognition"
+func (s *CIService) ImageRecognition(ctx context.Context, name string, DetectType string) (*ImageRecognitionResult, *Response, error) {
+	opt := &ImageRecognitionOptions{
+		CIProcess:  "sensitive-content-recognition",
+		DetectType: DetectType,
 	}
 	var res ImageRecognitionResult
 	sendOpt := sendOptions{
@@ -153,6 +167,7 @@ type PutVideoAuditingJobResult struct {
 	} `xml:"JobsDetail,omitempty"`
 }
 
+// 视频审核-创建任务 https://cloud.tencent.com/document/product/460/46427
 func (s *CIService) PutVideoAuditingJob(ctx context.Context, opt *PutVideoAuditingJobOptions) (*PutVideoAuditingJobResult, *Response, error) {
 	var res PutVideoAuditingJobResult
 	sendOpt := sendOptions{
@@ -194,6 +209,7 @@ type GetVideoAuditingJobSnapshot struct {
 	AdsInfo       *RecognitionInfo `xml:",omitempty"`
 }
 
+// 视频审核-查询任务 https://cloud.tencent.com/document/product/460/46926
 func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*GetVideoAuditingJobResult, *Response, error) {
 	var res GetVideoAuditingJobResult
 	sendOpt := sendOptions{
@@ -206,7 +222,8 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 	return &res, resp, err
 }
 
-// ci put https://cloud.tencent.com/document/product/460/18147
+// 图片持久化处理-上传时处理 https://cloud.tencent.com/document/product/460/18147
+// 二维码识别-上传时识别 https://cloud.tencent.com/document/product/460/37513
 func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *ObjectPutOptions) (*ImageProcessResult, *Response, error) {
 	if r == nil {
 		return nil, nil, fmt.Errorf("reader is nil")
@@ -256,4 +273,136 @@ func (s *CIService) PutFromFile(ctx context.Context, name string, filePath strin
 	defer fd.Close()
 
 	return s.Put(ctx, name, fd, opt)
+}
+
+// 基本图片处理 https://cloud.tencent.com/document/product/460/36540
+// 盲水印-下载时添加 https://cloud.tencent.com/document/product/460/19017
+func (s *CIService) Get(ctx context.Context, name string, operation string, opt *ObjectGetOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&%s", encodeURIComponent(name), id[0], operation)
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?%s", encodeURIComponent(name), operation)
+	} else {
+		return nil, errors.New("wrong params")
+	}
+
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              u,
+		method:           http.MethodGet,
+		optQuery:         opt,
+		optHeader:        opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+
+	if opt != nil && opt.Listener != nil {
+		if err == nil && resp != nil {
+			if totalBytes, e := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64); e == nil {
+				resp.Body = TeeReader(resp.Body, nil, totalBytes, opt.Listener)
+			}
+		}
+	}
+	return resp, err
+}
+
+func (s *CIService) GetToFile(ctx context.Context, name, localpath, operation string, opt *ObjectGetOptions, id ...string) (*Response, error) {
+	resp, err := s.Get(ctx, name, operation, opt, id...)
+	if err != nil {
+		return resp, err
+	}
+	defer resp.Body.Close()
+
+	// If file exist, overwrite it
+	fd, err := os.OpenFile(localpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	if err != nil {
+		return resp, err
+	}
+
+	_, err = io.Copy(fd, resp.Body)
+	fd.Close()
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
+}
+
+type GetQRcodeResult struct {
+	XMLName     xml.Name    `xml:"Response"`
+	CodeStatus  int         `xml:"CodeStatus,omitempty"`
+	QRcodeInfo  *QRcodeInfo `xml:"QRcodeInfo,omitempty"`
+	ResultImage string      `xml:"ResultImage,omitempty"`
+}
+
+// 二维码识别-下载时识别 https://cloud.tencent.com/document/product/436/54070
+func (s *CIService) GetQRcode(ctx context.Context, name string, cover int, opt *ObjectGetOptions, id ...string) (*GetQRcodeResult, *Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=QRcode&cover=%v", encodeURIComponent(name), id[0], cover)
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?ci-process=QRcode&cover=%v", encodeURIComponent(name), cover)
+	} else {
+		return nil, nil, errors.New("wrong params")
+	}
+
+	var res GetQRcodeResult
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodGet,
+		optQuery:  opt,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type GenerateQRcodeOptions struct {
+	QRcodeContent string `url:"qrcode-content,omitempty"`
+	Mode          int    `url:"mode,omitempty"`
+	Width         int    `url:"width,omitempty"`
+}
+type GenerateQRcodeResult struct {
+	XMLName     xml.Name `xml:"Response"`
+	ResultImage string   `xml:"ResultImage,omitempty"`
+}
+
+// 二维码生成 https://cloud.tencent.com/document/product/436/54071
+func (s *CIService) GenerateQRcode(ctx context.Context, opt *GenerateQRcodeOptions) (*GenerateQRcodeResult, *Response, error) {
+	var res GenerateQRcodeResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/?ci-process=qrcode-generate",
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) GenerateQRcodeToFile(ctx context.Context, filePath string, opt *GenerateQRcodeOptions) (*GenerateQRcodeResult, *Response, error) {
+	res, resp, err := s.GenerateQRcode(ctx, opt)
+	if err != nil {
+		return res, resp, err
+	}
+
+	// If file exist, overwrite it
+	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	if err != nil {
+		return res, resp, err
+	}
+	defer fd.Close()
+
+	bs, err := base64.StdEncoding.DecodeString(res.ResultImage)
+	if err != nil {
+		return res, resp, err
+	}
+	fb := bytes.NewReader(bs)
+	_, err = io.Copy(fd, fb)
+
+	return res, resp, err
 }

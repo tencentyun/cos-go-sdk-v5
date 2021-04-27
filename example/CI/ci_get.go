@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -32,40 +31,24 @@ func log_status(err error) {
 }
 
 func main() {
-	bu, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
-	cu, _ := url.Parse("https://test-1259654469.ci.ap-guangzhou.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: bu, CIURL: cu}
+	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
-				RequestBody:    true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
-	opt := &cos.PutVideoAuditingJobOptions{
-		InputObject: "demo.mp4",
-		Conf: &cos.VideoAuditingJobConf{
-			DetectType: "Porn,Terrorism,Politics,Ads",
-			Snapshot: &cos.PutVideoAuditingJobSnapshot{
-				Mode:         "Interval",
-				Start:        0.5,
-				TimeInterval: 50.5,
-				Count:        100,
-			},
-		},
-	}
 
-	res, _, err := c.CI.PutVideoAuditingJob(context.Background(), opt)
+	name := "test.jpg"
+	filepath := "test.jpg"
+	_, err := c.CI.GetToFile(context.Background(), name, filepath, "imageMogr2/thumbnail/!50px", nil)
 	log_status(err)
-	fmt.Printf("%+v\n", res)
-
-	time.Sleep(3 * time.Second)
-	res2, _, err := c.CI.GetVideoAuditingJob(context.Background(), res.JobsDetail.JobId)
-	log_status(err)
-	fmt.Printf("%+v\n", res2)
 }

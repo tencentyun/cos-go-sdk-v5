@@ -523,6 +523,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	v, resp, err := s.CompleteMultipartUpload(ctx, name, uploadID, optcom)
 	if err != nil {
 		s.AbortMultipartUpload(ctx, name, uploadID)
+		return nil, resp, err
 	}
 	cpres := &ObjectCopyResult{
 		ETag:      v.ETag,

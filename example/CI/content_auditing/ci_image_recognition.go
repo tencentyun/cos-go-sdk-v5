@@ -38,26 +38,16 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    false,
+				RequestHeader:  true,
+				RequestBody:    true,
 				ResponseHeader: true,
 				ResponseBody:   true,
 			},
 		},
 	})
-
-	opt := &cos.ImageProcessOptions{
-		IsPicInfo: 1,
-		Rules: []cos.PicOperationsRules{
-			{
-				FileId: "format.jpg",
-				Rule:   "imageView2/format/png",
-			},
-		},
-	}
+	DetectType := "porn,terrorist,politics"
 	name := "test.jpg"
-	res, _, err := c.CI.ImageProcess(context.Background(), name, opt)
+	res, _, err := c.CI.ImageRecognition(context.Background(), name, DetectType)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }

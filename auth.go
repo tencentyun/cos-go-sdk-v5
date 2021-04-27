@@ -48,6 +48,12 @@ var needSignHeaders = map[string]bool{
 	"x-cos-object-type":              true,
 }
 
+var ciParameters = map[string]bool{
+	"imagemogr2/": true,
+	"watermark/":  true,
+	"imageview2/": true,
+}
+
 func safeURLEncode(s string) string {
 	s = encodeURIComponent(s)
 	s = strings.Replace(s, "!", "%21", -1)
@@ -205,8 +211,10 @@ func genFormatParameters(parameters url.Values) (formatParameters string, signed
 	for key, values := range parameters {
 		key = strings.ToLower(key)
 		for _, value := range values {
-			ps.Add(key, value)
-			signedParameterList = append(signedParameterList, key)
+			if !isCIParameter(key) {
+				ps.Add(key, value)
+				signedParameterList = append(signedParameterList, key)
+			}
 		}
 	}
 	//formatParameters = strings.ToLower(ps.Encode())
@@ -244,6 +252,15 @@ func calHMACDigest(key, msg, signMethod string) []byte {
 	h := hmac.New(hashFunc, []byte(key))
 	h.Write([]byte(msg))
 	return h.Sum(nil)
+}
+
+func isCIParameter(key string) bool {
+	for k, v := range ciParameters {
+		if strings.HasPrefix(key, k) && v {
+			return true
+		}
+	}
+	return false
 }
 
 func isSignHeader(key string) bool {

@@ -825,7 +825,6 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 }
 
 // MultiUpload/Upload 为高级upload接口，并发分块上传
-// 注意该接口目前只供参考
 //
 // 当 partSize > 0 时，由调用者指定分块大小，否则由 SDK 自动切分，单位为MB
 // 由调用者指定分块大小时，请确认分块数量不超过10000
@@ -870,8 +869,9 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			return nil, rsp, err
 		}
 		result := &CompleteMultipartUploadResult{
-			Key:  name,
-			ETag: rsp.Header.Get("ETag"),
+			Location: fmt.Sprintf("%s/%s", s.client.BaseURL.BucketURL, name),
+			Key:      name,
+			ETag:     rsp.Header.Get("ETag"),
 		}
 		if rsp != nil && s.client.Conf.EnableCRC {
 			scoscrc := rsp.Header.Get("x-cos-hash-crc64ecma")
@@ -1001,7 +1001,6 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 
 	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
 	if err != nil {
-		s.AbortMultipartUpload(ctx, name, uploadID)
 		return v, resp, err
 	}
 
