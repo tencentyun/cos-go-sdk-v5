@@ -283,7 +283,7 @@ func multi_put_object_from_file() {
 			ContentLength: chunk.Size,
 		}
 		fd.Seek(chunk.OffSet, os.SEEK_SET)
-		resp, err := client.Object.UploadPart(context.Background(), name, v.UploadID, chunk.Number, io.LimitReader(fd, chunk.Size), opt, &cryptoCtx)
+		resp, err := client.Object.UploadPart(context.Background(), name, v.UploadID, chunk.Number, cos.LimitReadCloser(fd, chunk.Size), opt, &cryptoCtx)
 		log_status(err)
 		optcom.Parts = append(optcom.Parts, cos.Object{
 			PartNumber: chunk.Number, ETag: resp.Header.Get("ETag"),
