@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	CosKmsCryptoWrap   = "COS/KMS/Crypto"
+	CosKmsCryptoWrap   = "KMS/TencentCloud"
 	AesCtrAlgorithm    = "AES/CTR/NoPadding"
 	EncryptionUaSuffix = "COSEncryptionClient"
 )
