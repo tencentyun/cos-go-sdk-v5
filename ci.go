@@ -446,3 +446,43 @@ func (s *CIService) GenerateQRcodeToFile(ctx context.Context, filePath string, o
 
 	return res, resp, err
 }
+
+// 开通 Guetzli 压缩 https://cloud.tencent.com/document/product/460/30112
+func (s *CIService) PutGuetzli(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?guetzli",
+		method:  http.MethodPut,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+type GetGuetzliResult struct {
+	XMLName       xml.Name `xml:"GuetzliStatus"`
+	GuetzliStatus string   `xml:",chardata"`
+}
+
+// 查询 Guetzli 状态 https://cloud.tencent.com/document/product/460/30111
+func (s *CIService) GetGuetzli(ctx context.Context) (*GetGuetzliResult, *Response, error) {
+	var res GetGuetzliResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?guetzli",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+// 关闭 Guetzli 压缩 https://cloud.tencent.com/document/product/460/30113
+func (s *CIService) DeleteGuetzli(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?guetzli",
+		method:  http.MethodDelete,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}

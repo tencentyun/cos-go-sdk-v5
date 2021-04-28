@@ -12,10 +12,11 @@ type BucketPutOriginOptions struct {
 }
 
 type BucketOriginRule struct {
-	OriginType      string                 `xml:"OriginType"`
-	OriginCondition *BucketOriginCondition `xml:"OriginCondition"`
-	OriginParameter *BucketOriginParameter `xml:"OriginParameter"`
-	OriginInfo      *BucketOriginInfo      `xml:"OriginInfo"`
+	RulePriority    int                    `xml:"RulePriority,omitempty"`
+	OriginType      string                 `xml:"OriginType,omitempty"`
+	OriginCondition *BucketOriginCondition `xml:"OriginCondition,omitempty"`
+	OriginParameter *BucketOriginParameter `xml:"OriginParameter,omitempty"`
+	OriginInfo      *BucketOriginInfo      `xml:"OriginInfo,omitempty"`
 }
 
 type BucketOriginCondition struct {

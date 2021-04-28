@@ -87,3 +87,36 @@ func Test_checkResponse_with_error(t *testing.T) {
 	}
 
 }
+
+func Test_IsNotFoundError(t *testing.T) {
+    setup()
+    defer teardown()
+
+    mux.HandleFunc("/test_404", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+        fmt.Fprint(w, `<?xml version='1.0' encoding='utf-8' ?>
+<Error>
+    <Code>NoSuchKey</Code>
+    <Message>The specified key does not exist.</Message>
+    <Resource>examplebucket-1250000000.cos.ap-guangzhou.myqcloud.com/test_404</Resource>
+    <RequestId>NjA3OGY4NGFfNjJkMmMwYl8***</RequestId>
+    <TraceId>OGVmYzZiMmQzYjA2OWNh***</TraceId>
+</Error>`)
+	})
+
+	req, _ := http.NewRequest("GET", client.BaseURL.ServiceURL.String()+"/test_404", nil)
+	resp, _ := client.client.Do(req)
+	err := checkResponse(resp)
+
+    e, ok := IsCOSError(err)
+    if !ok {
+        t.Errorf("IsCOSError Return Failed")
+    }
+    ok = IsNotFoundError(e)
+    if !ok {
+        t.Errorf("IsNotFoundError Return Failed")
+    }
+    if e.Code != "NoSuchKey" {
+        t.Errorf("Expected NoSuchKey error, got %+v", e.Code)
+    }
+}
