@@ -59,8 +59,9 @@ func simple_put_object() {
 
 	fmt.Println("============== simple_put_object ======================")
 	// 该标识信息唯一确认一个主加密密钥, 解密时，需要传入相同的标识信息
+	// KMS加密时，该信息设置成EncryptionContext，最大支持1024字符，如果Encrypt指定了该参数，则在Decrypt 时需要提供同样的参数
 	materialDesc := make(map[string]string)
-	materialDesc["desc"] = "<material information of your master encrypt key>"
+	//materialDesc["desc"] = "material information of your master encrypt key"
 
 	// 创建KMS客户端
 	kmsclient, _ := coscrypto.NewKMSClient(c.GetCredential(), "ap-guangzhou")
@@ -114,8 +115,9 @@ func simple_put_object_from_file() {
 
 	fmt.Println("============== simple_put_object_from_file ======================")
 	// 该标识信息唯一确认一个主加密密钥, 解密时，需要传入相同的标识信息
+	// KMS加密时，该信息设置成EncryptionContext，最大支持1024字符，如果Encrypt指定了该参数，则在Decrypt 时需要提供同样的参数
 	materialDesc := make(map[string]string)
-	materialDesc["desc"] = "<material information of your master encrypt key>"
+	//materialDesc["desc"] = "material information of your master encrypt key"
 
 	// 创建KMS客户端
 	kmsclient, _ := coscrypto.NewKMSClient(c.GetCredential(), "ap-guangzhou")
@@ -173,8 +175,9 @@ func multi_put_object() {
 
 	fmt.Println("============== multi_put_object ======================")
 	// 该标识信息唯一确认一个主加密密钥, 解密时，需要传入相同的标识信息
+	// KMS加密时，该信息设置成EncryptionContext，最大支持1024字符，如果Encrypt指定了该参数，则在Decrypt 时需要提供同样的参数
 	materialDesc := make(map[string]string)
-	materialDesc["desc"] = "<material information of your master encrypt key>"
+	//materialDesc["desc"] = "material information of your master encrypt key"
 
 	// 创建KMS客户端
 	kmsclient, _ := coscrypto.NewKMSClient(c.GetCredential(), "ap-guangzhou")
@@ -244,8 +247,9 @@ func multi_put_object_from_file() {
 
 	fmt.Println("============== multi_put_object_from_file ======================")
 	// 该标识信息唯一确认一个主加密密钥, 解密时，需要传入相同的标识信息
+	// KMS加密时，该信息设置成EncryptionContext，最大支持1024字符，如果Encrypt指定了该参数，则在Decrypt 时需要提供同样的参数
 	materialDesc := make(map[string]string)
-	materialDesc["desc"] = "<material information of your master encrypt key>"
+	//materialDesc["desc"] = "material information of your master encrypt key"
 
 	// 创建KMS客户端
 	kmsclient, _ := coscrypto.NewKMSClient(c.GetCredential(), "ap-guangzhou")
