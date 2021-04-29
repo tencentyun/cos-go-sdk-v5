@@ -1239,7 +1239,10 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		if opt.CheckPoint {
 			cpfd.Truncate(0)
 			cpfd.Seek(0, os.SEEK_SET)
-			resumableInfo.DownloadedBlocks = append(resumableInfo.DownloadedBlocks, DownloadedBlock{From: chunks[i].OffSet, To: chunks[i].OffSet + chunks[i].Size - 1})
+			resumableInfo.DownloadedBlocks = append(resumableInfo.DownloadedBlocks, DownloadedBlock{
+				From: chunks[res.PartNumber-1].OffSet,
+				To:   chunks[res.PartNumber-1].OffSet + chunks[res.PartNumber-1].Size - 1,
+			})
 			json.NewEncoder(cpfd).Encode(resumableInfo)
 		}
 	}
@@ -1250,7 +1253,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	if err != nil {
 		return nil, err
 	}
-    // 下载成功，删除checkpoint文件
+	// 下载成功，删除checkpoint文件
 	if opt.CheckPoint {
 		os.Remove(cpfile)
 	}
