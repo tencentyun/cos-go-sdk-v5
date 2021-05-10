@@ -59,7 +59,7 @@ func main() {
 	// 重命名
 	dest := "test/newfile"
 	soruceURL := fmt.Sprintf("%s/%s", u.Host, source)
-	_, _, err := c.Object.Copy(context.Background(), dest, soruceURL, nil)
+	_, _, err = c.Object.Copy(context.Background(), dest, soruceURL, nil)
 	log_status(err)
 	if err == nil {
 		_, err = c.Object.Delete(context.Background(), source, nil)
