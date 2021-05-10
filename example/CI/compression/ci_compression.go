@@ -38,19 +38,21 @@ func main() {
 			SecretID:  os.Getenv("COS_SECRETID"),
 			SecretKey: os.Getenv("COS_SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
-				RequestBody:    true,
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
-	opt := &cos.ImageRecognitionOptions{
-		DetectType: "porn,terrorist,politics",
-	}
 
-	name := "test.jpg"
-	res, _, err := c.CI.ImageRecognition(context.Background(), name, opt)
+	name := "test.png"
+	filepath := "test1.jpg"
+	_, err := c.CI.GetToFile(context.Background(), name, filepath, "imageMogr2/format/tpg", nil)
 	log_status(err)
-	fmt.Printf("%+v\n", res)
+
+	filepath = "test2.jpg"
+	_, err = c.CI.GetToFile(context.Background(), name, filepath, "imageMogr2/format/heif", nil)
+	log_status(err)
 }

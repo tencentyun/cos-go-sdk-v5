@@ -113,13 +113,6 @@ type BatchCreateJobResult struct {
 	JobId   string   `xml:"JobId,omitempty"`
 }
 
-func processETag(opt *BatchCreateJobOptions) *BatchCreateJobOptions {
-	if opt != nil && opt.Manifest != nil && opt.Manifest.Location != nil {
-		opt.Manifest.Location.ETag = "<ETag>" + opt.Manifest.Location.ETag + "</ETag>"
-	}
-	return opt
-}
-
 func (s *BatchService) CreateJob(ctx context.Context, opt *BatchCreateJobOptions, headers *BatchRequestHeaders) (*BatchCreateJobResult, *Response, error) {
 	var res BatchCreateJobResult
 	sendOpt := sendOptions{

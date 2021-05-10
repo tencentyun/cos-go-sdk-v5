@@ -42,22 +42,48 @@ func main() {
 				// Notice when put a large file and set need the request body, might happend out of memory error.
 				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
 
-	opt := &cos.ImageProcessOptions{
+	opt := &cos.ObjectPutOptions{
+		nil,
+		&cos.ObjectPutHeaderOptions{
+			XOptionHeader: &http.Header{},
+		},
+	}
+	pic := &cos.PicOperations{
 		IsPicInfo: 1,
 		Rules: []cos.PicOperationsRules{
 			{
 				FileId: "format.jpg",
-				Rule:   "imageView2/format/png",
+				Rule:   "QRcode/cover/1",
 			},
 		},
 	}
+	opt.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
 	name := "test.jpg"
-	res, _, err := c.CI.ImageProcess(context.Background(), name, opt)
+	local_filename := "./QRcode.jpg"
+	res, _, err := c.CI.PutFromFile(context.Background(), name, local_filename, opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
+	fmt.Printf("%+v\n", res.OriginalInfo)
+	fmt.Printf("%+v\n", res.ProcessResults)
+
+	res2, _, err := c.CI.GetQRcode(context.Background(), name, 0, nil)
+	log_status(err)
+	fmt.Printf("%+v\n", res2)
+
+	gopt := &cos.GenerateQRcodeOptions{
+		QRcodeContent: fmt.Sprintf("<%v>", res2.QRcodeInfo.CodeUrl),
+		Mode:          0,
+		Width:         200,
+	}
+	res3, _, err := c.CI.GenerateQRcode(context.Background(), gopt)
+	log_status(err)
+	fmt.Printf("%+v\n", res3)
+
+	_, _, err = c.CI.GenerateQRcodeToFile(context.Background(), "./downQRcode.jpg", gopt)
+	log_status(err)
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -32,7 +33,8 @@ func log_status(err error) {
 
 func main() {
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u}
+	cu, _ := url.Parse("http://test-1259654469.pic.ap-guangzhou.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -47,24 +49,20 @@ func main() {
 		},
 	})
 
-	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
-			XOptionHeader: &http.Header{},
-		},
-	}
-	pic := &cos.PicOperations{
-		IsPicInfo: 1,
-		Rules: []cos.PicOperationsRules{
-			{
-				FileId: "format.jpg",
-				Rule:   "imageView2/format/png",
-			},
-		},
-	}
-	opt.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
-	name := "test.jpg"
-	local_filename := "./test.jpg"
-	_, err := c.Object.PutFromFile(context.Background(), name, local_filename, opt)
+	_, err := c.CI.PutGuetzli(context.Background())
 	log_status(err)
+	res, _, err := c.CI.GetGuetzli(context.Background())
+	log_status(err)
+	if res != nil && res.GuetzliStatus != "on" {
+		fmt.Printf("Error Status: %v\n", res.GuetzliStatus)
+	}
+	time.Sleep(time.Second * 3)
+	_, err = c.CI.DeleteGuetzli(context.Background())
+	log_status(err)
+	res, _, err = c.CI.GetGuetzli(context.Background())
+	log_status(err)
+	if res != nil && res.GuetzliStatus != "off" {
+		fmt.Printf("Error Status: %v\n", res.GuetzliStatus)
+	}
+
 }

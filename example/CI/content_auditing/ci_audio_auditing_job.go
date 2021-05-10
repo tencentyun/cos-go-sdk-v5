@@ -47,25 +47,19 @@ func main() {
 			},
 		},
 	})
-	opt := &cos.PutVideoAuditingJobOptions{
-		InputObject: "demo.mp4",
-		Conf: &cos.VideoAuditingJobConf{
+	opt := &cos.PutAudioAuditingJobOptions{
+		InputObject: "test.mp3",
+		Conf: &cos.AudioAuditingJobConf{
 			DetectType: "Porn,Terrorism,Politics,Ads",
-			Snapshot: &cos.PutVideoAuditingJobSnapshot{
-				Mode:         "Interval",
-				Start:        0.5,
-				TimeInterval: 50.5,
-				Count:        100,
-			},
 		},
 	}
 
-	res, _, err := c.CI.PutVideoAuditingJob(context.Background(), opt)
+	res, _, err := c.CI.PutAudioAuditingJob(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 
 	time.Sleep(3 * time.Second)
-	res2, _, err := c.CI.GetVideoAuditingJob(context.Background(), res.JobsDetail.JobId)
+	res2, _, err := c.CI.GetAudioAuditingJob(context.Background(), res.JobsDetail.JobId)
 	log_status(err)
 	fmt.Printf("%+v\n", res2)
 }

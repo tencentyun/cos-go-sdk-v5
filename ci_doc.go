@@ -73,6 +73,7 @@ type CreateDocProcessJobsResult struct {
 	JobsDetail DocProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
+// 创建文档预览任务 https://cloud.tencent.com/document/product/436/54056
 func (s *CIService) CreateDocProcessJobs(ctx context.Context, opt *CreateDocProcessJobsOptions) (*CreateDocProcessJobsResult, *Response, error) {
 	var res CreateDocProcessJobsResult
 	sendOpt := sendOptions{
@@ -92,6 +93,7 @@ type DescribeDocProcessJobResult struct {
 	NonExistJobIds string               `xml:"NonExistJobIds,omitempty"`
 }
 
+// 查询文档预览任务 https://cloud.tencent.com/document/product/436/54095
 func (s *CIService) DescribeDocProcessJob(ctx context.Context, jobid string) (*DescribeDocProcessJobResult, *Response, error) {
 	var res DescribeDocProcessJobResult
 	sendOpt := sendOptions{
@@ -121,6 +123,7 @@ type DescribeDocProcessJobsResult struct {
 	NextToken  string                `xml:"NextToken,omitempty"`
 }
 
+// 拉取符合条件的文档预览任务 https://cloud.tencent.com/document/product/436/54096
 func (s *CIService) DescribeDocProcessJobs(ctx context.Context, opt *DescribeDocProcessJobsOptions) (*DescribeDocProcessJobsResult, *Response, error) {
 	var res DescribeDocProcessJobsResult
 	sendOpt := sendOptions{
@@ -169,6 +172,7 @@ type DocProcessQueueNotifyConfig struct {
 	Event string `xml:"Event,omitempty"`
 }
 
+// 查询文档预览队列 https://cloud.tencent.com/document/product/436/54055
 func (s *CIService) DescribeDocProcessQueues(ctx context.Context, opt *DescribeDocProcessQueuesOptions) (*DescribeDocProcessQueuesResult, *Response, error) {
 	var res DescribeDocProcessQueuesResult
 	sendOpt := sendOptions{
@@ -196,6 +200,7 @@ type UpdateDocProcessQueueResult struct {
 	Queue     *DocProcessQueue `xml:"Queue"`
 }
 
+// 更新文档预览队列 https://cloud.tencent.com/document/product/436/54094
 func (s *CIService) UpdateDocProcessQueue(ctx context.Context, opt *UpdateDocProcessQueueOptions) (*UpdateDocProcessQueueResult, *Response, error) {
 	var res UpdateDocProcessQueueResult
 	sendOpt := sendOptions{
@@ -233,6 +238,7 @@ type DocProcessBucket struct {
 	AliasBucketId string `xml:"AliasBucketId,omitempty"`
 }
 
+// 查询文档预览开通状态 https://cloud.tencent.com/document/product/436/54057
 func (s *CIService) DescribeDocProcessBuckets(ctx context.Context, opt *DescribeDocProcessBucketsOptions) (*DescribeDocProcessBucketsResult, *Response, error) {
 	var res DescribeDocProcessBucketsResult
 	sendOpt := sendOptions{
@@ -259,6 +265,7 @@ type DocPreviewOptions struct {
 	Zoom                int    `url:"zoom,omitempty"`
 }
 
+// 同步请求接口 https://cloud.tencent.com/document/product/436/54058
 func (s *CIService) DocPreview(ctx context.Context, name string, opt *DocPreviewOptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,

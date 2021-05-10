@@ -25,6 +25,51 @@ func TestObjectService_Get(t *testing.T) {
 	setup()
 	defer teardown()
 	name := "test/hello.txt"
+	contentLength := 1024 * 1024 * 10
+	data := make([]byte, contentLength)
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"response-content-type": "text/html",
+		}
+		testFormValues(t, r, vs)
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(data[start:end+1]))
+	})
+	for i := 0; i < 3; i++ {
+		math_rand.Seed(time.Now().UnixNano())
+		rangeStart := math_rand.Intn(contentLength)
+		rangeEnd := rangeStart + math_rand.Intn(contentLength-rangeStart)
+		if rangeEnd == rangeStart || rangeStart >= contentLength-1 {
+			continue
+		}
+		opt := &ObjectGetOptions{
+			ResponseContentType: "text/html",
+			Range:               fmt.Sprintf("bytes=%v-%v", rangeStart, rangeEnd),
+		}
+		resp, err := client.Object.Get(context.Background(), name, opt)
+		if err != nil {
+			t.Fatalf("Object.Get returned error: %v", err)
+		}
+
+		b, _ := ioutil.ReadAll(resp.Body)
+		if bytes.Compare(b, data[rangeStart:rangeEnd+1]) != 0 {
+			t.Errorf("Object.Get Failed")
+		}
+	}
+}
+
+func TestObjectService_GetToFile(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test/hello.txt"
+	data := make([]byte, 1024*1024*10)
+	rand.Read(data)
 
 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
@@ -33,26 +78,26 @@ func TestObjectService_Get(t *testing.T) {
 		}
 		testFormValues(t, r, vs)
 		testHeader(t, r, "Range", "bytes=0-3")
-		fmt.Fprint(w, `hello`)
+		io.Copy(w, bytes.NewReader(data))
 	})
-
 	opt := &ObjectGetOptions{
 		ResponseContentType: "text/html",
 		Range:               "bytes=0-3",
 	}
-
-	resp, err := client.Object.Get(context.Background(), name, opt)
+	filePath := "test.file" + time.Now().Format(time.RFC3339)
+	_, err := client.Object.GetToFile(context.Background(), name, filePath, opt)
 	if err != nil {
 		t.Fatalf("Object.Get returned error: %v", err)
 	}
-
-	b, _ := ioutil.ReadAll(resp.Body)
-	ref := string(b)
-	want := "hello"
-	if !reflect.DeepEqual(ref, want) {
-		t.Errorf("Object.Get returned %+v, want %+v", ref, want)
+	defer os.Remove(filePath)
+	fd, err := os.Open(filePath)
+	if err != nil {
 	}
-
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("Object.GetToFile data isn't consistent")
+	}
 }
 
 func TestObjectService_Put(t *testing.T) {
@@ -132,6 +177,7 @@ func TestObjectService_PutFromFile(t *testing.T) {
 	opt := &ObjectPutOptions{
 		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
 			ContentType: "text/html",
+			Listener:    &DefaultProgressListener{},
 		},
 		ACLHeaderOptions: &ACLHeaderOptions{
 			XCosACL: "private",
@@ -518,6 +564,7 @@ func TestObjectService_Upload2(t *testing.T) {
 	}
 }
 
+/*
 func TestObjectService_Download(t *testing.T) {
 	setup()
 	defer teardown()
@@ -589,4 +636,199 @@ func TestObjectService_Download(t *testing.T) {
 		// 正确
 		t.Fatalf("Object.Upload returned error: %v", err)
 	}
+}
+*/
+func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "rsp.file" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	totalBytes := int64(1024*1024*9 + 123)
+	partSize := 1024 * 1024
+	b := make([]byte, totalBytes)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	oddok := false
+	var oddcount, evencount int
+	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if (start/int64(partSize))%2 == 1 {
+			if oddok {
+				io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			} else {
+				// 数据校验失败, Download不会做重试
+				io.Copy(w, bytes.NewBuffer(b[start:end]))
+			}
+			oddcount++
+		} else {
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			evencount++
+		}
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+		CheckPoint:     true,
+	}
+	downPath := "down.file" + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err == nil {
+		// 偶数块下载完成，奇数块下载失败
+		t.Fatalf("Object.Download returned error: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Object Download Open File Failed:%v", err)
+	}
+	offset := 0
+	for i := 0; i < 10; i++ {
+		bs, _ := ioutil.ReadAll(io.LimitReader(fd, int64(partSize)))
+		offset += len(bs)
+		if i%2 == 1 {
+			bs[len(bs)-1] = b[offset-1]
+		}
+		if bytes.Compare(bs, b[i*partSize:offset]) != 0 {
+			t.Fatalf("Compare Error, index:%v, len:%v, offset:%v", i, len(bs), offset)
+		}
+	}
+	fd.Close()
+
+	if oddcount != 5 || evencount != 5 {
+		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
+	}
+	// 设置奇数块OK
+	oddok = true
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err != nil {
+		// 下载成功
+		t.Fatalf("Object.Download returned error: %v", err)
+	}
+	if oddcount != 10 || evencount != 5 {
+		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
+	}
+}
+func TestObjectService_GetTagging(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"tagging": "",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprint(w, `<Tagging>
+	<TagSet>
+		<Tag>
+			<Key>test_k2</Key>
+			<Value>test_v2</Value>
+		</Tag>
+		<Tag>
+			<Key>test_k3</Key>
+			<Value>test_vv</Value>
+		</Tag>
+	</TagSet>
+</Tagging>`)
+	})
+
+	res, _, err := client.Object.GetTagging(context.Background(), "test")
+	if err != nil {
+		t.Fatalf("Object.GetTagging returned error %v", err)
+	}
+
+	want := &ObjectGetTaggingResult{
+		XMLName: xml.Name{Local: "Tagging"},
+		TagSet: []ObjectTaggingTag{
+			{"test_k2", "test_v2"},
+			{"test_k3", "test_vv"},
+		},
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("Object.GetTagging returned %+v, want %+v", res, want)
+	}
+}
+
+func TestObjectService_PutTagging(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &ObjectPutTaggingOptions{
+		TagSet: []ObjectTaggingTag{
+			{
+				Key:   "test_k2",
+				Value: "test_v2",
+			},
+			{
+				Key:   "test_k3",
+				Value: "test_v3",
+			},
+		},
+	}
+
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		v := new(ObjectPutTaggingOptions)
+		xml.NewDecoder(r.Body).Decode(v)
+
+		testMethod(t, r, "PUT")
+		vs := values{
+			"tagging": "",
+		}
+		testFormValues(t, r, vs)
+
+		want := opt
+		want.XMLName = xml.Name{Local: "Tagging"}
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.PutTagging request body: %+v, want %+v", v, want)
+		}
+
+	})
+
+	_, err := client.Object.PutTagging(context.Background(), "test", opt)
+	if err != nil {
+		t.Fatalf("Object.PutTagging returned error: %v", err)
+	}
+
+}
+
+func TestObjectService_DeleteTagging(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+		vs := values{
+			"tagging": "",
+		}
+		testFormValues(t, r, vs)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	_, err := client.Object.DeleteTagging(context.Background(), "test")
+	if err != nil {
+		t.Fatalf("Object.DeleteTagging returned error: %v", err)
+	}
+
 }

@@ -50,7 +50,19 @@ func (s *BucketService) Get(ctx context.Context, opt *BucketGetOptions) (*Bucket
 }
 
 // BucketPutOptions is same to the ACLHeaderOptions
-type BucketPutOptions ACLHeaderOptions
+type BucketPutOptions struct {
+	XCosACL                   string                     `header:"x-cos-acl,omitempty" url:"-" xml:"-"`
+	XCosGrantRead             string                     `header:"x-cos-grant-read,omitempty" url:"-" xml:"-"`
+	XCosGrantWrite            string                     `header:"x-cos-grant-write,omitempty" url:"-" xml:"-"`
+	XCosGrantFullControl      string                     `header:"x-cos-grant-full-control,omitempty" url:"-" xml:"-"`
+	XCosGrantReadACP          string                     `header:"x-cos-grant-read-acp,omitempty" url:"-" xml:"-"`
+	XCosGrantWriteACP         string                     `header:"x-cos-grant-write-acp,omitempty" url:"-" xml:"-"`
+	CreateBucketConfiguration *CreateBucketConfiguration `header:"-" url:"-" xml:"-"`
+}
+type CreateBucketConfiguration struct {
+	XMLName        xml.Name `xml:"CreateBucketConfiguration"`
+	BucketAZConfig string   `xml:"BucketAZConfig,omitempty"`
+}
 
 // Put Bucket请求可以在指定账号下创建一个Bucket。
 //
@@ -61,6 +73,9 @@ func (s *BucketService) Put(ctx context.Context, opt *BucketPutOptions) (*Respon
 		uri:       "/",
 		method:    http.MethodPut,
 		optHeader: opt,
+	}
+	if opt != nil && opt.CreateBucketConfiguration != nil {
+		sendOpt.body = opt.CreateBucketConfiguration
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
