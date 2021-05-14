@@ -768,6 +768,9 @@ func SplitFileIntoChunks(filePath string, partSize int64) (int64, []Chunk, int, 
 	}
 	var partNum int64
 	if partSize > 0 {
+		if partSize < 1024*1024 {
+			return 0, nil, 0, errors.New("partSize>=1048576 is required")
+		}
 		partNum = stat.Size() / partSize
 		if partNum >= 10000 {
 			return 0, nil, 0, errors.New("Too many parts, out of 10000")
@@ -1066,6 +1069,9 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 func SplitSizeIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error) {
 	var partNum int64
 	if partSize > 0 {
+		if partSize < 1024*1024 {
+			return nil, 0, errors.New("partSize>=1048576 is required")
+		}
 		partNum = totalBytes / partSize
 		if partNum >= 10000 {
 			return nil, 0, errors.New("Too manry parts, out of 10000")

@@ -104,10 +104,14 @@ func (s *CosTestSuite) TestMultiUpload_DecryptWithKey() {
 	resp, err = s.CClient.Object.Head(context.Background(), name, nil)
 	assert.Nil(s.T(), err, "HeadObject Failed")
 	cipherKey := resp.Header.Get(coscrypto.COSClientSideEncryptionKey)
+	cipherKeybs, err := base64.StdEncoding.DecodeString(cipherKey)
+	assert.Nil(s.T(), err, "base64 Decode Failed")
 	cipherIV := resp.Header.Get(coscrypto.COSClientSideEncryptionStart)
-	key, err := s.Master.Decrypt([]byte(cipherKey))
+	cipherIVbs, err := base64.StdEncoding.DecodeString(cipherIV)
+	assert.Nil(s.T(), err, "base64 Decode Failed")
+	key, err := s.Master.Decrypt(cipherKeybs)
 	assert.Nil(s.T(), err, "Master Decrypt Failed")
-	iv, err := s.Master.Decrypt([]byte(cipherIV))
+	iv, err := s.Master.Decrypt(cipherIVbs)
 	assert.Nil(s.T(), err, "Master Decrypt Failed")
 
 	// 手动解密

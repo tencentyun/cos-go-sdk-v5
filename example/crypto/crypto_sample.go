@@ -39,6 +39,13 @@ func log_status(err error) {
 	os.Exit(1)
 }
 
+func cos_max(x, y int64) int64 {
+	if x > y {
+		return x
+	}
+	return y
+}
+
 func simple_put_object() {
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -196,7 +203,7 @@ func multi_put_object() {
 	cryptoCtx := coscrypto.CryptoContext{
 		DataSize: contentLength,
 		// 每个分块需要16字节对齐
-		PartSize: (contentLength / 16 / 3) * 16,
+		PartSize: cos_max(1024*1024, (contentLength/16/3)*16),
 	}
 	v, _, err := client.Object.InitiateMultipartUpload(context.Background(), name, nil, &cryptoCtx)
 	log_status(err)
@@ -268,7 +275,7 @@ func multi_put_object_from_file() {
 	cryptoCtx := coscrypto.CryptoContext{
 		DataSize: contentLength,
 		// 每个分块需要16字节对齐
-		PartSize: (contentLength / 16 / 3) * 16,
+		PartSize: cos_max(1024*1024, (contentLength/16/3)*16),
 	}
 	// 切分数据
 	_, chunks, _, err := cos.SplitFileIntoChunks(filepath, cryptoCtx.PartSize)

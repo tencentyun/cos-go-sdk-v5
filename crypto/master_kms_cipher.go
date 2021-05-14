@@ -64,6 +64,7 @@ func (kc *MasterKMSCipher) Encrypt(plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// https://cloud.tencent.com/document/product/573/34420 文档有误，返回的结果并没有base64编码
 	return []byte(*resp.Response.CiphertextBlob), nil
 }
 

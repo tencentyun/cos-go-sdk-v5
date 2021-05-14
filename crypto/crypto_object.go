@@ -2,6 +2,7 @@ package coscrypto
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
@@ -107,7 +108,10 @@ func (s *CryptoObjectService) Get(ctx context.Context, name string, opt *cos.Obj
 		return s.ObjectService.Get(ctx, name, opt, id...)
 	}
 
-	envelope := getEnvelopeFromHeader(&meta.Header)
+	envelope, err := getEnvelopeFromHeader(&meta.Header)
+	if err != nil {
+		return nil, err
+	}
 	if !envelope.IsValid() {
 		return nil, fmt.Errorf("get envelope from header failed, object:%v", name)
 	}
@@ -208,20 +212,39 @@ func addCryptoHeaders(header *http.Header, cd *CipherData) {
 	if cd.MatDesc != "" {
 		header.Add(COSClientSideEncryptionMatDesc, cd.MatDesc)
 	}
-	header.Add(COSClientSideEncryptionKey, string(cd.EncryptedKey))
-	header.Add(COSClientSideEncryptionStart, string(cd.EncryptedIV))
+	// encrypted key
+	strEncryptedKey := base64.StdEncoding.EncodeToString(cd.EncryptedKey)
+	header.Add(COSClientSideEncryptionKey, strEncryptedKey)
+
+	// encrypted iv
+	strEncryptedIV := base64.StdEncoding.EncodeToString(cd.EncryptedIV)
+	header.Add(COSClientSideEncryptionStart, strEncryptedIV)
+
 	header.Add(COSClientSideEncryptionWrapAlg, cd.WrapAlgorithm)
 	header.Add(COSClientSideEncryptionCekAlg, cd.CEKAlgorithm)
 }
 
-func getEnvelopeFromHeader(header *http.Header) Envelope {
+func getEnvelopeFromHeader(header *http.Header) (Envelope, error) {
 	var envelope Envelope
+
 	envelope.CipherKey = header.Get(COSClientSideEncryptionKey)
+	decodedKey, err := base64.StdEncoding.DecodeString(envelope.CipherKey)
+	if err != nil {
+		return envelope, err
+	}
+	envelope.CipherKey = string(decodedKey)
+
 	envelope.IV = header.Get(COSClientSideEncryptionStart)
+	decodedIV, err := base64.StdEncoding.DecodeString(envelope.IV)
+	if err != nil {
+		return envelope, err
+	}
+	envelope.IV = string(decodedIV)
+
 	envelope.MatDesc = header.Get(COSClientSideEncryptionMatDesc)
 	envelope.WrapAlg = header.Get(COSClientSideEncryptionWrapAlg)
 	envelope.CEKAlg = header.Get(COSClientSideEncryptionCekAlg)
-	return envelope
+	return envelope, nil
 }
 
 func isEncrypted(header *http.Header) bool {
