@@ -564,7 +564,6 @@ func TestObjectService_Upload2(t *testing.T) {
 	}
 }
 
-/*
 func TestObjectService_Download(t *testing.T) {
 	setup()
 	defer teardown()
@@ -637,7 +636,7 @@ func TestObjectService_Download(t *testing.T) {
 		t.Fatalf("Object.Upload returned error: %v", err)
 	}
 }
-*/
+
 func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 	setup()
 	defer teardown()

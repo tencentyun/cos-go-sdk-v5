@@ -77,10 +77,13 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 		return nil, err
 	}
 	// opt 不为 nil
-	opt := cloneObjectUploadPartOptions(uopt)
+	opt := CloneObjectUploadPartOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
 	if err != nil && opt.Listener != nil {
-		return nil, err
+		if opt.ContentLength == 0 {
+			return nil, err
+		}
+		totalBytes = opt.ContentLength
 	}
 	// 分块上传不支持 Chunk 上传
 	if err == nil {
@@ -399,37 +402,7 @@ func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *Ob
 	return
 }
 
-func SplitCopyFileIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error) {
-	var partNum int64
-	if partSize > 0 {
-		partSize = partSize * 1024 * 1024
-		partNum = totalBytes / partSize
-		if partNum >= 10000 {
-			return nil, 0, errors.New("Too many parts, out of 10000")
-		}
-	} else {
-		partNum, partSize = DividePart(totalBytes, 128)
-	}
-
-	var chunks []Chunk
-	var chunk = Chunk{}
-	for i := int64(0); i < partNum; i++ {
-		chunk.Number = int(i + 1)
-		chunk.OffSet = i * partSize
-		chunk.Size = partSize
-		chunks = append(chunks, chunk)
-	}
-
-	if totalBytes%partSize > 0 {
-		chunk.Number = len(chunks) + 1
-		chunk.OffSet = int64(len(chunks)) * partSize
-		chunk.Size = totalBytes % partSize
-		chunks = append(chunks, chunk)
-		partNum++
-	}
-	return chunks, int(partNum), nil
-}
-
+// 如果源对象大于5G，则采用分块复制的方式进行拷贝，此时源对象的元信息如果COPY
 func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL string, opt *MultiCopyOptions, id ...string) (*ObjectCopyResult, *Response, error) {
 	resp, err := s.innerHead(ctx, sourceURL, nil, id)
 	if err != nil {
@@ -452,7 +425,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	if opt == nil {
 		opt = &MultiCopyOptions{}
 	}
-	chunks, partNum, err := SplitCopyFileIntoChunks(totalBytes, opt.PartSize)
+	chunks, partNum, err := SplitSizeIntoChunks(totalBytes, opt.PartSize*1024*1024)
 	if err != nil {
 		return nil, nil, err
 	}

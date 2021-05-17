@@ -271,10 +271,13 @@ func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *Obj
 	if err := CheckReaderLen(r); err != nil {
 		return nil, nil, err
 	}
-	opt := cloneObjectPutOptions(uopt)
+	opt := CloneObjectPutOptions(uopt)
 	totalBytes, err := GetReaderLen(r)
 	if err != nil && opt != nil && opt.Listener != nil {
-		return nil, nil, err
+		if opt.ContentLength == 0 {
+			return nil, nil, err
+		}
+		totalBytes = opt.ContentLength
 	}
 	if err == nil {
 		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传

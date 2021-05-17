@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -183,6 +184,19 @@ func CheckReaderLen(reader io.Reader) error {
 	return errors.New("The single object size you upload can not be larger than 5GB")
 }
 
+func cloneHeader(opt *http.Header) *http.Header {
+	if opt == nil {
+		return nil
+	}
+	h := make(http.Header, len(*opt))
+	for k, vv := range *opt {
+		vv2 := make([]string, len(vv))
+		copy(vv2, vv)
+		h[k] = vv2
+	}
+	return &h
+}
+
 func CopyOptionsToMulti(opt *ObjectCopyOptions) *InitiateMultipartUploadOptions {
 	if opt == nil {
 		return nil
@@ -213,8 +227,7 @@ func CopyOptionsToMulti(opt *ObjectCopyOptions) *InitiateMultipartUploadOptions 
 	return optini
 }
 
-// 浅拷贝ObjectPutOptions
-func cloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
+func CloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
 	res := &ObjectPutOptions{
 		&ACLHeaderOptions{},
 		&ObjectPutHeaderOptions{},
@@ -225,18 +238,60 @@ func cloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
 		}
 		if opt.ObjectPutHeaderOptions != nil {
 			*res.ObjectPutHeaderOptions = *opt.ObjectPutHeaderOptions
+			res.XCosMetaXXX = cloneHeader(opt.XCosMetaXXX)
+			res.XOptionHeader = cloneHeader(opt.XOptionHeader)
 		}
 	}
 	return res
 }
 
-// 浅拷贝ObjectUploadPartOptions
-func cloneObjectUploadPartOptions(opt *ObjectUploadPartOptions) *ObjectUploadPartOptions {
+func CloneInitiateMultipartUploadOptions(opt *InitiateMultipartUploadOptions) *InitiateMultipartUploadOptions {
+	res := &InitiateMultipartUploadOptions{
+		&ACLHeaderOptions{},
+		&ObjectPutHeaderOptions{},
+	}
+	if opt != nil {
+		if opt.ACLHeaderOptions != nil {
+			*res.ACLHeaderOptions = *opt.ACLHeaderOptions
+		}
+		if opt.ObjectPutHeaderOptions != nil {
+			*res.ObjectPutHeaderOptions = *opt.ObjectPutHeaderOptions
+			res.XCosMetaXXX = cloneHeader(opt.XCosMetaXXX)
+			res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+		}
+	}
+	return res
+}
+
+func CloneObjectUploadPartOptions(opt *ObjectUploadPartOptions) *ObjectUploadPartOptions {
 	var res ObjectUploadPartOptions
 	if opt != nil {
 		res = *opt
+		res.XOptionHeader = cloneHeader(opt.XOptionHeader)
 	}
 	return &res
+}
+
+func CloneObjectGetOptions(opt *ObjectGetOptions) *ObjectGetOptions {
+	var res ObjectGetOptions
+	if opt != nil {
+		res = *opt
+		res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+	}
+	return &res
+}
+
+func CloneCompleteMultipartUploadOptions(opt *CompleteMultipartUploadOptions) *CompleteMultipartUploadOptions {
+    var res CompleteMultipartUploadOptions
+    if opt != nil {
+        res.XMLName = opt.XMLName
+        if len(opt.Parts) > 0 {
+            res.Parts = make([]Object, len(opt.Parts))
+            copy(res.Parts, opt.Parts)
+        }
+        res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+    }
+    return &res
 }
 
 type RangeOptions struct {
@@ -259,7 +314,45 @@ func FormatRangeOptions(opt *RangeOptions) string {
 	if opt.HasEnd {
 		return fmt.Sprintf("bytes=-%v", opt.End)
 	}
-	return "bytes=-"
+	return ""
+}
+
+func GetRangeOptions(opt *ObjectGetOptions) (*RangeOptions, error) {
+	if opt == nil || opt.Range == "" {
+		return nil, nil
+	}
+	// bytes=M-N
+	slices := strings.Split(opt.Range, "=")
+	if len(slices) != 2 || slices[0] != "bytes" {
+		return nil, fmt.Errorf("Invalid Parameter Range: %v", opt.Range)
+	}
+	// byte=M-N, X-Y
+	fSlice := strings.Split(slices[1], ",")
+	rstr := fSlice[0]
+
+	var err error
+	var ropt RangeOptions
+	sted := strings.Split(rstr, "-")
+	if len(sted) != 2 {
+		return nil, fmt.Errorf("Invalid Parameter Range: %v", opt.Range)
+	}
+	// M
+	if len(sted[0]) > 0 {
+		ropt.Start, err = strconv.ParseInt(sted[0], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid Parameter Range: %v,err: %v", opt.Range, err)
+		}
+		ropt.HasStart = true
+	}
+	// N
+	if len(sted[1]) > 0 {
+		ropt.End, err = strconv.ParseInt(sted[1], 10, 64)
+		if err != nil || ropt.End == 0 {
+			return nil, fmt.Errorf("Invalid Parameter Range: %v,err: %v", opt.Range, err)
+		}
+		ropt.HasEnd = true
+	}
+	return &ropt, nil
 }
 
 var deliverHeader = map[string]bool{}

@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.25"
+	Version               = "0.7.26"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -133,6 +133,26 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	return c
 }
 
+type Credential struct {
+	SecretID     string
+	SecretKey    string
+	SessionToken string
+}
+
+func (c *Client) GetCredential() *Credential {
+	auth, ok := c.client.Transport.(*AuthorizationTransport)
+	if !ok {
+		return nil
+	}
+	auth.rwLocker.Lock()
+	defer auth.rwLocker.Unlock()
+	return &Credential{
+		SecretID:     auth.SecretID,
+		SecretKey:    auth.SecretKey,
+		SessionToken: auth.SessionToken,
+	}
+}
+
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
 	uri, err = addURLOptions(uri, optQuery)
 	if err != nil {
@@ -175,8 +195,10 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	if contentMD5 != "" {
 		req.Header["Content-MD5"] = []string{contentMD5}
 	}
-	if c.UserAgent != "" {
-		req.Header.Set("User-Agent", c.UserAgent)
+	if v := req.Header.Get("User-Agent"); v == "" || !strings.HasPrefix(v, userAgent) {
+		if c.UserAgent != "" {
+			req.Header.Set("User-Agent", c.UserAgent)
+		}
 	}
 	if req.Header.Get("Content-Type") == "" && contentType != "" {
 		req.Header.Set("Content-Type", contentType)
