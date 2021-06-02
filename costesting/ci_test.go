@@ -355,9 +355,11 @@ func (s *CosTestSuite) TestPutGetDeleteLifeCycle() {
 				ID:     "1234",
 				Filter: &cos.BucketLifecycleFilter{Prefix: "test"},
 				Status: "Enabled",
-				Transition: &cos.BucketLifecycleTransition{
-					Days:         10,
-					StorageClass: "Standard",
+				Transition: []cos.BucketLifecycleTransition{
+					{
+						Days:         10,
+						StorageClass: "Standard",
+					},
 				},
 			},
 		},
