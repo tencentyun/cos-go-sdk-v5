@@ -20,8 +20,9 @@ type BucketLifecycleFilter struct {
 
 // BucketLifecycleExpiration is the param of BucketLifecycleRule
 type BucketLifecycleExpiration struct {
-	Date string `xml:"Date,omitempty"`
-	Days int    `xml:"Days,omitempty"`
+	Date                      string `xml:"Date,omitempty"`
+	Days                      int    `xml:"Days,omitempty"`
+	ExpiredObjectDeleteMarker bool   `xml:"ExpiredObjectDeleteMarker,omitempty"`
 }
 
 // BucketLifecycleTransition is the param of BucketLifecycleRule
@@ -29,6 +30,11 @@ type BucketLifecycleTransition struct {
 	Date         string `xml:"Date,omitempty"`
 	Days         int    `xml:"Days,omitempty"`
 	StorageClass string
+}
+
+type BucketLifecycleNoncurrentVersion struct {
+	NoncurrentDays int    `xml:"NoncurrentDays,omitempty"`
+	StorageClass   string `xml:"StorageClass,omitempty"`
 }
 
 // BucketLifecycleAbortIncompleteMultipartUpload is the param of BucketLifecycleRule
@@ -41,9 +47,11 @@ type BucketLifecycleRule struct {
 	ID                             string `xml:"ID,omitempty"`
 	Status                         string
 	Filter                         *BucketLifecycleFilter                         `xml:"Filter,omitempty"`
-	Transition                     *BucketLifecycleTransition                     `xml:"Transition,omitempty"`
+	Transition                     []BucketLifecycleTransition                    `xml:"Transition,omitempty"`
 	Expiration                     *BucketLifecycleExpiration                     `xml:"Expiration,omitempty"`
 	AbortIncompleteMultipartUpload *BucketLifecycleAbortIncompleteMultipartUpload `xml:"AbortIncompleteMultipartUpload,omitempty"`
+	NoncurrentVersionTransition    []BucketLifecycleNoncurrentVersion             `xml:"NoncurrentVersionTransition,omitempty"`
+	NoncurrentVersionExpiration    *BucketLifecycleNoncurrentVersion              `xml:"NoncurrentVersionExpiration,omitempty"`
 }
 
 // BucketGetLifecycleResult is the result of BucketGetLifecycle

@@ -36,6 +36,20 @@ func TestBucketService_GetLifecycle(t *testing.T) {
 			<Days>10</Days>
 			<StorageClass>Standard</StorageClass>
 		</Transition>
+		<Expiration>
+			<Days>10</Days>
+		</Expiration>
+		<NoncurrentVersionTransition>
+			<NoncurrentDays>90</NoncurrentDays>
+			<StorageClass>ARCHIVE</StorageClass>
+		</NoncurrentVersionTransition>
+		<NoncurrentVersionTransition>
+			<NoncurrentDays>180</NoncurrentDays>
+			<StorageClass>DEEP_ARCHIVE</StorageClass>
+		</NoncurrentVersionTransition>
+		<NoncurrentVersionExpiration>
+			<NoncurrentDays>360</NoncurrentDays>
+		</NoncurrentVersionExpiration>
 	</Rule>
 	<Rule>
 		<ID>123422</ID>
@@ -68,8 +82,24 @@ func TestBucketService_GetLifecycle(t *testing.T) {
 						},
 					},
 				},
-				Status:     "Enabled",
-				Transition: &BucketLifecycleTransition{Days: 10, StorageClass: "Standard"},
+				Status: "Enabled",
+				Transition: []BucketLifecycleTransition{
+					{Days: 10, StorageClass: "Standard"},
+				},
+				Expiration: &BucketLifecycleExpiration{Days: 10},
+				NoncurrentVersionExpiration: &BucketLifecycleNoncurrentVersion{
+					NoncurrentDays: 360,
+				},
+				NoncurrentVersionTransition: []BucketLifecycleNoncurrentVersion{
+					{
+						NoncurrentDays: 90,
+						StorageClass:   "ARCHIVE",
+					},
+					{
+						NoncurrentDays: 180,
+						StorageClass:   "DEEP_ARCHIVE",
+					},
+				},
 			},
 			{
 				ID:         "123422",
@@ -92,10 +122,12 @@ func TestBucketService_PutLifecycle(t *testing.T) {
 	opt := &BucketPutLifecycleOptions{
 		Rules: []BucketLifecycleRule{
 			{
-				ID:         "1234",
-				Filter:     &BucketLifecycleFilter{Prefix: "test"},
-				Status:     "Enabled",
-				Transition: &BucketLifecycleTransition{Days: 10, StorageClass: "Standard"},
+				ID:     "1234",
+				Filter: &BucketLifecycleFilter{Prefix: "test"},
+				Status: "Enabled",
+				Transition: []BucketLifecycleTransition{
+					{Days: 10, StorageClass: "Standard"},
+				},
 			},
 			{
 				ID:         "123422",

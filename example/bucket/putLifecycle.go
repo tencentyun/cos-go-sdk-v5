@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	u, _ := url.Parse("https://testhuanan-1253846586.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{
 		BucketURL: u,
 	}
@@ -35,18 +35,34 @@ func main() {
 				ID:     "1234",
 				Filter: &cos.BucketLifecycleFilter{Prefix: "test"},
 				Status: "Enabled",
-				Transition: &cos.BucketLifecycleTransition{
-					Days:         10,
-					StorageClass: "Standard",
+				Transition: []cos.BucketLifecycleTransition{
+					{
+						Days:         30,
+						StorageClass: "STANDARD_IA",
+					},
+					{
+						Days:         90,
+						StorageClass: "ARCHIVE",
+					},
 				},
-			},
-			{
-				ID: "123422",
-				// If used for all objecs set Prefix:""
-				Filter: &cos.BucketLifecycleFilter{Prefix: "gg"},
-				Status: "Disabled",
 				Expiration: &cos.BucketLifecycleExpiration{
-					Days: 10,
+					Days: 360,
+				},
+				NoncurrentVersionExpiration: &cos.BucketLifecycleNoncurrentVersion{
+					NoncurrentDays: 360,
+				},
+				NoncurrentVersionTransition: []cos.BucketLifecycleNoncurrentVersion{
+					{
+						NoncurrentDays: 90,
+						StorageClass:   "ARCHIVE",
+					},
+					{
+						NoncurrentDays: 180,
+						StorageClass:   "DEEP_ARCHIVE",
+					},
+				},
+				AbortIncompleteMultipartUpload: &cos.BucketLifecycleAbortIncompleteMultipartUpload{
+					DaysAfterInitiation: 90,
 				},
 			},
 		},

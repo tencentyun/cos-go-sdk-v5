@@ -53,7 +53,6 @@ func main() {
 
 	opt := &cos.BucketPutAccelerateOptions{
 		Status: "Enabled",
-		Type:   "COS",
 	}
 	_, err = c.Bucket.PutAccelerate(context.Background(), opt)
 	log_status(err)

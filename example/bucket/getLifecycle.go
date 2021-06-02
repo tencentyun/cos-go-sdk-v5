@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	u, _ := url.Parse("https://test-1253846586.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{
 		BucketURL: u,
 	}
@@ -35,6 +35,13 @@ func main() {
 		panic(err)
 	}
 	for _, r := range v.Rules {
-		fmt.Printf("%s, %s\n", r.Filter.Prefix, r.Status)
+		fmt.Printf("%+v\n", r.ID)
+		fmt.Printf("%+v\n", r.Filter)
+		fmt.Printf("%+v\n", r.Status)
+		fmt.Printf("%+v\n", r.Transition)
+		fmt.Printf("%+v\n", r.Expiration)
+		fmt.Printf("%+v\n", r.NoncurrentVersionExpiration)
+		fmt.Printf("%+v\n", r.NoncurrentVersionTransition)
+		fmt.Printf("%+v\n", r.AbortIncompleteMultipartUpload)
 	}
 }
