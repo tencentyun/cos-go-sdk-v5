@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"hash/crc64"
 	"io"
@@ -97,6 +98,43 @@ func TestObjectService_GetToFile(t *testing.T) {
 	bs, _ := ioutil.ReadAll(fd)
 	if bytes.Compare(bs, data) != 0 {
 		t.Errorf("Object.GetToFile data isn't consistent")
+	}
+}
+
+func TestObjectService_GetPresignedURL(t *testing.T) {
+	setup()
+	defer teardown()
+
+	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=0f359fe9d29e7fa0c738ce6c8feaf4ed1e84f287"
+	exceptURL := &url.URL{
+		Scheme:   "http",
+		Host:     client.Host,
+		Path:     "/test.jpg",
+		RawQuery: exceptSign,
+	}
+
+	c := context.Background()
+	name := "test.jpg"
+	ak := "QmFzZTY0IGlzIGEgZ*******"
+	sk := "ZfbOA78asKUYBcXFrJD0a1I*******"
+	startTime := time.Unix(int64(1622702557), 0)
+	endTime := time.Unix(int64(1622706157), 0)
+	opt := presignedURLTestingOptions{
+		authTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+
+	presignedURL, err := client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reflect.DeepEqual(exceptURL, presignedURL) {
+		t.Fatalf("Wrong PreSignedURL!")
 	}
 }
 
@@ -280,6 +318,35 @@ func TestObjectService_Options(t *testing.T) {
 
 }
 
+func TestObjectService_PostRestore(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test/hello.txt"
+	wantBody := "<RestoreRequest><Days>3</Days><CASJobParameters><Tier>Expedited</Tier></CASJobParameters></RestoreRequest>"
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testHeader(t, r, "Content-Length", "106")
+		//b, _ := ioutil.ReadAll(r.Body)
+		//fmt.Printf("%s", string(b))
+		testBody(t, r, wantBody)
+	})
+
+	opt := &ObjectRestoreOptions{
+		Days: 3,
+		Tier: &CASJobParameters{
+			Tier: "Expedited",
+		},
+	}
+
+	_, err := client.Object.PostRestore(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("Object.PostRestore returned error: %v", err)
+	}
+
+}
+
 // func TestObjectService_Append(t *testing.T) {
 // 	setup()
 // 	defer teardown()
@@ -384,6 +451,38 @@ func TestObjectService_DeleteMulti(t *testing.T) {
 
 }
 
+func TestObiectService_Read_and_Close(t *testing.T) {
+	data := make([]byte, 1024*10)
+	rand.Read(data)
+	body := bytes.NewReader(data)
+	r, _ := http.NewRequest(http.MethodGet, "test", body)
+
+	drc := DiscardReadCloser{
+		RC:      r.Body,
+		Discard: 10,
+	}
+
+	res := make([]byte, 1024*10)
+	readLen, err := drc.Read(res)
+	if err != nil {
+		t.Fatalf("Object.Read returned %v", err)
+	}
+	if readLen != 10230 {
+		t.Fatalf("Object.Read returned %#v, excepted %#v", readLen, 10230)
+	}
+	if drc.Discard != 0 {
+		t.Fatalf("Object.Read: drc.Discard = %v, excepted %v", drc.Discard, 0)
+	}
+	if !reflect.DeepEqual(res[:10230], data[10:]) {
+		t.Fatalf("Object.Read: Wrong data!")
+	}
+
+	err = drc.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestObjectService_Copy(t *testing.T) {
 	setup()
 	defer teardown()
@@ -395,6 +494,13 @@ func TestObjectService_Copy(t *testing.T) {
 		<LastModified>2017-12-13T14:53:12</LastModified>
 	</CopyObjectResult>`)
 	})
+
+	wrongURL := "wrongURL"
+	_, _, err := client.Object.Copy(context.Background(), "test.go.copy", wrongURL, nil)
+	exceptedErr := errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", wrongURL))
+	if !reflect.DeepEqual(err, exceptedErr) {
+		t.Fatalf("Object.Copy returned %#v, excepted %#v", err, exceptedErr)
+	}
 
 	sourceURL := "test-1253846586.cos.ap-guangzhou.myqcloud.com/test.source"
 	ref, _, err := client.Object.Copy(context.Background(), "test.go.copy", sourceURL, nil)
