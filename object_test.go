@@ -5,7 +5,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"hash/crc64"
 	"io"
@@ -97,6 +99,43 @@ func TestObjectService_GetToFile(t *testing.T) {
 	bs, _ := ioutil.ReadAll(fd)
 	if bytes.Compare(bs, data) != 0 {
 		t.Errorf("Object.GetToFile data isn't consistent")
+	}
+}
+
+func TestObjectService_GetPresignedURL(t *testing.T) {
+	setup()
+	defer teardown()
+
+	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ2VuZXJp&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=83c88ee155d8766efe27b6f4bbaebc56e85bf63f"
+	exceptURL := &url.URL{
+		Scheme:   "http",
+		Host:     client.Host,
+		Path:     "/test.jpg",
+		RawQuery: exceptSign,
+	}
+
+	c := context.Background()
+	name := "test.jpg"
+	ak := "QmFzZTY0IGlzIGEgZ2VuZXJp"
+	sk := "AKIDZfbOA78asKUYBcXFrJD0a1ICvR98JM"
+	startTime := time.Unix(int64(1622702557), 0)
+	endTime := time.Unix(int64(1622706157), 0)
+	opt := presignedURLTestingOptions{
+		authTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+
+	presignedURL, err := client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reflect.DeepEqual(exceptURL, presignedURL) {
+		t.Fatalf("Wrong PreSignedURL!")
 	}
 }
 
@@ -280,6 +319,35 @@ func TestObjectService_Options(t *testing.T) {
 
 }
 
+func TestObjectService_PostRestore(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test/hello.txt"
+	wantBody := "<RestoreRequest><Days>3</Days><CASJobParameters><Tier>Expedited</Tier></CASJobParameters></RestoreRequest>"
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testHeader(t, r, "Content-Length", "106")
+		//b, _ := ioutil.ReadAll(r.Body)
+		//fmt.Printf("%s", string(b))
+		testBody(t, r, wantBody)
+	})
+
+	opt := &ObjectRestoreOptions{
+		Days: 3,
+		Tier: &CASJobParameters{
+			Tier: "Expedited",
+		},
+	}
+
+	_, err := client.Object.PostRestore(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("Object.PostRestore returned error: %v", err)
+	}
+
+}
+
 // func TestObjectService_Append(t *testing.T) {
 // 	setup()
 // 	defer teardown()
@@ -384,6 +452,62 @@ func TestObjectService_DeleteMulti(t *testing.T) {
 
 }
 
+func TestObiectService_Read(t *testing.T) {
+	type testType struct {
+		Item1 string
+		Item2 string
+		Item3 string
+	}
+	testData := testType{
+		Item1: "item1",
+		Item2: "item2",
+		Item3: "item3",
+	}
+	testJsonData, _ := json.Marshal(&testData)
+	body := bytes.NewReader(testJsonData)
+	r, _ := http.NewRequest(http.MethodGet, "test", body)
+
+	drc := DiscardReadCloser{
+		RC:      r.Body,
+		Discard: 4,
+	}
+	readLen, err := drc.Read(testJsonData)
+	if err != nil {
+		t.Fatalf("Object.Read returned %v", err)
+	}
+	if readLen != 45 {
+		t.Fatalf("Object.Read returned %#v, excepted %#v", readLen, 45)
+	}
+	if drc.Discard != 0 {
+		t.Fatalf("drc.Discard = %v, excepted %v", drc.Discard, 0)
+	}
+}
+
+func TestObiectService_Close(t *testing.T) {
+	type testType struct {
+		item1 string
+		item2 string
+		item3 string
+	}
+	testData := testType{
+		item1: "item1",
+		item2: "item2",
+		item3: "item3",
+	}
+	testJsonData, _ := json.Marshal(&testData)
+	body := bytes.NewReader(testJsonData)
+	r, _ := http.NewRequest(http.MethodGet, "test", body)
+
+	drc := DiscardReadCloser{
+		RC:      r.Body,
+		Discard: 1,
+	}
+	err := drc.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestObjectService_Copy(t *testing.T) {
 	setup()
 	defer teardown()
@@ -395,6 +519,13 @@ func TestObjectService_Copy(t *testing.T) {
 		<LastModified>2017-12-13T14:53:12</LastModified>
 	</CopyObjectResult>`)
 	})
+
+	wrongURL := "wrongURL"
+	_, _, err := client.Object.Copy(context.Background(), "test.go.copy", wrongURL, nil)
+	exceptedErr := errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", wrongURL))
+	if !reflect.DeepEqual(err, exceptedErr) {
+		t.Fatalf("Object.Copy returned %#v, excepted %#v", err, exceptedErr)
+	}
 
 	sourceURL := "test-1253846586.cos.ap-guangzhou.myqcloud.com/test.source"
 	ref, _, err := client.Object.Copy(context.Background(), "test.go.copy", sourceURL, nil)
