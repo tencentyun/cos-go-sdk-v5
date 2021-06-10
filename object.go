@@ -150,7 +150,6 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		req.URL.RawQuery = fmt.Sprintf("%s&%s", req.URL.RawQuery, sign)
 	}
 	return req.URL, nil
-
 }
 
 // ObjectPutHeaderOptions the options of header of the put object

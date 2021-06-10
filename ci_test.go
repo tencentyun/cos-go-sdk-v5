@@ -198,6 +198,99 @@ func TestCIService_ImageRecognition(t *testing.T) {
 	}
 }
 
+func TestCIService_PutVideoAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test.mp4"
+	wantBody := "<Request><Input><Object>test.mp4</Object></Input>" +
+		"<Conf><DetectType>Porn,Terrorism,Politics,Ads</DetectType>" +
+		"<Snapshot><Mode>Interval</Mode><Count>100</Count><TimeInterval>50</TimeInterval><Start>0.5</Start></Snapshot>" +
+		"<Callback>http://callback.com/call_back_test</Callback></Conf></Request>"
+
+	mux.HandleFunc("/video/auditing", func(writer http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &PutVideoAuditingJobOptions{
+		InputObject: name,
+		Conf: &VideoAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads",
+			Snapshot: &PutVideoAuditingJobSnapshot{
+				Mode:         "Interval",
+				Count:        100,
+				TimeInterval: 50,
+				Start:        0.5,
+			},
+			Callback: "http://callback.com/call_back_test",
+		},
+	}
+
+	_, _, err := client.CI.PutVideoAuditingJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutVideoAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_GetVideoAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "vab1ca9fc8a3ed11ea834c525400863904"
+
+	mux.HandleFunc("/video/auditing"+"/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetVideoAuditingJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetVideoAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_PutAudioAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test.mp4"
+	wantBody := "<Request><Input><Object>test.mp4</Object></Input>" +
+		"<Conf><DetectType>Porn,Terrorism,Politics,Ads</DetectType>" +
+		"<Callback>http://callback.com/call_back_test</Callback></Conf></Request>"
+
+	mux.HandleFunc("/audio/auditing", func(writer http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &PutAudioAuditingJobOptions{
+		InputObject: name,
+		Conf: &AudioAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads",
+			Callback:   "http://callback.com/call_back_test",
+		},
+	}
+
+	_, _, err := client.CI.PutAudioAuditingJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutAudioAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAudioAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "vab1ca9fc8a3ed11ea834c525400863904"
+
+	mux.HandleFunc("/audio/auditing"+"/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetAudioAuditingJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetAudioAuditingJob returned error: %v", err)
+	}
+}
+
 func TestCIService_Put(t *testing.T) {
 	setup()
 	defer teardown()
@@ -428,6 +521,121 @@ func TestCIService_PutFromFile(t *testing.T) {
 	}
 	if !reflect.DeepEqual(res, want) {
 		t.Errorf("CI.ImageProcess failed, return:%v, want:%v", res, want)
+	}
+}
+
+func TestCIService_Get(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"imageMogr2/thumbnail/!50p": "",
+		}
+		testFormValues(t, r, vs)
+	})
+
+	_, err := client.CI.Get(context.Background(), "test.jpg", "imageMogr2/thumbnail/!50p", nil)
+	if err != nil {
+		t.Fatalf("CI.Get returned error: %v", err)
+	}
+}
+
+func TestCIService_GetToFile(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"imageMogr2/thumbnail/!50p": "",
+		}
+		testFormValues(t, r, vs)
+	})
+
+	filepath := "test.jpg." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filepath)
+
+	_, err := client.CI.GetToFile(context.Background(), "test.jpg", filepath, "imageMogr2/thumbnail/!50p", nil)
+	if err != nil {
+		t.Fatalf("CI.GetToFile returned error: %v", err)
+	}
+}
+
+func TestCIService_GetQRcode(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"ci-process": "QRcode",
+			"cover":      "1",
+		}
+		testFormValues(t, r, vs)
+	})
+
+	_, _, err := client.CI.GetQRcode(context.Background(), "test.jpg", 1, nil)
+	if err != nil {
+		t.Fatalf("CI.GetQRcode returned error: %v", err)
+	}
+}
+
+func TestCIService_GenerateQRcode(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"ci-process": "qrcode-generate",
+			"qrcode-content": "<https://www.example.com>",
+			"mode": "1",
+			"width": "200",
+		}
+		testFormValues(t, r, vs)
+	})
+
+	opt := &GenerateQRcodeOptions{
+		QRcodeContent: "<https://www.example.com>",
+		Mode:          1,
+		Width:         200,
+	}
+
+	_, _, err := client.CI.GenerateQRcode(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GenerateQRcode returned error: %v", err)
+	}
+}
+
+func TestCIService_GenerateQRcodeToFile(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"ci-process": "qrcode-generate",
+			"qrcode-content": "<https://www.example.com>",
+			"mode": "1",
+			"width": "200",
+		}
+		testFormValues(t, r, vs)
+	})
+
+	opt := &GenerateQRcodeOptions{
+		QRcodeContent: "<https://www.example.com>",
+		Mode:          1,
+		Width:         200,
+	}
+
+	filepath := "test.file." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filepath)
+
+	_, _, err := client.CI.GenerateQRcodeToFile(context.Background(), filepath, opt)
+	if err != nil {
+		t.Fatalf("CI.GenerateQRcode returned error: %v", err)
 	}
 }
 
