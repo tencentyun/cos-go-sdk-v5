@@ -112,6 +112,7 @@ type CreateMediaJobsOptions struct {
 	Input     *JobInput                 `xml:"Input,omitempty"`
 	Operation *MediaProcessJobOperation `xml:"Operation,omitempty"`
 	QueueId   string                    `xml:"QueueId,omitempty"`
+	CallBack  string                    `xml:"CallBack,omitempty"`
 }
 
 type MediaProcessJobDetail struct {
@@ -150,7 +151,7 @@ type DescribeMediaProcessJobResult struct {
 	NonExistJobIds string                 `xml:"NonExistJobIds,omitempty"`
 }
 
-func (s *CIService) DescribeMediaJobs(ctx context.Context, jobid string) (*DescribeMediaProcessJobResult, *Response, error) {
+func (s *CIService) DescribeMediaJob(ctx context.Context, jobid string) (*DescribeMediaProcessJobResult, *Response, error) {
 	var res DescribeMediaProcessJobResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
@@ -162,7 +163,7 @@ func (s *CIService) DescribeMediaJobs(ctx context.Context, jobid string) (*Descr
 	return &res, resp, err
 }
 
-type DescribeMediaProcessJobsOptions struct {
+type DescribeMediaJobsOptions struct {
 	QueueId           string `url:"queueId,omitempty"`
 	Tag               string `url:"tag,omitempty"`
 	OrderByTime       string `url:"orderByTime,omitempty"`
@@ -173,14 +174,14 @@ type DescribeMediaProcessJobsOptions struct {
 	EndCreationTime   string `url:"endCreationTime,omitempty"`
 }
 
-type DescribeMediaProcessJobsResult struct {
+type DescribeMediaJobsResult struct {
 	XMLName    xml.Name              `xml:"Response"`
 	JobsDetail []DocProcessJobDetail `xml:"JobsDetail,omitempty"`
 	NextToken  string                `xml:"NextToken,omitempty"`
 }
 
-func (s *CIService) DescribeMediaProcessJobs(ctx context.Context, opt *DescribeMediaProcessJobsOptions) (*DescribeMediaProcessJobsResult, *Response, error) {
-	var res DescribeMediaProcessJobsResult
+func (s *CIService) DescribeMediaJobs(ctx context.Context, opt *DescribeMediaJobsOptions) (*DescribeMediaJobsResult, *Response, error) {
+	var res DescribeMediaJobsResult
 	sendOpt := sendOptions{
 		baseURL:  s.client.BaseURL.CIURL,
 		uri:      "/jobs",

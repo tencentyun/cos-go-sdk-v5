@@ -91,7 +91,7 @@ func main() {
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 
 	// DescribeMediaJobs
-	DescribeJobRes, _, err := c.CI.DescribeMediaJobs(context.Background(), createJobRes.JobsDetail.JobId)
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
