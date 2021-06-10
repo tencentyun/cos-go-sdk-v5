@@ -112,6 +112,7 @@ type CreateMediaJobsOptions struct {
 	Input     *JobInput                 `xml:"Input,omitempty"`
 	Operation *MediaProcessJobOperation `xml:"Operation,omitempty"`
 	QueueId   string                    `xml:"QueueId,omitempty"`
+	CallBack  string					`xml:"CallBack,omitempty"`
 }
 
 type MediaProcessJobDetail struct {
@@ -150,7 +151,7 @@ type DescribeMediaProcessJobResult struct {
 	NonExistJobIds string                 `xml:"NonExistJobIds,omitempty"`
 }
 
-func (s *CIService) DescribeMediaJobs(ctx context.Context, jobid string) (*DescribeMediaProcessJobResult, *Response, error) {
+func (s *CIService) DescribeMediaJob(ctx context.Context, jobid string) (*DescribeMediaProcessJobResult, *Response, error) {
 	var res DescribeMediaProcessJobResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
