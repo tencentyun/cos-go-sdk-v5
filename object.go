@@ -107,6 +107,11 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 	return resp, nil
 }
 
+func (s *ObjectService) GetObjectURL(name string) *url.URL {
+	uri, _ := url.Parse("/" + encodeURIComponent(name, []byte{'/'}))
+	return s.client.BaseURL.BucketURL.ResolveReference(uri)
+}
+
 type PresignedURLOptions struct {
 	Query  *url.Values  `xml:"-" url:"-" header:"-"`
 	Header *http.Header `header:"-,omitempty" url:"-" xml:"-"`
