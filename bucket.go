@@ -21,7 +21,7 @@ type BucketGetResult struct {
 	IsTruncated    bool
 	Contents       []Object `xml:"Contents,omitempty"`
 	CommonPrefixes []string `xml:"CommonPrefixes>Prefix,omitempty"`
-	EncodingType   string   `xml:"Encoding-Type,omitempty"`
+	EncodingType   string   `xml:"EncodingType,omitempty"`
 }
 
 // BucketGetOptions is the option of GetBucket
