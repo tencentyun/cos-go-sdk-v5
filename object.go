@@ -238,7 +238,6 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 }
 
 // PutFromFile put object from local file
-// Notice that when use this put large file need set non-body of debug req/resp, otherwise will out of memory
 func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (resp *Response, err error) {
 	nr := 0
 	for nr < 3 {
@@ -456,14 +455,15 @@ func (s *ObjectService) Options(ctx context.Context, name string, opt *ObjectOpt
 
 // CASJobParameters support three way: Standard(in 35 hours), Expedited(quick way, in 15 mins), Bulk(in 5-12 hours_
 type CASJobParameters struct {
-	Tier string `xml:"Tier"`
+	Tier string `xml:"Tier" header:"-" url:"-"`
 }
 
 // ObjectRestoreOptions is the option of object restore
 type ObjectRestoreOptions struct {
-	XMLName xml.Name          `xml:"RestoreRequest"`
-	Days    int               `xml:"Days"`
-	Tier    *CASJobParameters `xml:"CASJobParameters"`
+	XMLName       xml.Name          `xml:"RestoreRequest" header:"-" url:"-"`
+	Days          int               `xml:"Days" header:"-" url:"-"`
+	Tier          *CASJobParameters `xml:"CASJobParameters" header:"-" url:"-"`
+	XOptionHeader *http.Header      `xml:"-" header:",omitempty" url:"-"`
 }
 
 // PutRestore API can recover an object of type archived by COS archive.
@@ -472,10 +472,11 @@ type ObjectRestoreOptions struct {
 func (s *ObjectService) PostRestore(ctx context.Context, name string, opt *ObjectRestoreOptions) (*Response, error) {
 	u := fmt.Sprintf("/%s?restore", encodeURIComponent(name))
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     u,
-		method:  http.MethodPost,
-		body:    opt,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodPost,
+		body:      opt,
+		optHeader: opt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 
