@@ -8,5 +8,6 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/mozillazg/go-httpheader v0.2.1
 	github.com/stretchr/testify v1.3.0
-	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.194
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/kms v1.0.194
 )
