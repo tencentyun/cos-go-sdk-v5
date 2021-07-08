@@ -353,13 +353,13 @@ type CopyResults struct {
 	res        *CopyPartResult
 }
 
-func copyworker(s *ObjectService, jobs <-chan *CopyJobs, results chan<- *CopyResults) {
+func copyworker(ctx context.Context, s *ObjectService, jobs <-chan *CopyJobs, results chan<- *CopyResults) {
 	for j := range jobs {
 		var copyres CopyResults
 		j.Opt.XCosCopySourceRange = fmt.Sprintf("bytes=%d-%d", j.Chunk.OffSet, j.Chunk.OffSet+j.Chunk.Size-1)
 		rt := j.RetryTimes
 		for {
-			res, resp, err := s.CopyPart(context.Background(), j.Name, j.UploadId, j.Chunk.Number, j.Opt.XCosCopySource, j.Opt)
+			res, resp, err := s.CopyPart(ctx, j.Name, j.UploadId, j.Chunk.Number, j.Opt.XCosCopySource, j.Opt)
 			copyres.PartNumber = j.Chunk.Number
 			copyres.Resp = resp
 			copyres.err = err
@@ -456,7 +456,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	optcom := &CompleteMultipartUploadOptions{}
 
 	for w := 1; w <= poolSize; w++ {
-		go copyworker(s, chjobs, chresults)
+		go copyworker(ctx, s, chjobs, chresults)
 	}
 
 	go func() {

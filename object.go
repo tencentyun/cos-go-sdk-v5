@@ -667,7 +667,7 @@ func (drc *DiscardReadCloser) Close() error {
 	return nil
 }
 
-func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
+func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
 		j.Opt.ContentLength = j.Chunk.Size
 
@@ -684,7 +684,7 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 				break
 			}
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
-			resp, err := s.UploadPart(context.Background(), j.Name, j.UploadId, j.Chunk.Number,
+			resp, err := s.UploadPart(ctx, j.Name, j.UploadId, j.Chunk.Number,
 				LimitReadCloser(fd, j.Chunk.Size), j.Opt)
 			res.PartNumber = j.Chunk.Number
 			res.Resp = resp
@@ -703,7 +703,7 @@ func worker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	}
 }
 
-func downloadWorker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
+func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
 		opt := &RangeOptions{
 			HasStart: true,
@@ -716,7 +716,7 @@ func downloadWorker(s *ObjectService, jobs <-chan *Jobs, results chan<- *Results
 		for {
 			var res Results
 			res.PartNumber = j.Chunk.Number
-			resp, err := s.Get(context.Background(), j.Name, j.DownOpt, j.VersionId...)
+			resp, err := s.Get(ctx, j.Name, j.DownOpt, j.VersionId...)
 			res.err = err
 			res.Resp = resp
 			if err != nil {
@@ -972,7 +972,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 
 	// 3.Start worker
 	for w := 1; w <= poolSize; w++ {
-		go worker(s, chjobs, chresults)
+		go worker(ctx, s, chjobs, chresults)
 	}
 
 	// progress started event
@@ -1241,7 +1241,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	chjobs := make(chan *Jobs, 100)
 	chresults := make(chan *Results, 10000)
 	for w := 1; w <= poolSize; w++ {
-		go downloadWorker(s, chjobs, chresults)
+		go downloadWorker(ctx, s, chjobs, chresults)
 	}
 
 	go func() {
