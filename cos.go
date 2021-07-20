@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.27"
+	Version               = "0.7.28"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -213,6 +213,11 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 }
 
 func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{}, closeBody bool) (*Response, error) {
+	var cancel context.CancelFunc
+	if closeBody {
+		ctx, cancel = context.WithCancel(ctx)
+		defer cancel()
+	}
 	req = req.WithContext(ctx)
 
 	resp, err := c.client.Do(req)
@@ -290,6 +295,27 @@ type sendOptions struct {
 	disableCloseBody bool
 }
 
+func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
+	if opt.body != nil {
+		if _, ok := opt.body.(io.Reader); ok {
+			return c.send(ctx, opt)
+		}
+	}
+	nr := 0
+	for nr < 3 {
+		resp, err = c.send(ctx, opt)
+		if err != nil {
+			if resp != nil && resp.StatusCode <= 499 {
+				break
+			}
+			nr++
+			continue
+		}
+		break
+	}
+	return
+
+}
 func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
 	req, err := c.newRequest(ctx, opt.baseURL, opt.uri, opt.method, opt.body, opt.optQuery, opt.optHeader)
 	if err != nil {

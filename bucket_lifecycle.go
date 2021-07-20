@@ -70,7 +70,7 @@ func (s *BucketService) GetLifecycle(ctx context.Context) (*BucketGetLifecycleRe
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
 
@@ -90,7 +90,7 @@ func (s *BucketService) PutLifecycle(ctx context.Context, opt *BucketPutLifecycl
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -102,6 +102,6 @@ func (s *BucketService) DeleteLifecycle(ctx context.Context) (*Response, error) 
 		uri:     "/?lifecycle",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
