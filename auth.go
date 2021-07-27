@@ -302,13 +302,10 @@ func (t *AuthorizationTransport) GetCredential() (string, string, string) {
 // RoundTrip implements the RoundTripper interface.
 func (t *AuthorizationTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req = cloneRequest(req) // per RoundTrip contract
-	if t.Expire == time.Duration(0) {
-		t.Expire = defaultAuthExpire
-	}
 
 	ak, sk, token := t.GetCredential()
 	// 增加 Authorization header
-	authTime := NewAuthTime(t.Expire)
+	authTime := NewAuthTime(defaultAuthExpire)
 	AddAuthorizationHeader(ak, sk, token, req, authTime)
 
 	resp, err := t.transport().RoundTrip(req)
