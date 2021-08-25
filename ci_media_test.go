@@ -159,8 +159,8 @@ func TestCIService_DescribeMediaProcessBuckets(t *testing.T) {
 	})
 
 	opt := &DescribeMediaProcessBucketsOptions{
-		Regions:     regions,
-		BucketName:  bucketName,
+		Regions:    regions,
+		BucketName: bucketName,
 	}
 
 	_, _, err := client.CI.DescribeMediaProcessBuckets(context.Background(), opt)

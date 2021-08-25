@@ -2,6 +2,7 @@ package cos
 
 // Basic imports
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -810,6 +811,21 @@ func (s *CosTestSuite) TestMultiUpload() {
 
 	err = os.Remove(filePath)
 	assert.Nil(s.T(), err, "remove tmp file failed")
+}
+
+func (s *CosTestSuite) TestAppend() {
+	name := "append" + time.Now().Format(time.RFC3339)
+	b1 := make([]byte, 1024*1024*10)
+	_, err := rand.Read(b1)
+	pos, _, err := s.Client.Object.Append(context.Background(), name, 0, bytes.NewReader(b1), nil)
+	assert.Nil(s.T(), err, "append object failed")
+	assert.Equal(s.T(), len(b1), pos, "append object pos error")
+
+	b2 := make([]byte, 12345)
+	rand.Read(b2)
+	pos, _, err = s.Client.Object.Append(context.Background(), name, pos, bytes.NewReader(b2), nil)
+	assert.Nil(s.T(), err, "append object failed")
+	assert.Equal(s.T(), len(b1)+len(b2), pos, "append object pos error")
 }
 
 /*

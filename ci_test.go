@@ -589,10 +589,10 @@ func TestCIService_GenerateQRcode(t *testing.T) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		vs := values{
-			"ci-process": "qrcode-generate",
+			"ci-process":     "qrcode-generate",
 			"qrcode-content": "<https://www.example.com>",
-			"mode": "1",
-			"width": "200",
+			"mode":           "1",
+			"width":          "200",
 		}
 		testFormValues(t, r, vs)
 	})
@@ -616,10 +616,10 @@ func TestCIService_GenerateQRcodeToFile(t *testing.T) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		vs := values{
-			"ci-process": "qrcode-generate",
+			"ci-process":     "qrcode-generate",
 			"qrcode-content": "<https://www.example.com>",
-			"mode": "1",
-			"width": "200",
+			"mode":           "1",
+			"width":          "200",
 		}
 		testFormValues(t, r, vs)
 	})

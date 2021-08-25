@@ -33,11 +33,11 @@ func (s *BucketService) GetCORS(ctx context.Context) (*BucketGetCORSResult, *Res
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
 
-// BucketPutCORSOptions is the option of PutBucketCORS 
+// BucketPutCORSOptions is the option of PutBucketCORS
 type BucketPutCORSOptions struct {
 	XMLName xml.Name         `xml:"CORSConfiguration"`
 	Rules   []BucketCORSRule `xml:"CORSRule,omitempty"`
@@ -53,7 +53,7 @@ func (s *BucketService) PutCORS(ctx context.Context, opt *BucketPutCORSOptions) 
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -66,6 +66,6 @@ func (s *BucketService) DeleteCORS(ctx context.Context) (*Response, error) {
 		uri:     "/?cors",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }

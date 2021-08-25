@@ -20,7 +20,7 @@ func (s *BucketService) PutAccelerate(ctx context.Context, opt *BucketPutAcceler
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
@@ -32,6 +32,6 @@ func (s *BucketService) GetAccelerate(ctx context.Context) (*BucketGetAccelerate
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }

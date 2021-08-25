@@ -64,7 +64,7 @@ func (s *BucketService) PutOrigin(ctx context.Context, opt *BucketPutOriginOptio
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
@@ -76,7 +76,7 @@ func (s *BucketService) GetOrigin(ctx context.Context) (*BucketGetOriginResult, 
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }
 
@@ -86,6 +86,6 @@ func (s *BucketService) DeleteOrigin(ctx context.Context) (*Response, error) {
 		uri:     "/?origin",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }

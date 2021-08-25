@@ -52,11 +52,12 @@ func progressCallback(listener ProgressListener, event *ProgressEvent) {
 }
 
 type teeReader struct {
-	reader        io.Reader
-	writer        io.Writer
-	consumedBytes int64
-	totalBytes    int64
-	listener      ProgressListener
+	reader          io.Reader
+	writer          io.Writer
+	consumedBytes   int64
+	totalBytes      int64
+	listener        ProgressListener
+	disableCheckSum bool
 }
 
 func (r *teeReader) Read(p []byte) (int, error) {
@@ -111,13 +112,23 @@ func (r *teeReader) Crc64() uint64 {
 	return 0
 }
 
+func (r *teeReader) Sum() []byte {
+	if r.writer != nil {
+		if th, ok := r.writer.(hash.Hash); ok {
+			return th.Sum(nil)
+		}
+	}
+	return []byte{}
+}
+
 func TeeReader(reader io.Reader, writer io.Writer, total int64, listener ProgressListener) *teeReader {
 	return &teeReader{
-		reader:        reader,
-		writer:        writer,
-		consumedBytes: 0,
-		totalBytes:    total,
-		listener:      listener,
+		reader:          reader,
+		writer:          writer,
+		consumedBytes:   0,
+		totalBytes:      total,
+		listener:        listener,
+		disableCheckSum: false,
 	}
 }
 

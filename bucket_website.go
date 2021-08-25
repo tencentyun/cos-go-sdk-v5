@@ -44,7 +44,7 @@ func (s *BucketService) PutWebsite(ctx context.Context, opt *BucketPutWebsiteOpt
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
@@ -56,7 +56,7 @@ func (s *BucketService) GetWebsite(ctx context.Context) (*BucketGetWebsiteResult
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }
 
@@ -66,6 +66,6 @@ func (s *BucketService) DeleteWebsite(ctx context.Context) (*Response, error) {
 		uri:     "/?website",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }

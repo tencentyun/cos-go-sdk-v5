@@ -29,7 +29,7 @@ func (s *BucketService) GetTagging(ctx context.Context) (*BucketGetTaggingResult
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
 
@@ -51,7 +51,7 @@ func (s *BucketService) PutTagging(ctx context.Context, opt *BucketPutTaggingOpt
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -64,6 +64,6 @@ func (s *BucketService) DeleteTagging(ctx context.Context) (*Response, error) {
 		uri:     "/?tagging",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }

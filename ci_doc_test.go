@@ -192,7 +192,7 @@ func TestCIService_DocPreview(t *testing.T) {
 	})
 
 	opt := &DocPreviewOptions{
-		Page: 1,
+		Page:        1,
 		ImageParams: "imageMogr2/thumbnail/!50p|watermark/2/text/5pWw5o2u5LiH6LGh/fill/I0ZGRkZGRg==/fontsize/30/dx/20/dy/20",
 	}
 

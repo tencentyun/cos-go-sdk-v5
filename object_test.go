@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	math_rand "math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -98,6 +99,68 @@ func TestObjectService_GetToFile(t *testing.T) {
 	bs, _ := ioutil.ReadAll(fd)
 	if bytes.Compare(bs, data) != 0 {
 		t.Errorf("Object.GetToFile data isn't consistent")
+	}
+}
+
+func TestObjectService_GetRetry(t *testing.T) {
+	setup()
+	defer teardown()
+	u, _ := url.Parse(server.URL)
+	client := NewClient(&BaseURL{u, u, u, u}, &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			ResponseHeaderTimeout: 1 * time.Second,
+		},
+	})
+	name := "test/hello.txt"
+	contentLength := 1024 * 1024 * 10
+	data := make([]byte, contentLength)
+	index := 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"response-content-type": "text/html",
+		}
+		index++
+		if index%3 != 0 {
+			time.Sleep(time.Second * 2)
+		}
+		testFormValues(t, r, vs)
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(data[start:end+1]))
+	})
+	for i := 0; i < 3; i++ {
+		math_rand.Seed(time.Now().UnixNano())
+		rangeStart := math_rand.Intn(contentLength)
+		rangeEnd := rangeStart + math_rand.Intn(contentLength-rangeStart)
+		if rangeEnd == rangeStart || rangeStart >= contentLength-1 {
+			continue
+		}
+		opt := &ObjectGetOptions{
+			ResponseContentType: "text/html",
+			Range:               fmt.Sprintf("bytes=%v-%v", rangeStart, rangeEnd),
+		}
+		resp, err := client.Object.Get(context.Background(), name, opt)
+		if err != nil {
+			t.Fatalf("Object.Get returned error: %v", err)
+		}
+
+		b, _ := ioutil.ReadAll(resp.Body)
+		if bytes.Compare(b, data[rangeStart:rangeEnd+1]) != 0 {
+			t.Errorf("Object.Get Failed")
+		}
 	}
 }
 
@@ -347,46 +410,52 @@ func TestObjectService_PostRestore(t *testing.T) {
 
 }
 
-// func TestObjectService_Append(t *testing.T) {
-// 	setup()
-// 	defer teardown()
+func TestObjectService_Append_Simple(t *testing.T) {
+	setup()
+	defer teardown()
 
-// 	opt := &ObjectPutOptions{
-// 		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
-// 			ContentType: "text/html",
-// 		},
-// 		ACLHeaderOptions: &ACLHeaderOptions{
-// 			XCosACL: "private",
-// 		},
-// 	}
-// 	name := "test/hello.txt"
-// 	position := 0
+	opt := &ObjectPutOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			ContentType: "text/html",
+		},
+		ACLHeaderOptions: &ACLHeaderOptions{
+			XCosACL: "private",
+		},
+	}
+	name := "test/hello.txt"
+	position := 0
 
-// 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
-// 		vs := values{
-// 			"append":   "",
-// 			"position": "0",
-// 		}
-// 		testFormValues(t, r, vs)
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		vs := values{
+			"append":   "",
+			"position": "0",
+		}
+		testFormValues(t, r, vs)
 
-// 		testMethod(t, r, http.MethodPost)
-// 		testHeader(t, r, "x-cos-acl", "private")
-// 		testHeader(t, r, "Content-Type", "text/html")
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "x-cos-acl", "private")
+		testHeader(t, r, "Content-Type", "text/html")
 
-// 		b, _ := ioutil.ReadAll(r.Body)
-// 		v := string(b)
-// 		want := "hello"
-// 		if !reflect.DeepEqual(v, want) {
-// 			t.Errorf("Object.Append request body: %#v, want %#v", v, want)
-// 		}
-// 	})
+		b, _ := ioutil.ReadAll(r.Body)
+		v := string(b)
+		want := "hello"
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.Append request body: %#v, want %#v", v, want)
+		}
+		w.Header().Add("x-cos-content-sha1", hex.EncodeToString(calMD5Digest(b)))
+		w.Header().Add("x-cos-next-append-position", strconv.FormatInt(int64(len(b)), 10))
 
-// 	r := bytes.NewReader([]byte("hello"))
-// 	_, err := client.Object.Append(context.Background(), name, position, r, opt)
-// 	if err != nil {
-// 		t.Fatalf("Object.Append returned error: %v", err)
-// 	}
-// }
+	})
+
+	r := bytes.NewReader([]byte("hello"))
+	p, _, err := client.Object.Append(context.Background(), name, position, r, opt)
+	if err != nil {
+		t.Fatalf("Object.Append returned error: %v", err)
+	}
+	if p != len("hello") {
+		t.Fatalf("Object.Append position error, want: %v, return: %v", len("hello"), p)
+	}
+}
 
 func TestObjectService_DeleteMulti(t *testing.T) {
 	setup()
@@ -516,6 +585,52 @@ func TestObjectService_Copy(t *testing.T) {
 
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Object.Copy returned %+v, want %+v", ref, want)
+	}
+}
+
+func TestObjectService_Append(t *testing.T) {
+	setup()
+	defer teardown()
+	size := 1111 * 1111 * 63
+	b := make([]byte, size)
+	p := int(math_rand.Int31n(int32(size)))
+	var buf bytes.Buffer
+
+	mux.HandleFunc("/test.append", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		bs, _ := ioutil.ReadAll(r.Body)
+		buf.Write(bs)
+		w.Header().Add("x-cos-content-sha1", hex.EncodeToString(calMD5Digest(bs)))
+		w.Header().Add("x-cos-next-append-position", strconv.FormatInt(int64(buf.Len()), 10))
+	})
+
+	pos, _, err := client.Object.Append(context.Background(), "test.append", 0, bytes.NewReader(b[:p]), nil)
+	if err != nil {
+		t.Fatalf("Object.Append return error %v", err)
+	}
+	if pos != p {
+		t.Fatalf("Object.Append pos error, returned:%v, wanted:%v", pos, p)
+	}
+
+	opt := &ObjectPutOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			ContentType: "text/html",
+			Listener:    &DefaultProgressListener{},
+		},
+		ACLHeaderOptions: &ACLHeaderOptions{
+			XCosACL: "private",
+		},
+	}
+
+	pos, _, err = client.Object.Append(context.Background(), "test.append", pos, bytes.NewReader(b[p:]), opt)
+	if err != nil {
+		t.Fatalf("Object.Append return error %v", err)
+	}
+	if pos != size {
+		t.Fatalf("Object.Append pos error, returned:%v, wanted:%v", pos, size)
+	}
+	if bytes.Compare(b, buf.Bytes()) != 0 {
+		t.Fatalf("Object.Append Compare failed")
 	}
 }
 
@@ -833,6 +948,7 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
 	}
 }
+
 func TestObjectService_GetTagging(t *testing.T) {
 	setup()
 	defer teardown()

@@ -31,7 +31,7 @@ func (s *BucketService) PutLogging(ctx context.Context, opt *BucketPutLoggingOpt
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -44,7 +44,7 @@ func (s *BucketService) GetLogging(ctx context.Context) (*BucketGetLoggingResult
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 
 }
