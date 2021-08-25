@@ -29,7 +29,7 @@ func (s *BucketService) PutIntelligentTiering(ctx context.Context, opt *BucketPu
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -41,7 +41,7 @@ func (s *BucketService) GetIntelligentTiering(ctx context.Context) (*BucketGetIn
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 
 }

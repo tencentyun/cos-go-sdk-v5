@@ -22,7 +22,7 @@ func (s *BucketService) PutDomain(ctx context.Context, opt *BucketPutDomainOptio
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
@@ -34,6 +34,6 @@ func (s *BucketService) GetDomain(ctx context.Context) (*BucketGetDomainResult, 
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }

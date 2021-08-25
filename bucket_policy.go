@@ -53,7 +53,7 @@ func (s *BucketService) GetPolicy(ctx context.Context) (*BucketGetPolicyResult, 
 		method:  http.MethodGet,
 		result:  &bs,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	if err == nil {
 		err = json.Unmarshal(bs.Bytes(), &res)
 	}
@@ -66,6 +66,6 @@ func (s *BucketService) DeletePolicy(ctx context.Context) (*Response, error) {
 		uri:     "/?policy",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }

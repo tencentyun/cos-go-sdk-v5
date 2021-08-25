@@ -24,7 +24,7 @@ func (s *BucketService) PutEncryption(ctx context.Context, opt *BucketPutEncrypt
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
@@ -36,7 +36,7 @@ func (s *BucketService) GetEncryption(ctx context.Context) (*BucketGetEncryption
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }
 
@@ -46,6 +46,6 @@ func (s *BucketService) DeleteEncryption(ctx context.Context) (*Response, error)
 		uri:     "/?encryption",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }

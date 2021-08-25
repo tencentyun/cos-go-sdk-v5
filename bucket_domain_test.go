@@ -13,12 +13,18 @@ func TestBucketService_GetDomain(t *testing.T) {
 	setup()
 	defer teardown()
 
+	rt := 0
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		vs := values{
 			"domain": "",
 		}
 		testFormValues(t, r, vs)
+		rt++
+		if rt < 3 {
+			w.WriteHeader(http.StatusGatewayTimeout)
+		}
+
 		fmt.Fprint(w, `<DomainConfiguration>
   	<DomainRule>
     	<Status>ENABLED</Status>
@@ -59,13 +65,17 @@ func TestBucketService_PutDomain(t *testing.T) {
 		ForcedReplacement: "CNAME",
 	}
 
+	rt := 0
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "PUT")
 		vs := values{
 			"domain": "",
 		}
 		testFormValues(t, r, vs)
-
+		rt++
+		if rt < 3 {
+			w.WriteHeader(http.StatusGatewayTimeout)
+		}
 		body := new(BucketPutDomainOptions)
 		xml.NewDecoder(r.Body).Decode(body)
 		want := opt
@@ -87,6 +97,7 @@ func TestBucketService_DeleteDomain(t *testing.T) {
 
 	opt := &BucketPutDomainOptions{}
 
+	rt := 0
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
 		vs := values{
@@ -94,6 +105,11 @@ func TestBucketService_DeleteDomain(t *testing.T) {
 		}
 		testFormValues(t, r, vs)
 
+		rt++
+		if rt < 3 {
+			w.WriteHeader(http.StatusGatewayTimeout)
+			return
+		}
 		body := new(BucketPutDomainOptions)
 		xml.NewDecoder(r.Body).Decode(body)
 		want := opt

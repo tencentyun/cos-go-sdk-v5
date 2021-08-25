@@ -24,7 +24,7 @@ func (s *BucketService) PutVersioning(ctx context.Context, opt *BucketPutVersion
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -37,6 +37,6 @@ func (s *BucketService) GetVersioning(ctx context.Context) (*BucketGetVersionRes
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }

@@ -40,7 +40,7 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 		optHeader: opt,
 		result:    &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
 
@@ -148,7 +148,7 @@ func (s *ObjectService) ListParts(ctx context.Context, name, uploadID string, op
 		result:   &res,
 		optQuery: opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
 
@@ -209,7 +209,7 @@ func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploa
 		body:      opt,
 		result:    &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
 	if err == nil && resp.StatusCode == 200 {
 		if res.ETag == "" {
@@ -232,7 +232,7 @@ func (s *ObjectService) AbortMultipartUpload(ctx context.Context, name, uploadID
 		uri:     u,
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -328,7 +328,7 @@ func (s *ObjectService) ListUploads(ctx context.Context, opt *ObjectListUploadsO
 		optQuery: opt,
 		result:   &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }
 

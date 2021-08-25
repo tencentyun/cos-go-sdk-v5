@@ -19,7 +19,7 @@ func (s *BucketService) GetACL(ctx context.Context) (*BucketGetACLResult, *Respo
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	if err == nil {
 		decodeACL(resp, &res)
 	}
@@ -60,6 +60,6 @@ func (s *BucketService) PutACL(ctx context.Context, opt *BucketPutACLOptions) (*
 		body:      body,
 		optHeader: header,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }

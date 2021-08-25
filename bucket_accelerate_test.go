@@ -51,6 +51,7 @@ func TestBucketService_PutAccelerate(t *testing.T) {
 		Type:    "COS",
 	}
 
+	rt := 0
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "PUT")
 		vs := values{
@@ -64,6 +65,10 @@ func TestBucketService_PutAccelerate(t *testing.T) {
 		want.XMLName = xml.Name{Local: "AccelerateConfiguration"}
 		if !reflect.DeepEqual(body, want) {
 			t.Errorf("Bucket.PutAccelerate request\n body: %+v\n, want %+v\n", body, want)
+		}
+		rt++
+		if rt < 3 {
+			w.WriteHeader(http.StatusBadGateway)
 		}
 	})
 

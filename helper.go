@@ -282,16 +282,16 @@ func CloneObjectGetOptions(opt *ObjectGetOptions) *ObjectGetOptions {
 }
 
 func CloneCompleteMultipartUploadOptions(opt *CompleteMultipartUploadOptions) *CompleteMultipartUploadOptions {
-    var res CompleteMultipartUploadOptions
-    if opt != nil {
-        res.XMLName = opt.XMLName
-        if len(opt.Parts) > 0 {
-            res.Parts = make([]Object, len(opt.Parts))
-            copy(res.Parts, opt.Parts)
-        }
-        res.XOptionHeader = cloneHeader(opt.XOptionHeader)
-    }
-    return &res
+	var res CompleteMultipartUploadOptions
+	if opt != nil {
+		res.XMLName = opt.XMLName
+		if len(opt.Parts) > 0 {
+			res.Parts = make([]Object, len(opt.Parts))
+			copy(res.Parts, opt.Parts)
+		}
+		res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+	}
+	return &res
 }
 
 type RangeOptions struct {

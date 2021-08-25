@@ -89,12 +89,12 @@ func Test_checkResponse_with_error(t *testing.T) {
 }
 
 func Test_IsNotFoundError(t *testing.T) {
-    setup()
-    defer teardown()
+	setup()
+	defer teardown()
 
-    mux.HandleFunc("/test_404", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/test_404", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-        fmt.Fprint(w, `<?xml version='1.0' encoding='utf-8' ?>
+		fmt.Fprint(w, `<?xml version='1.0' encoding='utf-8' ?>
 <Error>
     <Code>NoSuchKey</Code>
     <Message>The specified key does not exist.</Message>
@@ -108,15 +108,15 @@ func Test_IsNotFoundError(t *testing.T) {
 	resp, _ := client.client.Do(req)
 	err := checkResponse(resp)
 
-    e, ok := IsCOSError(err)
-    if !ok {
-        t.Errorf("IsCOSError Return Failed")
-    }
-    ok = IsNotFoundError(e)
-    if !ok {
-        t.Errorf("IsNotFoundError Return Failed")
-    }
-    if e.Code != "NoSuchKey" {
-        t.Errorf("Expected NoSuchKey error, got %+v", e.Code)
-    }
+	e, ok := IsCOSError(err)
+	if !ok {
+		t.Errorf("IsCOSError Return Failed")
+	}
+	ok = IsNotFoundError(e)
+	if !ok {
+		t.Errorf("IsNotFoundError Return Failed")
+	}
+	if e.Code != "NoSuchKey" {
+		t.Errorf("Expected NoSuchKey error, got %+v", e.Code)
+	}
 }

@@ -19,7 +19,7 @@ func (s *ObjectService) GetACL(ctx context.Context, name string) (*ObjectGetACLR
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	if err == nil {
 		decodeACL(resp, &res)
 	}
@@ -61,6 +61,6 @@ func (s *ObjectService) PutACL(ctx context.Context, name string, opt *ObjectPutA
 		optHeader: header,
 		body:      body,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }

@@ -23,7 +23,7 @@ func (s *BucketService) PutReferer(ctx context.Context, opt *BucketPutRefererOpt
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
@@ -35,6 +35,6 @@ func (s *BucketService) GetReferer(ctx context.Context) (*BucketGetRefererResult
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, sendOpt)
+	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }

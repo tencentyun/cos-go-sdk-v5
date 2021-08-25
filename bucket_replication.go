@@ -38,7 +38,7 @@ func (s *BucketService) PutBucketReplication(ctx context.Context, opt *PutBucket
 		method:  http.MethodPut,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 
 }
@@ -52,7 +52,7 @@ func (s *BucketService) GetBucketReplication(ctx context.Context) (*GetBucketRep
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 
 }
@@ -64,6 +64,6 @@ func (s *BucketService) DeleteBucketReplication(ctx context.Context) (*Response,
 		uri:     "/?replication",
 		method:  http.MethodDelete,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }

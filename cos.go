@@ -22,7 +22,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.29"
+	Version               = "0.7.30"
 	userAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -244,6 +244,10 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 
 	err = checkResponse(resp)
 	if err != nil {
+		// StatusCode != 2xx when Get Object
+		if !closeBody {
+			resp.Body.Close()
+		}
 		// even though there was an error, we still return the response
 		// in case the caller wants to inspect it further
 		return response, err
@@ -251,7 +255,7 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 
 	// need CRC64 verification
 	if reader, ok := req.Body.(*teeReader); ok {
-		if c.Conf.EnableCRC && reader.writer != nil {
+		if c.Conf.EnableCRC && reader.writer != nil && !reader.disableCheckSum {
 			localcrc := reader.Crc64()
 			scoscrc := response.Header.Get("x-cos-hash-crc64ecma")
 			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
@@ -298,7 +302,8 @@ type sendOptions struct {
 func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
 	if opt.body != nil {
 		if _, ok := opt.body.(io.Reader); ok {
-			return c.send(ctx, opt)
+			resp, err = c.send(ctx, opt)
+			return
 		}
 	}
 	nr := 0
