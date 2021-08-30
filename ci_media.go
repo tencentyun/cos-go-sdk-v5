@@ -98,24 +98,24 @@ type Watermark struct {
 	Text      *Text  `xml:"Text,omitempty"`
 }
 type ConcatFragment struct {
-	Url    string    `xml:"Url,omitempty"`
-	StartTime    string    `xml:"StartTime,omitempty"`
-	EndTime    string    `xml:"EndTime,omitempty"`
+	Url       string `xml:"Url,omitempty"`
+	StartTime string `xml:"StartTime,omitempty"`
+	EndTime   string `xml:"EndTime,omitempty"`
 }
 type ConcatTemplate struct {
 	ConcatFragment []ConcatFragment `xml:"ConcatFragment,omitempty"`
-	Audio        *Audio        `xml:"Audio,omitempty"`
-	Video        *Video        `xml:"Video,omitempty"`
-	Container    *Container    `xml:"Container,omitempty"`
-	Index    string    `xml:"Index,omitempty"`
+	Audio          *Audio           `xml:"Audio,omitempty"`
+	Video          *Video           `xml:"Video,omitempty"`
+	Container      *Container       `xml:"Container,omitempty"`
+	Index          string           `xml:"Index,omitempty"`
 }
 type MediaProcessJobOperation struct {
-	Output              *JobOutput `xml:"Output,omitempty"`
-	Transcode           *Transcode `xml:"Transcode,omitempty"`
-	Watermark           *Watermark `xml:"Watermark,omitempty"`
-	TemplateId          string     `xml:"TemplateId,omitempty"`
-	WatermarkTemplateId []string   `xml:"WatermarkTemplateId,omitempty"`
-	ConcatTemplate *ConcatTemplate   `xml:"ConcatTemplate,omitempty"`
+	Output              *JobOutput      `xml:"Output,omitempty"`
+	Transcode           *Transcode      `xml:"Transcode,omitempty"`
+	Watermark           *Watermark      `xml:"Watermark,omitempty"`
+	TemplateId          string          `xml:"TemplateId,omitempty"`
+	WatermarkTemplateId []string        `xml:"WatermarkTemplateId,omitempty"`
+	ConcatTemplate      *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
