@@ -25,7 +25,7 @@ type Video struct {
 	Width         string `xml:"Width"`
 	Height        string `xml:"Height"`
 	Fps           string `xml:"Fps"`
-	Remove        string `xml:"Remove"`
+	Remove        string `xml:"Remove,omitempty"`
 	Profile       string `xml:"Profile"`
 	Bitrate       string `xml:"Bitrate"`
 	Crf           string `xml:"Crf"`
@@ -48,7 +48,7 @@ type Audio struct {
 	Samplerate string `xml:"Samplerate"`
 	Bitrate    string `xml:"Bitrate"`
 	Channels   string `xml:"Channels"`
-	Remove     string `xml:"Remove"`
+	Remove     string `xml:"Remove,omitempty"`
 }
 
 type TransConfig struct {
@@ -97,13 +97,25 @@ type Watermark struct {
 	Image     *Image `xml:"Image,omitempty"`
 	Text      *Text  `xml:"Text,omitempty"`
 }
-
+type ConcatFragment struct {
+	Url       string `xml:"Url,omitempty"`
+	StartTime string `xml:"StartTime,omitempty"`
+	EndTime   string `xml:"EndTime,omitempty"`
+}
+type ConcatTemplate struct {
+	ConcatFragment []ConcatFragment `xml:"ConcatFragment,omitempty"`
+	Audio          *Audio           `xml:"Audio,omitempty"`
+	Video          *Video           `xml:"Video,omitempty"`
+	Container      *Container       `xml:"Container,omitempty"`
+	Index          string           `xml:"Index,omitempty"`
+}
 type MediaProcessJobOperation struct {
-	Output              *JobOutput `xml:"Output,omitempty"`
-	Transcode           *Transcode `xml:"Transcode,omitempty"`
-	Watermark           *Watermark `xml:"Watermark,omitempty"`
-	TemplateId          string     `xml:"TemplateId,omitempty"`
-	WatermarkTemplateId []string   `xml:"WatermarkTemplateId,omitempty"`
+	Output              *JobOutput      `xml:"Output,omitempty"`
+	Transcode           *Transcode      `xml:"Transcode,omitempty"`
+	Watermark           *Watermark      `xml:"Watermark,omitempty"`
+	TemplateId          string          `xml:"TemplateId,omitempty"`
+	WatermarkTemplateId []string        `xml:"WatermarkTemplateId,omitempty"`
+	ConcatTemplate      *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
