@@ -41,11 +41,15 @@ func TestBucketService_GetDomain(t *testing.T) {
 	}
 
 	want := &BucketGetDomainResult{
-		XMLName:           xml.Name{Local: "DomainConfiguration"},
-		Status:            "ENABLED",
-		Name:              "www.abc.com",
-		Type:              "REST",
-		ForcedReplacement: "CNAME",
+		XMLName: xml.Name{Local: "DomainConfiguration"},
+		Rules: []BucketDomainRule{
+			{
+				Status:            "ENABLED",
+				Name:              "www.abc.com",
+				Type:              "REST",
+				ForcedReplacement: "CNAME",
+			},
+		},
 	}
 
 	if !reflect.DeepEqual(res, want) {
@@ -58,11 +62,15 @@ func TestBucketService_PutDomain(t *testing.T) {
 	defer teardown()
 
 	opt := &BucketPutDomainOptions{
-		XMLName:           xml.Name{Local: "DomainConfiguration"},
-		Status:            "ENABLED",
-		Name:              "www.abc.com",
-		Type:              "REST",
-		ForcedReplacement: "CNAME",
+		XMLName: xml.Name{Local: "DomainConfiguration"},
+		Rules: []BucketDomainRule{
+			{
+				Status:            "ENABLED",
+				Name:              "www.abc.com",
+				Type:              "REST",
+				ForcedReplacement: "CNAME",
+			},
+		},
 	}
 
 	rt := 0
@@ -95,35 +103,18 @@ func TestBucketService_DeleteDomain(t *testing.T) {
 	setup()
 	defer teardown()
 
-	opt := &BucketPutDomainOptions{}
-
-	rt := 0
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodPut)
+		testMethod(t, r, http.MethodDelete)
 		vs := values{
 			"domain": "",
 		}
 		testFormValues(t, r, vs)
-
-		rt++
-		if rt < 3 {
-			w.WriteHeader(http.StatusGatewayTimeout)
-			return
-		}
-		body := new(BucketPutDomainOptions)
-		xml.NewDecoder(r.Body).Decode(body)
-		want := opt
-		want.XMLName = xml.Name{Local: "DomainConfiguration"}
-		if !reflect.DeepEqual(body, want) {
-			t.Errorf("Bucket.PutDomain request\n body: %+v\n, want %+v\n", body, want)
-		}
-
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	_, err := client.Bucket.PutDomain(context.Background(), opt)
+	_, err := client.Bucket.DeleteDomain(context.Background())
 	if err != nil {
-		t.Fatalf("Bucket.PutDomain returned error: %v", err)
+		t.Fatalf("Bucket.DeleteDomain returned error: %v", err)
 	}
 
 }

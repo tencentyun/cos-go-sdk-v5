@@ -732,6 +732,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 					results <- &res
 					break
 				}
+				time.Sleep(time.Millisecond)
 				continue
 			}
 			results <- &res
@@ -757,16 +758,12 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 			res.err = err
 			res.Resp = resp
 			if err != nil {
-				rt--
-				if rt == 0 {
-					results <- &res
-					break
-				}
-				continue
+				results <- &res
+				break
 			}
-			defer resp.Body.Close()
 			fd, err := os.OpenFile(j.FilePath, os.O_WRONLY, 0660)
 			if err != nil {
+				resp.Body.Close()
 				res.err = err
 				results <- &res
 				break
@@ -774,9 +771,19 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			n, err := io.Copy(fd, LimitReadCloser(resp.Body, j.Chunk.Size))
 			if n != j.Chunk.Size || err != nil {
-				res.err = fmt.Errorf("io.Copy Failed, nread:%v, want:%v, err:%v", n, j.Chunk.Size, err)
+				fd.Close()
+				resp.Body.Close()
+				rt--
+				if rt == 0 {
+					res.err = fmt.Errorf("io.Copy Failed, nread:%v, want:%v, err:%v", n, j.Chunk.Size, err)
+					results <- &res
+					break
+				}
+				time.Sleep(time.Millisecond)
+				continue
 			}
 			fd.Close()
+			resp.Body.Close()
 			results <- &res
 			break
 		}
@@ -818,7 +825,7 @@ func SplitFileIntoChunks(filePath string, partSize int64) (int64, []Chunk, int, 
 			return 0, nil, 0, errors.New("Too many parts, out of 10000")
 		}
 	} else {
-		partNum, partSize = DividePart(stat.Size(), 64)
+		partNum, partSize = DividePart(stat.Size(), 16)
 	}
 
 	var chunks []Chunk
@@ -1119,7 +1126,7 @@ func SplitSizeIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error)
 			return nil, 0, errors.New("Too manry parts, out of 10000")
 		}
 	} else {
-		partNum, partSize = DividePart(totalBytes, 64)
+		partNum, partSize = DividePart(totalBytes, 16)
 	}
 
 	var chunks []Chunk
@@ -1293,7 +1300,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			}
 			job := &Jobs{
 				Name:       name,
-				RetryTimes: 1,
+				RetryTimes: 3,
 				FilePath:   filepath,
 				Chunk:      chunk,
 				DownOpt:    &downOpt,

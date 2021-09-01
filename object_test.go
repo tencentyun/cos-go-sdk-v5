@@ -796,7 +796,7 @@ func TestObjectService_Download(t *testing.T) {
 	}
 	defer os.Remove(filePath)
 	// 源文件内容
-	totalBytes := int64(1024*1024*9 + 123)
+	totalBytes := int64(1024*1024 + 1230) //1024*1024*9 + 123)
 	b := make([]byte, totalBytes)
 	_, err = rand.Read(b)
 	newfile.Write(b)
@@ -817,20 +817,21 @@ func TestObjectService_Download(t *testing.T) {
 		start, _ := strconv.ParseInt(slice2[0], 10, 64)
 		end, _ := strconv.ParseInt(slice2[1], 10, 64)
 		if retryMap[start] == 0 {
-			// 重试校验1
+			// SDK 内部重试
 			retryMap[start]++
 			w.WriteHeader(http.StatusGatewayTimeout)
 		} else if retryMap[start] == 1 {
-			// 重试检验2
+			// SDK Download 做重试
 			retryMap[start]++
 			io.Copy(w, bytes.NewBuffer(b[start:end]))
 		} else if retryMap[start] == 2 {
-			// 重试检验3
+			// SDK Download 做重试
 			retryMap[start]++
-			st := math_rand.Int63n(totalBytes - 1024*1024)
-			et := st + end - start
+			st := start
+			et := st + math_rand.Int63n(1024)
 			io.Copy(w, bytes.NewBuffer(b[st:et+1]))
 		} else {
+			// SDK Download 成功
 			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
 		}
 	})
@@ -842,18 +843,15 @@ func TestObjectService_Download(t *testing.T) {
 	downPath := "down.file" + time.Now().Format(time.RFC3339)
 	defer os.Remove(downPath)
 	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
-	if err == nil {
-		// 长度不一致 Failed
-		t.Fatalf("Object.Upload returned error: %v", err)
-	}
-	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
-	if err == nil {
-		// CRC不一致
+	if err != nil {
 		t.Fatalf("Object.Upload returned error: %v", err)
 	}
 	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
 	if err != nil {
-		// 正确
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err != nil {
 		t.Fatalf("Object.Upload returned error: %v", err)
 	}
 }
@@ -895,7 +893,7 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 			if oddok {
 				io.Copy(w, bytes.NewBuffer(b[start:end+1]))
 			} else {
-				// 数据校验失败, Download不会做重试
+				// 数据校验失败, Download做3次重试
 				io.Copy(w, bytes.NewBuffer(b[start:end]))
 			}
 			oddcount++
@@ -934,7 +932,7 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 	}
 	fd.Close()
 
-	if oddcount != 5 || evencount != 5 {
+	if oddcount != 15 || evencount != 5 {
 		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
 	}
 	// 设置奇数块OK
@@ -944,7 +942,7 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 		// 下载成功
 		t.Fatalf("Object.Download returned error: %v", err)
 	}
-	if oddcount != 10 || evencount != 5 {
+	if oddcount != 20 || evencount != 5 {
 		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
 	}
 }
