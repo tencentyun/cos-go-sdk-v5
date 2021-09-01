@@ -732,6 +732,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 					results <- &res
 					break
 				}
+				time.Sleep(time.Millisecond)
 				continue
 			}
 			results <- &res
@@ -778,6 +779,7 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 					results <- &res
 					break
 				}
+				time.Sleep(time.Millisecond)
 				continue
 			}
 			fd.Close()
