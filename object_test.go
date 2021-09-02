@@ -796,7 +796,7 @@ func TestObjectService_Download(t *testing.T) {
 	}
 	defer os.Remove(filePath)
 	// 源文件内容
-	totalBytes := int64(1024*1024 + 1230) //1024*1024*9 + 123)
+	totalBytes := int64(1024*1024*9 + 1230)
 	b := make([]byte, totalBytes)
 	_, err = rand.Read(b)
 	newfile.Write(b)
