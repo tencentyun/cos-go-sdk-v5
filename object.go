@@ -603,19 +603,20 @@ type Object struct {
 // MultiUploadOptions is the option of the multiupload,
 // ThreadPoolSize default is one
 type MultiUploadOptions struct {
-	OptIni             *InitiateMultipartUploadOptions
-	PartSize           int64
-	ThreadPoolSize     int
-	CheckPoint         bool
-	EnableVerification bool
+	OptIni          *InitiateMultipartUploadOptions
+	PartSize        int64
+	ThreadPoolSize  int
+	CheckPoint      bool
+	DisableChecksum bool
 }
 
 type MultiDownloadOptions struct {
-	Opt            *ObjectGetOptions
-	PartSize       int64
-	ThreadPoolSize int
-	CheckPoint     bool
-	CheckPointFile string
+	Opt             *ObjectGetOptions
+	PartSize        int64
+	ThreadPoolSize  int
+	CheckPoint      bool
+	CheckPointFile  string
+	DisableChecksum bool
 }
 
 type MultiDownloadCPInfo struct {
@@ -943,7 +944,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		return nil, nil, err
 	}
 	// 校验
-	if s.client.Conf.EnableCRC {
+	if s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		fd, err := os.Open(filepath)
 		if err != nil {
 			return nil, nil, err
@@ -972,7 +973,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			Key:      name,
 			ETag:     rsp.Header.Get("ETag"),
 		}
-		if rsp != nil && s.client.Conf.EnableCRC {
+		if rsp != nil && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 			scoscrc := rsp.Header.Get("x-cos-hash-crc64ecma")
 			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
 			if icoscrc != localcrc {
@@ -1105,7 +1106,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		return v, resp, err
 	}
 
-	if resp != nil && s.client.Conf.EnableCRC {
+	if resp != nil && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
 		icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
 		if icoscrc != localcrc {
@@ -1225,7 +1226,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		if err != nil {
 			return rsp, err
 		}
-		if coscrc != "" && s.client.Conf.EnableCRC {
+		if coscrc != "" && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 			icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
 			fd, err := os.Open(filepath)
 			if err != nil {
@@ -1344,7 +1345,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	if opt.CheckPoint {
 		os.Remove(cpfile)
 	}
-	if coscrc != "" && s.client.Conf.EnableCRC {
+	if coscrc != "" && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
 		fd, err := os.Open(filepath)
 		if err != nil {
