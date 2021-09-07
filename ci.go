@@ -104,6 +104,10 @@ func (s *CIService) ImageProcess(ctx context.Context, name string, opt *ImagePro
 type ImageRecognitionOptions struct {
 	CIProcess  string `url:"ci-process,omitempty"`
 	DetectType string `url:"detect-type,omitempty"`
+	DetectUrl  string `url:"detect-url,omitempty"`
+	Interval   int    `url:"interval,omitempty"`
+	MaxFrames  int    `url:"max-frames,omitempty"`
+	BizType    string `url:"biz-type,omitempty"`
 }
 
 type ImageRecognitionResult struct {
@@ -114,12 +118,17 @@ type ImageRecognitionResult struct {
 	AdsInfo       *RecognitionInfo `xml:"AdsInfo,omitempty"`
 }
 type RecognitionInfo struct {
-	Code    int    `xml:"Code,omitempty"`
-	Msg     string `xml:"Msg,omitempty"`
-	HitFlag int    `xml:"HitFlag,omitempty"`
-	Score   int    `xml:"Score,omitempty"`
-	Label   string `xml:"Label,omitempty"`
-	Count   int    `xml:"Count,omitempty"`
+	Code          int            `xml:"Code,omitempty"`
+	Msg           string         `xml:"Msg,omitempty"`
+	HitFlag       int            `xml:"HitFlag,omitempty"`
+	Score         int            `xml:"Score,omitempty"`
+	Label         string         `xml:"Label,omitempty"`
+	Count         int            `xml:"Count,omitempty"`
+	SubLabel      string         `xml:"SubLabel,omitempty"`
+	Keywords      string         `xml:"Keywords,omitempty"`
+	OcrResults    []OcrResult    `xml:"OcrResults,omitempty"`
+	ObjectResults []ObjectResult `xml:"ObjectResults,omitempty"`
+	LibResults    []LibResult    `xml:"LibResults,omitempty"`
 }
 
 // 图片审核 https://cloud.tencent.com/document/product/460/37318
@@ -139,6 +148,19 @@ func (s *CIService) ImageRecognition(ctx context.Context, name string, DetectTyp
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
 }
+// 图片审核 支持detect-url等全部参数
+func (s *CIService) ImageAuditing(ctx context.Context, name string, opt *ImageRecognitionOptions) (*ImageRecognitionResult, *Response, error) {
+	var res ImageRecognitionResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(name),
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
 
 type PutVideoAuditingJobOptions struct {
 	XMLName     xml.Name              `xml:"Request"`
@@ -146,9 +168,11 @@ type PutVideoAuditingJobOptions struct {
 	Conf        *VideoAuditingJobConf `xml:"Conf"`
 }
 type VideoAuditingJobConf struct {
-	DetectType string                       `xml:",omitempty"`
-	Snapshot   *PutVideoAuditingJobSnapshot `xml:",omitempty"`
-	Callback   string                       `xml:",omitempty"`
+	DetectType    string                       `xml:",omitempty"`
+	Snapshot      *PutVideoAuditingJobSnapshot `xml:",omitempty"`
+	Callback      string                       `xml:",omitempty"`
+	BizType       string                       `xml:",omitempty"`
+	DetectContent int                          `xml:",omitempty"`
 }
 type PutVideoAuditingJobSnapshot struct {
 	Mode         string  `xml:",omitempty"`
@@ -200,9 +224,22 @@ type AuditingJobDetail struct {
 	PoliticsInfo  *RecognitionInfo             `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo             `xml:",omitempty"`
 	Snapshot      *GetVideoAuditingJobSnapshot `xml:",omitempty"`
+	AudioSection  *AudioSectionResult          `xml:",omitempty"`
 }
 type GetVideoAuditingJobSnapshot struct {
 	Url           string           `xml:",omitempty"`
+	SnapshotTime  string           `xml:",omitempty"`
+	Text          string           `xml:",omitempty"`
+	PornInfo      *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+}
+type AudioSectionResult struct {
+	Url           string           `xml:",omitempty"`
+	Text          string           `xml:",omitempty"`
+	OffsetTime    int              `xml:",omitempty"`
+	Duration      int              `xml:",omitempty"`
 	PornInfo      *RecognitionInfo `xml:",omitempty"`
 	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
@@ -224,15 +261,17 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 
 type PutAudioAuditingJobOptions struct {
 	XMLName     xml.Name              `xml:"Request"`
-	InputObject string                `xml:"Input>Object"`
+	InputObject string                `xml:"Input>Object,omitempty"`
+	InputUrl    string                `xml:"Input>Url,omitempty"`
 	Conf        *AudioAuditingJobConf `xml:"Conf"`
 }
 type AudioAuditingJobConf struct {
-	DetectType string `xml:",omitempty"`
-	Callback   string `xml:",omitempty"`
+	DetectType      string `xml:",omitempty"`
+	Callback        string `xml:",omitempty"`
+	CallbackVersion string `xml:",omitempty"`
+	BizType         string `xml:",omitempty"`
 }
 type PutAudioAuditingJobResult PutVideoAuditingJobResult
-type GetAudioAuditingJobResult GetVideoAuditingJobResult
 
 // 音频审核-创建任务 https://cloud.tencent.com/document/product/460/53395
 func (s *CIService) PutAudioAuditingJob(ctx context.Context, opt *PutAudioAuditingJobOptions) (*PutAudioAuditingJobResult, *Response, error) {
@@ -248,12 +287,199 @@ func (s *CIService) PutAudioAuditingJob(ctx context.Context, opt *PutAudioAuditi
 	return &res, resp, err
 }
 
+type GetAudioAuditingJobResult struct {
+	XMLName        xml.Name                `xml:"Response"`
+	JobsDetail     *AudioAuditingJobDetail `xml:",omitempty"`
+	NonExistJobIds string                  `xml:",omitempty"`
+}
+type AudioAuditingJobDetail struct {
+	Code          string              `xml:",omitempty"`
+	Message       string              `xml:",omitempty"`
+	JobId         string              `xml:",omitempty"`
+	State         string              `xml:",omitempty"`
+	CreationTime  string              `xml:",omitempty"`
+	Object        string              `xml:",omitempty"`
+	Url           string              `xml:",omitempty"`
+	Result        int                 `xml:",omitempty"`
+	AudioText     string              `xml:",omitempty"`
+	PornInfo      *RecognitionInfo    `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo    `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo    `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo    `xml:",omitempty"`
+	Section       *AudioSectionResult `xml:",omitempty"`
+}
+
 // 音频审核-查询任务 https://cloud.tencent.com/document/product/460/53396
 func (s *CIService) GetAudioAuditingJob(ctx context.Context, jobid string) (*GetAudioAuditingJobResult, *Response, error) {
 	var res GetAudioAuditingJobResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
 		uri:     "/audio/auditing/" + jobid,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type PutTextAuditingJobOptions struct {
+	XMLName      xml.Name             `xml:"Request"`
+	InputObject  string               `xml:"Input>Object,omitempty"`
+	InputContent string               `xml:"Input>Content,omitempty"`
+	Conf         *TextAuditingJobConf `xml:"Conf"`
+}
+type TextAuditingJobConf struct {
+	DetectType string `xml:",omitempty"`
+	Callback   string `xml:",omitempty"`
+	BizType    string `xml:",omitempty"`
+}
+type PutTextAuditingJobResult GetTextAuditingJobResult
+
+// 文本审核-创建任务 https://cloud.tencent.com/document/product/436/56289
+func (s *CIService) PutTextAuditingJob(ctx context.Context, opt *PutTextAuditingJobOptions) (*PutTextAuditingJobResult, *Response, error) {
+	var res PutTextAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/text/auditing",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type GetTextAuditingJobResult struct {
+	XMLName        xml.Name               `xml:"Response"`
+	JobsDetail     *TextAuditingJobDetail `xml:",omitempty"`
+	NonExistJobIds string                 `xml:",omitempty"`
+}
+type TextAuditingJobDetail struct {
+	Code          string             `xml:",omitempty"`
+	Message       string             `xml:",omitempty"`
+	JobId         string             `xml:",omitempty"`
+	State         string             `xml:",omitempty"`
+	CreationTime  string             `xml:",omitempty"`
+	Object        string             `xml:",omitempty"`
+	SectionCount  int                `xml:",omitempty"`
+	Result        int                `xml:",omitempty"`
+	PornInfo      *RecognitionInfo   `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo   `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo   `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo   `xml:",omitempty"`
+	IllegalInfo   *RecognitionInfo   `xml:",omitempty"`
+	AbuseInfo     *RecognitionInfo   `xml:",omitempty"`
+	Section       *TextSectionResult `xml:",omitempty"`
+}
+type TextSectionResult struct {
+	StartByte     int              `xml:",omitempty"`
+	PornInfo      *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	IllegalInfo   *RecognitionInfo `xml:",omitempty"`
+	AbuseInfo     *RecognitionInfo `xml:",omitempty"`
+}
+
+// 文本审核-查询任务 https://cloud.tencent.com/document/product/436/56288
+func (s *CIService) GetTextAuditingJob(ctx context.Context, jobid string) (*GetTextAuditingJobResult, *Response, error) {
+	var res GetTextAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/text/auditing/" + jobid,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type PutDocumentAuditingJobOptions struct {
+	XMLName   xml.Name                 `xml:"Request"`
+	InputUrl  string                   `xml:"Input>Url,omitempty"`
+	InputType string                   `xml:"Input>Type,omitempty"`
+	Conf      *DocumentAuditingJobConf `xml:"Conf"`
+}
+type DocumentAuditingJobConf TextAuditingJobConf
+type PutDocumentAuditingJobResult PutVideoAuditingJobResult
+
+// 文档审核-创建任务 https://cloud.tencent.com/document/product/436/59381
+func (s *CIService) PutDocumentAuditingJob(ctx context.Context, opt *PutDocumentAuditingJobOptions) (*PutDocumentAuditingJobResult, *Response, error) {
+	var res PutDocumentAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/document/auditing",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type GetDocumentAuditingJobResult struct {
+	XMLName        xml.Name                   `xml:"Response"`
+	JobsDetail     *DocumentAuditingJobDetail `xml:",omitempty"`
+	NonExistJobIds string                     `xml:",omitempty"`
+}
+type DocumentAuditingJobDetail struct {
+	Code         string                   `xml:",omitempty"`
+	Message      string                   `xml:",omitempty"`
+	JobId        string                   `xml:",omitempty"`
+	State        string                   `xml:",omitempty"`
+	CreationTime string                   `xml:",omitempty"`
+	Suggestion   int                      `xml:",omitempty"`
+	Url          string                   `xml:",omitempty"`
+	PageCount    int                      `xml:",omitempty"`
+	Labels       *DocumentResultInfo      `xml:",omitempty"`
+	PageSegment  *DocumentPageSegmentInfo `xml:",omitempty"`
+}
+type DocumentResultInfo struct {
+	PornInfo      *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+}
+type DocumentPageSegmentInfo struct {
+	Results []DocumentPageSegmentResultResult `xml:",omitempty"`
+}
+type DocumentPageSegmentResultResult struct {
+	Url           string           `xml:",omitempty"`
+	Text          string           `xml:",omitempty"`
+	PageNumber    int              `xml:",omitempty"`
+	SheetNumber   int              `xml:",omitempty"`
+	PornInfo      *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+}
+type OcrResult struct {
+	Text     string    `xml:"Text"`
+	Keywords []string  `xml:"Keywords"`
+	Location *Location `xml:"Location,omitempty"`
+}
+type ObjectResult struct {
+	Name     string    `xml:"Name"`
+	Location *Location `xml:"Location,omitempty"`
+}
+type LibResult struct {
+	ImageId string `xml:"ImageId"`
+	Score   uint32 `xml:"Score"`
+}
+type Location struct {
+	X      float64 `json:"X"`      // 左上角横坐标
+	Y      float64 `json:"Y"`      // 左上角纵坐标
+	Width  float64 `json:"Width"`  // 宽度
+	Height float64 `json:"Height"` // 高度
+	Rotate float64 `json:"Rotate"` // 检测框的旋转角度
+}
+
+// 文档审核-查询任务 https://cloud.tencent.com/document/product/436/59382
+func (s *CIService) GetDocumentAuditingJob(ctx context.Context, jobid string) (*GetDocumentAuditingJobResult, *Response, error) {
+	var res GetDocumentAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/document/auditing/" + jobid,
 		method:  http.MethodGet,
 		result:  &res,
 	}
