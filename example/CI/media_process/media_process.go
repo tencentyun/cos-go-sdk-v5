@@ -30,6 +30,63 @@ func log_status(err error) {
 	}
 }
 
+func InvokeSnapshotTask() {
+	u, _ := url.Parse("https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-bj-1253960454.ci.ap-beijing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "Snapshot",
+		Input: &cos.JobInput{
+			Object: "input/117374C.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-beijing",
+				Object: "output/${InputName}-${Number}.jpg",
+				Bucket: "wwj-bj-1253960454",
+			},
+			// TemplateId:"t1af5d050a8b4d45d1afb60bfbacbfa0f0",
+			Snapshot: &cos.Snapshot{
+				Mode: "Interval",
+				Start: "0",
+				Count: "1",
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)	
+}
+
 func InvokeConcatTask() {
 	u, _ := url.Parse("https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-bj-1253960454.ci.ap-beijing.myqcloud.com")
@@ -81,10 +138,10 @@ func InvokeConcatTask() {
 					Format: "mp4",
 				},
 				Video: &cos.Video{
-					Codec: "H.264",
+					Codec: "H.265",
 				},
 				Audio: &cos.Audio{
-					Codec: "AAC",
+					//Codec: "AAC",
 				},
 				ConcatFragment:concatFragment,
 			},
@@ -168,6 +225,8 @@ func InvokeTranscodeTask() {
 }
 
 func main() {
-	InvokeConcatTask()
-	//InvokeTranscodeTask()
+	InvokeSnapshotTask()
+	// InvokeConcatTask()
+	// InvokeTranscodeTask()
+
 }

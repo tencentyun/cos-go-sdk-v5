@@ -109,6 +109,15 @@ type ConcatTemplate struct {
 	Container      *Container       `xml:"Container,omitempty"`
 	Index          string           `xml:"Index,omitempty"`
 }
+
+type Snapshot struct {
+	Mode         string `xml:"Mode,omitempty"`
+	Start        string `xml:"Start,omitempty"`
+	TimeInterval string `xml:"TimeInterval,omitempty"`
+	Count        string `xml:"Count,omitempty"`
+	Width        string `xml:"Width,omitempty"`
+	Height       string `xml:"Height,omitempty"`
+}
 type MediaProcessJobOperation struct {
 	Output              *JobOutput      `xml:"Output,omitempty"`
 	Transcode           *Transcode      `xml:"Transcode,omitempty"`
@@ -116,6 +125,7 @@ type MediaProcessJobOperation struct {
 	TemplateId          string          `xml:"TemplateId,omitempty"`
 	WatermarkTemplateId []string        `xml:"WatermarkTemplateId,omitempty"`
 	ConcatTemplate      *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
+	Snapshot            *Snapshot       `xml:"Snapshot,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
@@ -187,9 +197,9 @@ type DescribeMediaJobsOptions struct {
 }
 
 type DescribeMediaJobsResult struct {
-	XMLName    xml.Name              `xml:"Response"`
-	JobsDetail []DocProcessJobDetail `xml:"JobsDetail,omitempty"`
-	NextToken  string                `xml:"NextToken,omitempty"`
+	XMLName    xml.Name                `xml:"Response"`
+	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+	NextToken  string                  `xml:"NextToken,omitempty"`
 }
 
 func (s *CIService) DescribeMediaJobs(ctx context.Context, opt *DescribeMediaJobsOptions) (*DescribeMediaJobsResult, *Response, error) {
