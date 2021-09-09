@@ -65,12 +65,11 @@ func InvokeSnapshotTask() {
 		Operation: &cos.MediaProcessJobOperation{
 			Output: &cos.JobOutput{
 				Region: "ap-beijing",
-				Object: "output/${InputName}-${Number}.jpg",
+				Object: "output/abc-${Number}.jpg",
 				Bucket: "wwj-bj-1253960454",
 			},
-			// TemplateId:"t1af5d050a8b4d45d1afb60bfbacbfa0f0",
 			Snapshot: &cos.Snapshot{
-				Mode: "Interval",
+				Mode:  "Interval",
 				Start: "0",
 				Count: "1",
 			},
@@ -84,7 +83,7 @@ func InvokeSnapshotTask() {
 	// DescribeMediaJobs
 	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
 	log_status(err)
-	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)	
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
 func InvokeConcatTask() {
@@ -116,14 +115,14 @@ func InvokeConcatTask() {
 	// CreateMediaJobs
 	concatFragment := make([]cos.ConcatFragment, 0)
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url: "https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
+		Url:       "https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
 		StartTime: "0",
-		EndTime: "10",
+		EndTime:   "10",
 	})
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url: "https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
+		Url:       "https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
 		StartTime: "20",
-		EndTime: "30",
+		EndTime:   "30",
 	})
 	createJobOpt := &cos.CreateMediaJobsOptions{
 		Tag: "Concat",
@@ -143,7 +142,7 @@ func InvokeConcatTask() {
 				Audio: &cos.Audio{
 					//Codec: "AAC",
 				},
-				ConcatFragment:concatFragment,
+				ConcatFragment: concatFragment,
 			},
 		},
 		QueueId: DescribeQueueRes.QueueList[0].QueueId,
@@ -224,9 +223,87 @@ func InvokeTranscodeTask() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+func InvokeMultiTasks() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMultiMediaJobsOptions{
+		Input: &cos.JobInput{
+			Object: "input/117374C.mp4",
+		},
+		Operation: []*cos.MediaProcessJobOperation{
+			&cos.MediaProcessJobOperation{
+				Tag: "Snapshot",
+				Output: &cos.JobOutput{
+					Region: "ap-chongqing",
+					Object: "output/go_${Number}.mp4",
+					Bucket: "wwj-cq-1253960454",
+				},
+				Snapshot: &cos.Snapshot{
+					Mode:  "Interval",
+					Start: "0",
+					Count: "1",
+				},
+			},
+			&cos.MediaProcessJobOperation{
+				Tag: "Transcode",
+				Output: &cos.JobOutput{
+					Region: "ap-chongqing",
+					Object: "output/go_117374C.mp4",
+					Bucket: "wwj-cq-1253960454",
+				},
+				Transcode: &cos.Transcode{
+					Container: &cos.Container{
+						Format: "mp4",
+					},
+					Video: &cos.Video{
+						Codec: "H.264",
+					},
+					Audio: &cos.Audio{
+						Codec: "AAC",
+					},
+					TimeInterval: &cos.TimeInterval{
+						Start:    "10",
+						Duration: "",
+					},
+				},
+			},
+		},
+		QueueId: "paaf4fce5521a40888a3034a5de80f6ca",
+	}
+	createJobRes, _, err := c.CI.CreateMultiMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	for k, job := range createJobRes.JobsDetail {
+		fmt.Printf("job:%d, %+v\n", k, job)
+	}
+}
+
 func main() {
-	InvokeSnapshotTask()
+	// InvokeSnapshotTask()
 	// InvokeConcatTask()
 	// InvokeTranscodeTask()
-
+	InvokeMultiTasks()
 }
