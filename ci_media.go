@@ -156,17 +156,17 @@ type CreateMediaJobsResult struct {
 }
 
 type CreateMultiMediaJobsOptions struct {
-	XMLName   xml.Name                    `xml:"Request"`
-	Tag       string                      `xml:"Tag,omitempty"`
-	Input     *JobInput                   `xml:"Input,omitempty"`
-	Operation []*MediaProcessJobOperation `xml:"Operation,omitempty"`
-	QueueId   string                      `xml:"QueueId,omitempty"`
-	CallBack  string                      `xml:"CallBack,omitempty"`
+	XMLName   xml.Name                   `xml:"Request"`
+	Tag       string                     `xml:"Tag,omitempty"`
+	Input     *JobInput                  `xml:"Input,omitempty"`
+	Operation []MediaProcessJobOperation `xml:"Operation,omitempty"`
+	QueueId   string                     `xml:"QueueId,omitempty"`
+	CallBack  string                     `xml:"CallBack,omitempty"`
 }
 
 type CreateMultiMediaJobsResult struct {
-	XMLName    xml.Name                 `xml:"Response"`
-	JobsDetail []*MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+	XMLName    xml.Name                `xml:"Response"`
+	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
 func (s *CIService) CreateMultiMediaJobs(ctx context.Context, opt *CreateMultiMediaJobsOptions) (*CreateMultiMediaJobsResult, *Response, error) {

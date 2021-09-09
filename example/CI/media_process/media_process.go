@@ -254,8 +254,8 @@ func InvokeMultiTasks() {
 		Input: &cos.JobInput{
 			Object: "input/117374C.mp4",
 		},
-		Operation: []*cos.MediaProcessJobOperation{
-			&cos.MediaProcessJobOperation{
+		Operation: []cos.MediaProcessJobOperation{
+			cos.MediaProcessJobOperation{
 				Tag: "Snapshot",
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
@@ -268,7 +268,7 @@ func InvokeMultiTasks() {
 					Count: "1",
 				},
 			},
-			&cos.MediaProcessJobOperation{
+			cos.MediaProcessJobOperation{
 				Tag: "Transcode",
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
