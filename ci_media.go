@@ -119,6 +119,7 @@ type Snapshot struct {
 	Height       string `xml:"Height,omitempty"`
 }
 type MediaProcessJobOperation struct {
+	Tag                 string          `xml:"Tag,omitempty"`
 	Output              *JobOutput      `xml:"Output,omitempty"`
 	Transcode           *Transcode      `xml:"Transcode,omitempty"`
 	Watermark           *Watermark      `xml:"Watermark,omitempty"`
@@ -150,8 +151,35 @@ type MediaProcessJobDetail struct {
 }
 
 type CreateMediaJobsResult struct {
-	XMLName    xml.Name              `xml:"Response"`
-	JobsDetail MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+	XMLName    xml.Name               `xml:"Response"`
+	JobsDetail *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+}
+
+type CreateMultiMediaJobsOptions struct {
+	XMLName   xml.Name                   `xml:"Request"`
+	Tag       string                     `xml:"Tag,omitempty"`
+	Input     *JobInput                  `xml:"Input,omitempty"`
+	Operation []MediaProcessJobOperation `xml:"Operation,omitempty"`
+	QueueId   string                     `xml:"QueueId,omitempty"`
+	CallBack  string                     `xml:"CallBack,omitempty"`
+}
+
+type CreateMultiMediaJobsResult struct {
+	XMLName    xml.Name                `xml:"Response"`
+	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+}
+
+func (s *CIService) CreateMultiMediaJobs(ctx context.Context, opt *CreateMultiMediaJobsOptions) (*CreateMultiMediaJobsResult, *Response, error) {
+	var res CreateMultiMediaJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
 
 func (s *CIService) CreateMediaJobs(ctx context.Context, opt *CreateMediaJobsOptions) (*CreateMediaJobsResult, *Response, error) {
