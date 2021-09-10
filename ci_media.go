@@ -119,15 +119,16 @@ type Snapshot struct {
 	Height       string `xml:"Height,omitempty"`
 }
 
+// 有意和转码区分，两种任务关注的参数不一样避免干扰
 type AnimationVideo struct {
 	Codec                      string `xml:"Codec"`
 	Width                      string `xml:"Width"`
 	Height                     string `xml:"Height"`
 	Fps                        string `xml:"Fps"`
-	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame,omitempty"`
-	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame,omitempty"`
-	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond,omitempty"`
-	Quality                    string `xml:"Quality,omitempty"`
+	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame"`
+	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame"`
+	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond"`
+	Quality                    string `xml:"Quality"`
 }
 
 type Animation struct {
