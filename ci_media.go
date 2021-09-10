@@ -118,6 +118,24 @@ type Snapshot struct {
 	Width        string `xml:"Width,omitempty"`
 	Height       string `xml:"Height,omitempty"`
 }
+
+type AnimationVideo struct {
+	Codec                      string `xml:"Codec"`
+	Width                      string `xml:"Width"`
+	Height                     string `xml:"Height"`
+	Fps                        string `xml:"Fps"`
+	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame,omitempty"`
+	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame,omitempty"`
+	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond,omitempty"`
+	Quality                    string `xml:"Quality,omitempty"`
+}
+
+type Animation struct {
+	Container    *Container      `xml:"Container,omitempty"`
+	Video        *AnimationVideo `xml:"Video,omitempty"`
+	TimeInterval *TimeInterval   `xml:"TimeInterval,omitempty"`
+}
+
 type MediaProcessJobOperation struct {
 	Tag                 string          `xml:"Tag,omitempty"`
 	Output              *JobOutput      `xml:"Output,omitempty"`
@@ -127,6 +145,7 @@ type MediaProcessJobOperation struct {
 	WatermarkTemplateId []string        `xml:"WatermarkTemplateId,omitempty"`
 	ConcatTemplate      *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
 	Snapshot            *Snapshot       `xml:"Snapshot,omitempty"`
+	Animation           *Animation      `xml:"Animation,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {

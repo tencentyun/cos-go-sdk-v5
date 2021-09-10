@@ -291,6 +291,27 @@ func InvokeMultiTasks() {
 					},
 				},
 			},
+			cos.MediaProcessJobOperation{
+				Tag: "Animation",
+				Output: &cos.JobOutput{
+					Region: "ap-chongqing",
+					Object: "output/go_117374C.gif",
+					Bucket: "wwj-cq-1253960454",
+				},
+				Animation: &cos.Animation{
+					Container: &cos.Container{
+						Format: "gif",
+					},
+					Video: &cos.AnimationVideo{
+						Codec:                   "gif",
+						AnimateOnlyKeepKeyFrame: "true",
+					},
+					TimeInterval: &cos.TimeInterval{
+						Start:    "0",
+						Duration: "",
+					},
+				},
+			},
 		},
 		QueueId: "paaf4fce5521a40888a3034a5de80f6ca",
 	}
