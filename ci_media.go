@@ -189,6 +189,134 @@ type CreateMultiMediaJobsResult struct {
 	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
+type MediaProcessJobsNotifyBody struct {
+	XMLName    xml.Name `xml:"Response"`
+	EventName  string   `xml:"EventName"`
+	JobsDetail struct {
+		Code         string `xml:"Code"`
+		CreationTime string `xml:"CreationTime"`
+		EndTime      string `xml:"EndTime"`
+		Input        struct {
+			BucketId string `xml:"BucketId"`
+			Object   string `xml:"Object"`
+			Region   string `xml:"Region"`
+		} `xml:"Input"`
+		JobId     string `xml:"JobId"`
+		Message   string `xml:"Message"`
+		Operation struct {
+			MediaInfo struct {
+				Format struct {
+					Text           string `xml:",chardata"`
+					Bitrate        string `xml:"Bitrate"`
+					Duration       string `xml:"Duration"`
+					FormatLongName string `xml:"FormatLongName"`
+					FormatName     string `xml:"FormatName"`
+					NumProgram     string `xml:"NumProgram"`
+					NumStream      string `xml:"NumStream"`
+					Size           string `xml:"Size"`
+					StartTime      string `xml:"StartTime"`
+				} `xml:"Format"`
+				Stream struct {
+					Audio []struct {
+						Bitrate        string `xml:"Bitrate"`
+						Channel        string `xml:"Channel"`
+						ChannelLayout  string `xml:"ChannelLayout"`
+						CodecLongName  string `xml:"CodecLongName"`
+						CodecName      string `xml:"CodecName"`
+						CodecTag       string `xml:"CodecTag"`
+						CodecTagString string `xml:"CodecTagString"`
+						CodecTimeBase  string `xml:"CodecTimeBase"`
+						Duration       string `xml:"Duration"`
+						Index          string `xml:"Index"`
+						Language       string `xml:"Language"`
+						SampleFmt      string `xml:"SampleFmt"`
+						SampleRate     string `xml:"SampleRate"`
+						StartTime      string `xml:"StartTime"`
+						Timebase       string `xml:"Timebase"`
+					} `xml:"Audio"`
+					Subtitle string `xml:"Subtitle"`
+					Video    []struct {
+						AvgFps         string `xml:"AvgFps"`
+						Bitrate        string `xml:"Bitrate"`
+						CodecLongName  string `xml:"CodecLongName"`
+						CodecName      string `xml:"CodecName"`
+						CodecTag       string `xml:"CodecTag"`
+						CodecTagString string `xml:"CodecTagString"`
+						CodecTimeBase  string `xml:"CodecTimeBase"`
+						Dar            string `xml:"Dar"`
+						Duration       string `xml:"Duration"`
+						Fps            string `xml:"Fps"`
+						HasBFrame      string `xml:"HasBFrame"`
+						Height         string `xml:"Height"`
+						Index          string `xml:"Index"`
+						Language       string `xml:"Language"`
+						Level          string `xml:"Level"`
+						NumFrames      string `xml:"NumFrames"`
+						PixFormat      string `xml:"PixFormat"`
+						Profile        string `xml:"Profile"`
+						RefFrames      string `xml:"RefFrames"`
+						Rotation       string `xml:"Rotation"`
+						Sar            string `xml:"Sar"`
+						StartTime      string `xml:"StartTime"`
+						Timebase       string `xml:"Timebase"`
+						Width          string `xml:"Width"`
+					} `xml:"Video"`
+				} `xml:"Stream"`
+			} `xml:"MediaInfo"`
+			MediaResult struct {
+				OutputFile struct {
+					Bucket       string `xml:"Bucket"`
+					ObjectName   string `xml:"ObjectName"`
+					ObjectPrefix string `xml:"ObjectPrefix"`
+					Region       string `xml:"Region"`
+				} `xml:"OutputFile"`
+			} `xml:"MediaResult"`
+			Output struct {
+				Bucket string `xml:"Bucket"`
+				Object string `xml:"Object"`
+				Region string `xml:"Region"`
+			} `xml:"Output"`
+			TemplateId   string `xml:"TemplateId"`
+			TemplateName string `xml:"TemplateName"`
+		} `xml:"Operation"`
+		QueueId   string `xml:"QueueId"`
+		StartTime string `xml:"StartTime"`
+		State     string `xml:"State"`
+		Tag       string `xml:"Tag"`
+	} `xml:"JobsDetail"`
+}
+
+type WorkflowExecutionNotifyBody struct {
+	XMLName           xml.Name `xml:"Response"`
+	EventName         string   `xml:"EventName"`
+	WorkflowExecution struct {
+		RunId      string `xml:"RunId"`
+		BucketId   string `xml:"BucketId"`
+		Object     string `xml:"Object"`
+		CosHeaders []struct {
+			Key   string `xml:"Key"`
+			Value string `xml:"Value"`
+		} `xml:"CosHeaders"`
+		WorkflowId   string `xml:"WorkflowId"`
+		WorkflowName string `xml:"WorkflowName"`
+		CreateTime   string `xml:"CreateTime"`
+		State        string `xml:"State"`
+		Tasks        []struct {
+			Type                  string `xml:"Type"`
+			CreateTime            string `xml:"CreateTime"`
+			EndTime               string `xml:"EndTime"`
+			State                 string `xml:"State"`
+			JobId                 string `xml:"JobId"`
+			Name                  string `xml:"Name"`
+			TemplateId            string `xml:"TemplateId"`
+			TemplateName          string `xml:"TemplateName"`
+			TranscodeTemplateId   string `xml:"TranscodeTemplateId,omitempty"`
+			TranscodeTemplateName string `xml:"TranscodeTemplateName,omitempty"`
+			HdrMode               string `xml:"HdrMode,omitempty"`
+		} `xml:"Tasks"`
+	} `xml:"WorkflowExecution"`
+}
+
 func (s *CIService) CreateMultiMediaJobs(ctx context.Context, opt *CreateMultiMediaJobsOptions) (*CreateMultiMediaJobsResult, *Response, error) {
 	var res CreateMultiMediaJobsResult
 	sendOpt := sendOptions{
