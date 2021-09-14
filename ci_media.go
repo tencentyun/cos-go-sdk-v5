@@ -266,7 +266,7 @@ type MediaProcessJobsNotifyBody struct {
 			MediaResult struct {
 				OutputFile struct {
 					Bucket       string `xml:"Bucket"`
-					ObjectName   string `xml:"ObjectName"`
+					ObjectName   []string `xml:"ObjectName"`
 					ObjectPrefix string `xml:"ObjectPrefix"`
 					Region       string `xml:"Region"`
 				} `xml:"OutputFile"`
