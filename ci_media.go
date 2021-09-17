@@ -11,9 +11,10 @@ type JobInput struct {
 }
 
 type JobOutput struct {
-	Region string `xml:"Region,omitempty"`
-	Bucket string `xml:"Bucket,omitempty"`
-	Object string `xml:"Object,omitempty"`
+	Region       string `xml:"Region,omitempty"`
+	Bucket       string `xml:"Bucket,omitempty"`
+	Object       string `xml:"Object,omitempty"`
+	SpriteObject string `xml:"SpriteObject,omitempty"`
 }
 
 type Container struct {
@@ -110,13 +111,24 @@ type ConcatTemplate struct {
 	Index          string           `xml:"Index,omitempty"`
 }
 
+type SpriteSnapshotConfig struct {
+	CellHeight string `xml:"CellHeight,omitempty"`
+	CellWidth  string `xml:"CellWidth,omitempty"`
+	Color      string `xml:"Color,omitempty"`
+	Columns    string `xml:"Columns,omitempty"`
+	Lines      string `xml:"Lines,omitempty"`
+	Margin     string `xml:"Margin,omitempty"`
+	Padding    string `xml:"Padding,omitempty"`
+}
 type Snapshot struct {
-	Mode         string `xml:"Mode,omitempty"`
-	Start        string `xml:"Start,omitempty"`
-	TimeInterval string `xml:"TimeInterval,omitempty"`
-	Count        string `xml:"Count,omitempty"`
-	Width        string `xml:"Width,omitempty"`
-	Height       string `xml:"Height,omitempty"`
+	Mode                 string                `xml:"Mode,omitempty"`
+	Start                string                `xml:"Start,omitempty"`
+	TimeInterval         string                `xml:"TimeInterval,omitempty"`
+	Count                string                `xml:"Count,omitempty"`
+	Width                string                `xml:"Width,omitempty"`
+	Height               string                `xml:"Height,omitempty"`
+	SnapshotOutMode      string                `xml:"SnapshotOutMode,omitempty"`
+	SpriteSnapshotConfig *SpriteSnapshotConfig `xml:"SpriteSnapshotConfig,omitempty"`
 }
 
 // 有意和转码区分，两种任务关注的参数不一样避免干扰
@@ -265,10 +277,10 @@ type MediaProcessJobsNotifyBody struct {
 			} `xml:"MediaInfo"`
 			MediaResult struct {
 				OutputFile struct {
-					Bucket       string `xml:"Bucket"`
+					Bucket       string   `xml:"Bucket"`
 					ObjectName   []string `xml:"ObjectName"`
-					ObjectPrefix string `xml:"ObjectPrefix"`
-					Region       string `xml:"Region"`
+					ObjectPrefix string   `xml:"ObjectPrefix"`
+					Region       string   `xml:"Region"`
 				} `xml:"OutputFile"`
 			} `xml:"MediaResult"`
 			Output struct {
