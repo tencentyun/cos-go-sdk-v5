@@ -334,7 +334,7 @@ func TaskNotifyCallback() {
 	}
 }
 
-func  WorkflowExecutionNotifyCallback() {
+func WorkflowExecutionNotifyCallback() {
 	workflowExecutionBody := "<Response><EventName>WorkflowFinish</EventName><WorkflowExecution><RunId>i70ae991a152911ecb184525400a8700f</RunId><BucketId></BucketId><Object>62ddbc1245.mp4</Object><CosHeaders><Key>x-cos-meta-id</Key><Value>62ddbc1245</Value></CosHeaders><CosHeaders><Key>Content-Type</Key><Value>video/mp4</Value></CosHeaders><WorkflowId>w29ba54d02b7340dd9fb44eb5beb786b9</WorkflowId><WorkflowName></WorkflowName><CreateTime>2021-09-14 15:00:26+0800</CreateTime><State>Success</State><Tasks><Type>Transcode</Type><CreateTime>2021-09-14 15:00:27+0800</CreateTime><EndTime>2021-09-14 15:00:42+0800</EndTime><State>Success</State><JobId>j70bab192152911ecab79bba409874f7f</JobId><Name>Transcode_1607323983818</Name><TemplateId>t088613dea8d564a9ba7e6b02cbd5de877</TemplateId><TemplateName>HLS-FHD</TemplateName></Tasks></WorkflowExecution></Response>"
 	var body cos.WorkflowExecutionNotifyBody
 	err := xml.Unmarshal([]byte(workflowExecutionBody), &body)
@@ -345,11 +345,78 @@ func  WorkflowExecutionNotifyCallback() {
 	}
 }
 
+func InvokeSpriteSnapshotTask() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "Snapshot",
+		Input: &cos.JobInput{
+			Object: "input/117374C.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region:       "ap-chongqing",
+				Object:       "output/abc-${Number}.jpg",
+				Bucket:       "wwj-cq-1253960454",
+				SpriteObject: "output/sprite-${Number}.jpg",
+			},
+			Snapshot: &cos.Snapshot{
+				Mode:            "Interval",
+				Start:           "0",
+				Count:           "100",
+				SnapshotOutMode: "SnapshotAndSprite", // OnlySnapshot OnlySprite
+				SpriteSnapshotConfig: &cos.SpriteSnapshotConfig{
+					CellHeight: "128",
+					CellWidth:  "128",
+					Color:      "Black",
+					Columns:    "3",
+					Lines:      "10",
+					Margin:     "2",
+				},
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
 func main() {
 	// InvokeSnapshotTask()
 	// InvokeConcatTask()
 	// InvokeTranscodeTask()
 	// InvokeMultiTasks()
-	TaskNotifyCallback()
-	WorkflowExecutionNotifyCallback()
+	// TaskNotifyCallback()
+	// WorkflowExecutionNotifyCallback()
+	InvokeSpriteSnapshotTask()
 }
