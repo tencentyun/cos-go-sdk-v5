@@ -122,7 +122,7 @@ type PresignedURLOptions struct {
 func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}) (*url.URL, error) {
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + encodeURIComponent(name),
+		uri:       "/" + encodeURIComponent(name, []byte{'/'}),
 		method:    httpMethod,
 		optQuery:  opt,
 		optHeader: opt,
