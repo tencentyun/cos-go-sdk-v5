@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/agin719/cos-go-sdk-v5"
+	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 	"net/http"
 	"net/url"
@@ -31,9 +31,10 @@ func log_status(err error) {
 }
 
 func main() {
-	u, e := url.Parse("http://ap-guangzhou.migration.myqcloud.com")
-	log_status(e)
-	b := &cos.BaseURL{BucketURL: u, FetchURL: u}
+	bucket := "test-1259654469"
+	bu, _ := url.Parse("https://" + bucket + ".cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("http://ap-guangzhou.migration.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: bu, FetchURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -46,7 +47,6 @@ func main() {
 			},
 		},
 	})
-	bucket := "test-1259654469"
 	opt := &cos.PutFetchTaskOptions{
 		Url: "http://" + bucket + ".cos.ap-guangzhou.myqcloud.com/exampleobject",
 		Key: "exampleobject",
