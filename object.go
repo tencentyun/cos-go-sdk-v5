@@ -1,6 +1,7 @@
 package cos
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -1427,4 +1428,89 @@ func (s *ObjectService) DeleteTagging(ctx context.Context, name string, id ...st
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
+}
+
+type PutFetchTaskOptions struct {
+	Url                string       `json:"Url,omitempty" header:"-" xml:"-"`
+	Key                string       `json:"Key,omitempty" header:"-" xml:"-"`
+	MD5                string       `json:"MD5,omitempty" header:"-" xml:"-"`
+	OnKeyExist         string       `json:"OnKeyExist,omitempty" header:"-" xml:"-"`
+	IgnoreSameKey      bool         `json:"IgnoreSameKey,omitempty" header:"-" xml:"-"`
+	SuccessCallbackUrl string       `json:"SuccessCallbackUrl,omitempty" header:"-" xml:"-"`
+	FailureCallbackUrl string       `json:"FailureCallbackUrl,omitempty" header:"-" xml:"-"`
+	XOptionHeader      *http.Header `json:"-", xml:"-" header:"-,omitempty"`
+}
+
+type PutFetchTaskResult struct {
+	Code      int    `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	Data      struct {
+		TaskId string `json:"taskId,omitempty"`
+	} `json:"Data,omitempty"`
+}
+
+type GetFetchTaskResult struct {
+	Code      int    `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	Data      struct {
+		Code    string `json:"code,omitempty"`
+		Message string `json:"msg,omitempty"`
+		Percent int    `json:"percent,omitempty"`
+		Status  string `json:"status,omitempty"`
+	} `json:"data,omitempty"`
+}
+
+type innerFetchTaskHeader struct {
+	XOptionHeader *http.Header `json:"-", xml:"-" header:"-,omitempty"`
+}
+
+func (s *ObjectService) PutFetchTask(ctx context.Context, bucket string, opt *PutFetchTaskOptions) (*PutFetchTaskResult, *Response, error) {
+	var buf bytes.Buffer
+	var res PutFetchTaskResult
+	if opt == nil {
+		opt = &PutFetchTaskOptions{}
+	}
+	header := innerFetchTaskHeader{
+		XOptionHeader: &http.Header{},
+	}
+	if opt.XOptionHeader != nil {
+		header.XOptionHeader = cloneHeader(opt.XOptionHeader)
+	}
+	header.XOptionHeader.Set("Content-Type", "application/json")
+	bs, err := json.Marshal(opt)
+	if err != nil {
+		return nil, nil, err
+	}
+	reader := bytes.NewBuffer(bs)
+	sendOpt := &sendOptions{
+		baseURL:   s.client.BaseURL.FetchURL,
+		uri:       fmt.Sprintf("/%s/", bucket),
+		method:    http.MethodPost,
+		optHeader: &header,
+		body:      reader,
+		result:    &buf,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+func (s *ObjectService) GetFetchTask(ctx context.Context, bucket string, taskid string) (*GetFetchTaskResult, *Response, error) {
+	var buf bytes.Buffer
+	var res GetFetchTaskResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.FetchURL,
+		uri:     fmt.Sprintf("/%s/%s", bucket, encodeURIComponent(taskid)),
+		method:  http.MethodGet,
+		result:  &buf,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
 }

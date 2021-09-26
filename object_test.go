@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -106,7 +107,7 @@ func TestObjectService_GetRetry(t *testing.T) {
 	setup()
 	defer teardown()
 	u, _ := url.Parse(server.URL)
-	client := NewClient(&BaseURL{u, u, u, u}, &http.Client{
+	client := NewClient(&BaseURL{u, u, u, u, u}, &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
@@ -1050,4 +1051,114 @@ func TestObjectService_DeleteTagging(t *testing.T) {
 		t.Fatalf("Object.DeleteTagging returned error: %v", err)
 	}
 
+}
+
+func TestObjectService_PutFetchTask(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &PutFetchTaskOptions{
+		Url:                "http://examplebucket-1250000000.cos.ap-guangzhou.myqcloud.com/exampleobject",
+		Key:                "exampleobject",
+		MD5:                "MD5",
+		OnKeyExist:         "OnKeyExist",
+		IgnoreSameKey:      true,
+		SuccessCallbackUrl: "SuccessCallbackUrl",
+		FailureCallbackUrl: "FailureCallbackUrl",
+		XOptionHeader:      &http.Header{},
+	}
+	opt.XOptionHeader.Add("Content-Type", "application/json")
+	opt.XOptionHeader.Add("Content-Type", "application/xml")
+	opt.XOptionHeader.Add("Cache-Control", "max-age=10")
+	opt.XOptionHeader.Add("Cache-Control", "max-stale=10")
+	res := &PutFetchTaskResult{
+		Code:      0,
+		Message:   "SUCCESS",
+		RequestId: "NjE0ZGMxMDhfMmZjMjNiMGFfNWY2N18yOTRjYWE=",
+		Data: struct {
+			TaskId string `json:"taskId,omitempty"`
+		}{
+			TaskId: "NjE0ZGMxMDhfMmZjMjNiMGFfNWY2N18yOTRjYWE=",
+		},
+	}
+	mux.HandleFunc("/examplebucket-1250000000/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		opt.XOptionHeader.Set("Content-Type", "application/json")
+		for k, v := range *opt.XOptionHeader {
+			if k != "Content-Type" {
+				if !reflect.DeepEqual(r.Header[k], v) {
+					t.Errorf("Object.PutFetchTask request header: %+v, want %+v", r.Header[k], v)
+				}
+				continue
+			}
+			if r.Header.Get(k) != "application/json" || len(r.Header[k]) != 1 {
+				t.Errorf("Object.PutFetchTask request header: %+v, want %+v", r.Header[k], v)
+			}
+		}
+		v := new(PutFetchTaskOptions)
+		json.NewDecoder(r.Body).Decode(v)
+		want := opt
+		v.XOptionHeader = opt.XOptionHeader
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.PutFetchTask request body: %+v, want %+v", v, want)
+		}
+		fmt.Fprint(w, `{
+            "code":0,
+            "message":"SUCCESS",
+            "request_id":"NjE0ZGMxMDhfMmZjMjNiMGFfNWY2N18yOTRjYWE=",
+            "data":{"taskid":"NjE0ZGMxMDhfMmZjMjNiMGFfNWY2N18yOTRjYWE="}
+        }`)
+	})
+
+	r, _, err := client.Object.PutFetchTask(context.Background(), "examplebucket-1250000000", opt)
+	if err != nil {
+		t.Fatalf("Object.PutFetchTask returned error: %v", err)
+	}
+	if !reflect.DeepEqual(r, res) {
+		t.Errorf("object.PutFetchTask res: %+v, want: %+v", r, res)
+	}
+}
+
+func TestObjectService_GetFetchTask(t *testing.T) {
+	setup()
+	defer teardown()
+
+	res := &GetFetchTaskResult{
+		Code:      0,
+		Message:   "SUCCESS",
+		RequestId: "NjE0ZGNiMDVfMmZjMjNiMGFfNWY2N18yOTRjYWM=",
+		Data: struct {
+			Code    string `json:"code,omitempty"`
+			Message string `json:"msg,omitempty"`
+			Percent int    `json:"percent,omitempty"`
+			Status  string `json:"status,omitempty"`
+		}{
+			Code:    "Forbidden",
+			Message: "The specified download can not be allowed.",
+			Percent: 0,
+			Status:  "TASK_FAILED",
+		},
+	}
+	mux.HandleFunc("/examplebucket-1250000000/NjE0ZGMxMDhfMmZjMjNiMGFfNWY2N18yOTRjYWE=", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, `{
+            "code":0,
+            "message":"SUCCESS",
+            "request_id":"NjE0ZGNiMDVfMmZjMjNiMGFfNWY2N18yOTRjYWM=",
+            "data": {
+                "code":"Forbidden",
+                "msg":"The specified download can not be allowed.",
+                "percent":0,
+                "status":"TASK_FAILED"
+            }
+        }`)
+	})
+
+	r, _, err := client.Object.GetFetchTask(context.Background(), "examplebucket-1250000000", "NjE0ZGMxMDhfMmZjMjNiMGFfNWY2N18yOTRjYWE=")
+	if err != nil {
+		t.Fatalf("Object.GetFetchTask returned error: %v", err)
+	}
+	if !reflect.DeepEqual(r, res) {
+		t.Errorf("object.GetFetchTask res: %+v, want: %+v", r, res)
+	}
 }

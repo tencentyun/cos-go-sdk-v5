@@ -30,9 +30,8 @@ func setup() {
 	// test server
 	mux = http.NewServeMux()
 	server = httptest.NewServer(mux)
-
 	u, _ := url.Parse(server.URL)
-	client = NewClient(&BaseURL{u, u, u, u}, nil)
+	client = NewClient(&BaseURL{u, u, u, u, u}, nil)
 }
 
 // teardown closes the test HTTP server.
