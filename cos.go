@@ -44,6 +44,8 @@ type BaseURL struct {
 	BatchURL *url.URL
 	// 访问 CI 的基础 URL
 	CIURL *url.URL
+	// 访问 Fetch Task 的基础 URL
+	FetchURL *url.URL
 }
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
@@ -110,6 +112,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		baseURL.ServiceURL = uri.ServiceURL
 		baseURL.BatchURL = uri.BatchURL
 		baseURL.CIURL = uri.CIURL
+		baseURL.FetchURL = uri.FetchURL
 	}
 	if baseURL.ServiceURL == nil {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)

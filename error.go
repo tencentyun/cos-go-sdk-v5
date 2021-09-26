@@ -1,10 +1,13 @@
 package cos
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // ErrorResponse 包含 API 返回的错误信息
@@ -39,6 +42,12 @@ func (r *ErrorResponse) Error() string {
 		r.Response.StatusCode, r.Code, r.Message, RequestID, TraceID)
 }
 
+type jsonError struct {
+	Code      int    `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	RequestID string `json:"request_id,omitempty"`
+}
+
 // 检查 response 是否是出错时的返回的 response
 func checkResponse(r *http.Response) error {
 	if c := r.StatusCode; 200 <= c && c <= 299 {
@@ -48,6 +57,18 @@ func checkResponse(r *http.Response) error {
 	data, err := ioutil.ReadAll(r.Body)
 	if err == nil && data != nil {
 		xml.Unmarshal(data, errorResponse)
+	}
+	// 是否为 json 格式
+	if errorResponse.Code == "" {
+		ctype := strings.TrimLeft(r.Header.Get("Content-Type"), " ")
+		if strings.HasPrefix(ctype, "application/json") {
+			var jerror jsonError
+			json.Unmarshal(data, &jerror)
+			errorResponse.Code = strconv.Itoa(jerror.Code)
+			errorResponse.Message = jerror.Message
+			errorResponse.RequestID = jerror.RequestID
+		}
+
 	}
 	return errorResponse
 }
