@@ -29,7 +29,7 @@ var (
 )
 
 // 需要校验的 Headers 列表
-var needSignHeaders = map[string]bool{
+var NeedSignHeaders = map[string]bool{
 	"host":                           true,
 	"range":                          true,
 	"x-cos-acl":                      true,
@@ -63,6 +63,10 @@ var ciParameters = map[string]bool{
 	"imagemogr2/": true,
 	"watermark/":  true,
 	"imageview2/": true,
+}
+
+func SetNeedSignHeaders(key string, val bool) {
+	NeedSignHeaders[key] = val
 }
 
 func safeURLEncode(s string) string {
@@ -275,7 +279,7 @@ func isCIParameter(key string) bool {
 }
 
 func isSignHeader(key string) bool {
-	for k, v := range needSignHeaders {
+	for k, v := range NeedSignHeaders {
 		if key == k && v {
 			return true
 		}
