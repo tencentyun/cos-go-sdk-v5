@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/agin719/cos-go-sdk-v5"
+	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
