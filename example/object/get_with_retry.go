@@ -51,7 +51,7 @@ func main() {
 	// Get 请求配置重试
 	c.Conf.RetryOpt.Count = 3                   // 错误重试次数，默认重试3次
 	c.Conf.RetryOpt.Interval = time.Millisecond // 错误重试间隔时间，默认0
-	c.Conf.RetryOpt.StatusCode = []int{200}     // 默认5xx都会重试，该参数配置其余需要重试的响应码
+	c.Conf.RetryOpt.StatusCode = []int{}        // 默认5xx都会重试，该参数配置其余需要重试的响应码
 
 	name := "exampleobject"
 	_, err := c.Object.Get(context.Background(), name, nil)
