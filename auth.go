@@ -65,6 +65,7 @@ var ciParameters = map[string]bool{
 	"imageview2/": true,
 }
 
+// 非线程安全，只能在进程初始化（而不是Client初始化）时做设置
 func SetNeedSignHeaders(key string, val bool) {
 	NeedSignHeaders[key] = val
 }

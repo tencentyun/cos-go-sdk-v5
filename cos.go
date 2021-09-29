@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
+	"time"
 
 	"strconv"
 
@@ -72,9 +73,15 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 	return u
 }
 
+type RetryOptions struct {
+	Count      int
+	Interval   time.Duration
+	StatusCode []int
+}
 type Config struct {
 	EnableCRC        bool
 	RequestBodyClose bool
+	RetryOpt         RetryOptions
 }
 
 // Client is a client manages communication with the COS API.
@@ -125,6 +132,10 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		Conf: &Config{
 			EnableCRC:        true,
 			RequestBodyClose: false,
+			RetryOpt: RetryOptions{
+				Count:    3,
+				Interval: time.Duration(0),
+			},
 		},
 	}
 	c.common.client = c
@@ -309,14 +320,31 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 			return
 		}
 	}
+	count := 1
+	if count < c.Conf.RetryOpt.Count {
+		count = c.Conf.RetryOpt.Count
+	}
 	nr := 0
-	for nr < 3 {
+	interval := c.Conf.RetryOpt.Interval
+	for nr < count {
 		resp, err = c.send(ctx, opt)
 		if err != nil {
 			if resp != nil && resp.StatusCode <= 499 {
-				break
+				dobreak := true
+				for _, v := range c.Conf.RetryOpt.StatusCode {
+					if resp.StatusCode == v {
+						dobreak = false
+						break
+					}
+				}
+				if dobreak {
+					break
+				}
 			}
 			nr++
+			if interval > 0 && nr < count {
+				time.Sleep(interval)
+			}
 			continue
 		}
 		break
