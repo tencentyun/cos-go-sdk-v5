@@ -2,7 +2,11 @@ package cos
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -50,5 +54,72 @@ func TestAuthorizationTransport(t *testing.T) {
 		SecretKey: "test",
 	}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	client.doAPI(context.Background(), req, nil, true)
+}
+
+func TestCVMCredentialsTransport(t *testing.T) {
+	setup()
+	defer teardown()
+	uri := client.BaseURL.BucketURL.String()
+	ak := "test_ak"
+	sk := "test_sk"
+	token := "test_token"
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("x-cos-security-token") != token {
+			t.Errorf("CVMCredentialsTransport x-cos-security-token error, want:%v, return:%v\n", token, r.Header.Get("x-cos-security-token"))
+		}
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			t.Error("CVMCredentialsTransport didn't add Authorization header")
+		}
+		field := strings.Split(auth, "&")
+		if len(field) != 7 {
+			t.Errorf("CVMCredentialsTransport Authorization header format error: %v\n", auth)
+		}
+		st_et := strings.Split(strings.Split(field[2], "=")[1], ";")
+		st, _ := strconv.ParseInt(st_et[0], 10, 64)
+		et, _ := strconv.ParseInt(st_et[1], 10, 64)
+		authTime := &AuthTime{
+			SignStartTime: time.Unix(st, 0),
+			SignEndTime:   time.Unix(et, 0),
+			KeyStartTime:  time.Unix(st, 0),
+			KeyEndTime:    time.Unix(et, 0),
+		}
+		host := strings.TrimLeft(uri, "http://")
+		req, _ := http.NewRequest("GET", uri, nil)
+		req.Header.Add("Host", host)
+		expect := newAuthorization(ak, sk, req, authTime)
+		if expect != auth {
+			t.Errorf("CVMCredentialsTransport Authorization error, want:%v, return:%v\n", expect, auth)
+		}
+	})
+
+	// CVM http server
+	cvm_mux := http.NewServeMux()
+	cvm_server := httptest.NewServer(cvm_mux)
+	defer cvm_server.Close()
+	// 将默认 CVM Host 修改成测试IP:PORT
+	defaultCVMMetaHost = strings.TrimLeft(cvm_server.URL, "http://")
+
+	cvm_mux.HandleFunc("/"+defaultCVMCredURI, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "cvm_read_cos_only")
+	})
+	cvm_mux.HandleFunc("/"+defaultCVMCredURI+"/cvm_read_cos_only", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, fmt.Sprintf(`{
+            "TmpSecretId": "%s",
+            "TmpSecretKey": "%s",
+            "ExpiredTime": %v,
+            "Expiration": "now",
+            "Token": "%s",
+            "Code": "Success"
+        }`, ak, sk, time.Now().Unix()+3600, token))
+	})
+
+	client.client.Transport = &CVMCredentialsTransport{}
+	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	client.doAPI(context.Background(), req, nil, true)
+
+	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
 }

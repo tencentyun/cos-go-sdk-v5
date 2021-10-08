@@ -121,6 +121,7 @@ func TestObjectService_GetRetry(t *testing.T) {
 			ResponseHeaderTimeout: 1 * time.Second,
 		},
 	})
+	client.Conf.RetryOpt.StatusCode = []int{499}
 	name := "test/hello.txt"
 	contentLength := 1024 * 1024 * 10
 	data := make([]byte, contentLength)
@@ -132,6 +133,10 @@ func TestObjectService_GetRetry(t *testing.T) {
 		}
 		index++
 		if index%3 != 0 {
+			if index > 6 {
+				w.WriteHeader(499)
+				return
+			}
 			time.Sleep(time.Second * 2)
 		}
 		testFormValues(t, r, vs)
@@ -162,6 +167,9 @@ func TestObjectService_GetRetry(t *testing.T) {
 		if bytes.Compare(b, data[rangeStart:rangeEnd+1]) != 0 {
 			t.Errorf("Object.Get Failed")
 		}
+	}
+	if index != 9 {
+		t.Errorf("retry time error, retry count: %v\n", index)
 	}
 }
 
