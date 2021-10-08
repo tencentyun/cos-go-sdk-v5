@@ -149,6 +149,11 @@ type Animation struct {
 	TimeInterval *TimeInterval   `xml:"TimeInterval,omitempty"`
 }
 
+type Segment struct {
+	Format   string `xml:"Format,omitempty"`
+	Duration string `xml:"Duration,omitempty"`
+}
+
 type MediaProcessJobOperation struct {
 	Tag                 string          `xml:"Tag,omitempty"`
 	Output              *JobOutput      `xml:"Output,omitempty"`
@@ -159,6 +164,7 @@ type MediaProcessJobOperation struct {
 	ConcatTemplate      *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
 	Snapshot            *Snapshot       `xml:"Snapshot,omitempty"`
 	Animation           *Animation      `xml:"Animation,omitempty"`
+	Segment             *Segment        `xml:"Segment,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
