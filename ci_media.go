@@ -3,6 +3,7 @@ package cos
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"net/http"
 )
 
@@ -506,6 +507,7 @@ type MediaProcessBucket struct {
 	CreateTime string `xml:"CreateTime,omitempty"`
 }
 
+// 媒体bucket接口 https://cloud.tencent.com/document/product/436/48988
 func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *DescribeMediaProcessBucketsOptions) (*DescribeMediaProcessBucketsResult, *Response, error) {
 	var res DescribeMediaProcessBucketsResult
 	sendOpt := sendOptions{
@@ -517,4 +519,124 @@ func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *Descri
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+type GetMediaInfoResult struct {
+	XMLName   xml.Name `xml:"Response"`
+	MediaInfo struct {
+		Format struct {
+			Bitrate        float32 `xml:"Bitrate"`
+			Duration       float32 `xml:"Duration"`
+			FormatLongName string  `xml:"FormatLongName"`
+			FormatName     string  `xml:"FormatName"`
+			NumProgram     int     `xml:"NumProgram"`
+			NumStream      int     `xml:"NumStream"`
+			Size           int     `xml:"Size"`
+			StartTime      float32 `xml:"StartTime"`
+		} `xml:"Format"`
+		Stream struct {
+			Audio []struct {
+				Index          int     `xml:"Index"`
+				CodecName      string  `xml:"CodecName"`
+				CodecLongName  string  `xml:"CodecLongName"`
+				CodecTimeBase  string  `xml:"CodecTimeBase"`
+				CodecTagString string  `xml:"CodecTagString"`
+				CodecTag       string  `xml:"CodecTag"`
+				SampleFmt      string  `xml:"SampleFmt"`
+				SampleRate     int     `xml:"SampleRate"`
+				Channel        int     `xml:"Channel"`
+				ChannelLayout  string  `xml:"ChannelLayout"`
+				Timebase       string  `xml:"Timebase"`
+				StartTime      float32 `xml:"StartTime"`
+				Duration       float32 `xml:"Duration"`
+				Bitrate        float32 `xml:"Bitrate"`
+				Language       string  `xml:"Language"`
+			} `xml:"Audio"`
+			Subtitle struct {
+				Index    int    `xml:"Index"`
+				Language string `xml:"Language"`
+			} `xml:"Subtitle"`
+			Video struct {
+				Index          int     `xml:"Index"`
+				CodecName      string  `xml:"CodecName"`
+				CodecLongName  string  `xml:"CodecLongName"`
+				CodecTimeBase  string  `xml:"CodecTimeBase"`
+				CodecTagString string  `xml:"CodecTagString"`
+				CodecTag       string  `xml:"CodecTag"`
+				Profile        string  `xml:"Profile"`
+				Height         int     `xml:"Height"`
+				Width          int     `xml:"Width"`
+				HasBFrame      int     `xml:"HasBFrame"`
+				RefFrames      int     `xml:"RefFrames"`
+				Sar            string  `xml:"Sar"`
+				Dar            string  `xml:"Dar"`
+				PixFormat      string  `xml:"PixFormat"`
+				FieldOrder     string  `xml:"FieldOrder"`
+				Level          int     `xml:"Level"`
+				Fps            float32 `xml:"Fps"`
+				AvgFps         string  `xml:"AvgFps"`
+				Timebase       string  `xml:"Timebase"`
+				StartTime      float32 `xml:"StartTime"`
+				Duration       float32 `xml:"Duration"`
+				Bitrate        float32 `xml:"Bitrate"`
+				NumFrames      int     `xml:"NumFrames"`
+				Language       string  `xml:"Language"`
+			} `xml:"Video"`
+		} `xml:"Stream"`
+	} `xml:"MediaInfo"`
+}
+
+// 媒体信息接口 https://cloud.tencent.com/document/product/436/55672
+func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*GetMediaInfoResult, *Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=videoinfo", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?ci-process=videoinfo", encodeURIComponent(name))
+	} else {
+		return nil, nil, fmt.Errorf("wrong params")
+	}
+
+	var res GetMediaInfoResult
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodGet,
+		optQuery:  opt,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type GetSnapshotOptions struct {
+	Time   float32 `url:"time,omitempty"`
+	Height int     `url:"height,omitempty"`
+	Width  int     `url:"width,omitempty"`
+	Format string  `url:"format,omitempty"`
+	Rotate string  `url:"rotate,omitempty"`
+	Mode   string  `url:"mode,omitempty"`
+}
+
+// 媒体截图接口 https://cloud.tencent.com/document/product/436/55671
+func (s *CIService) GetSnapshot(ctx context.Context, name string, opt *GetSnapshotOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=snapshot", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?ci-process=snapshot", encodeURIComponent(name))
+	} else {
+		return nil, fmt.Errorf("wrong params")
+	}
+
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              u,
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
 }
