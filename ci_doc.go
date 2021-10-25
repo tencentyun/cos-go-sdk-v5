@@ -31,14 +31,18 @@ type DocProcessJobDocProcess struct {
 }
 
 type DocProcessJobDocProcessResult struct {
-	FailPageCount  int    `xml:",omitempty"`
-	SuccPageCount  int    `xml:"SuccPageCount,omitempty"`
-	TaskId         string `xml:"TaskId,omitempty"`
-	TgtType        string `xml:"TgtType,omitempty"`
-	TotalPageCount int    `xml:"TotalPageCount,omitempty"`
-	PageInfo       struct {
-		PageNo int    `xml:"PageNo,omitempty"`
-		TgtUri string `xml:"TgtUri,omitempty"`
+	FailPageCount   int    `xml:",omitempty"`
+	SuccPageCount   int    `xml:"SuccPageCount,omitempty"`
+	TaskId          string `xml:"TaskId,omitempty"`
+	TgtType         string `xml:"TgtType,omitempty"`
+	TotalPageCount  int    `xml:"TotalPageCount,omitempty"`
+	TotalSheetCount int    `xml:"TotalSheetCount,omitempty"`
+	PageInfo        []struct {
+		PageNo     int    `xml:"PageNo,omitempty"`
+		TgtUri     string `xml:"TgtUri,omitempty"`
+		XSheetPics int    `xml:"X-SheetPics,omitempty"`
+		PicIndex   int    `xml:"PicIndex,omitempty"`
+		PicNum     int    `xml:"PicNum,omitempty"`
 	} `xml:"PageInfo,omitempty"`
 }
 
