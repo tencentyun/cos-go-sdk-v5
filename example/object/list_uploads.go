@@ -82,8 +82,8 @@ func main() {
 		uploadPart(c, name, uploadID, blockSize, i)
 	}
 	opt := &cos.ObjectListUploadsOptions{
-		Prefix:     cos.EncodeURIComponent("test/test_list_parts"),
-		MaxUploads: 100,
+		Prefix:       "test/test_list_parts",
+		MaxUploads:   1,
 	}
 	v, _, err := c.Object.ListUploads(context.Background(), opt)
 	if err != nil {

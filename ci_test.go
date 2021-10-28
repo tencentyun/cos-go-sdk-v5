@@ -198,6 +198,63 @@ func TestCIService_ImageRecognition(t *testing.T) {
 	}
 }
 
+func TestCIService_ImageAuditing(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test.jpg"
+	opt := &ImageRecognitionOptions{
+		CIProcess:  "sensitive-content-recognition",
+		DetectType: "porn",
+		MaxFrames:  1,
+	}
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"ci-process":  "sensitive-content-recognition",
+			"detect-type": "porn",
+			"max-frames":  "1",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprint(w, `<RecognitionResult>
+    <Result>1</Result>
+    <Label>Porn</Label>
+    <SubLabel>SexBehavior</SubLabel>
+    <Score>90</Score>
+    <PornInfo>
+        <Code>0</Code>
+        <Msg>OK</Msg>
+        <HitFlag>1</HitFlag>
+        <Label>xxx</Label>
+        <SubLabel>SexBehavior</SubLabel>
+        <Score>100</Score>
+    </PornInfo>
+</RecognitionResult>`)
+	})
+
+	want := &ImageRecognitionResult{
+		XMLName:  xml.Name{Local: "RecognitionResult"},
+		Result:   1,
+		Label:    "Porn",
+		SubLabel: "SexBehavior",
+		Score:    90,
+		PornInfo: &RecognitionInfo{
+			Code:     0,
+			Msg:      "OK",
+			HitFlag:  1,
+			Label:    "xxx",
+			SubLabel: "SexBehavior",
+			Score:    100,
+		},
+	}
+
+	res, _, err := client.CI.ImageAuditing(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("CI.ImageAuditing error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.ImageAuditing failed, return:%+v, want:%+v", res, want)
+	}
+}
 func TestCIService_PutVideoAuditingJob(t *testing.T) {
 	setup()
 	defer teardown()
@@ -291,6 +348,88 @@ func TestCIService_GetAudioAuditingJob(t *testing.T) {
 	}
 }
 
+func TestCIService_PutTextAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := `<Request><Input><Object>a.txt</Object></Input><Conf><DetectType>Porn,Terrorism,Politics,Ads,Illegal,Abuse</DetectType><Callback>http://callback.com/</Callback><BizType>b81d45f94b91a683255e9a95******</BizType></Conf></Request>`
+
+	mux.HandleFunc("/text/auditing", func(writer http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &PutTextAuditingJobOptions{
+		InputObject: "a.txt",
+		Conf: &TextAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads,Illegal,Abuse",
+			Callback:   "http://callback.com/",
+			BizType:    "b81d45f94b91a683255e9a95******",
+		},
+	}
+
+	_, _, err := client.CI.PutTextAuditingJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutTextAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_GetTextAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "vab1ca9fc8a3ed11ea834c525400863904"
+
+	mux.HandleFunc("/text/auditing"+"/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetTextAuditingJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetTextAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_PutDocumentAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := `<Request><Input><Url>http://www.example.com/doctest.doc</Url><Type>doc</Type></Input><Conf><DetectType>Porn,Terrorism,Politics,Ads</DetectType><Callback>http://www.example.com/</Callback><BizType>b81d45f94b91a683255e9a9506f4****</BizType></Conf></Request>`
+
+	mux.HandleFunc("/document/auditing", func(writer http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &PutDocumentAuditingJobOptions{
+		InputUrl:  "http://www.example.com/doctest.doc",
+		InputType: "doc",
+		Conf: &DocumentAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads",
+			Callback:   "http://www.example.com/",
+			BizType:    "b81d45f94b91a683255e9a9506f4****",
+		},
+	}
+
+	_, _, err := client.CI.PutDocumentAuditingJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutDocumentAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_GetDocumentAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "vab1ca9fc8a3ed11ea834c525400863904"
+
+	mux.HandleFunc("/document/auditing"+"/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetDocumentAuditingJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetDocumentAuditingJob returned error: %v", err)
+	}
+}
 func TestCIService_Put(t *testing.T) {
 	setup()
 	defer teardown()

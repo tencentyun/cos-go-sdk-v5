@@ -316,15 +316,18 @@ func FormatRangeOptions(opt *RangeOptions) string {
 	}
 	return ""
 }
-
 func GetRangeOptions(opt *ObjectGetOptions) (*RangeOptions, error) {
 	if opt == nil || opt.Range == "" {
 		return nil, nil
 	}
+	return GetRange(opt.Range)
+}
+
+func GetRange(rangeStr string) (*RangeOptions, error) {
 	// bytes=M-N
-	slices := strings.Split(opt.Range, "=")
+	slices := strings.Split(rangeStr, "=")
 	if len(slices) != 2 || slices[0] != "bytes" {
-		return nil, fmt.Errorf("Invalid Parameter Range: %v", opt.Range)
+		return nil, fmt.Errorf("Invalid Parameter Range: %v", rangeStr)
 	}
 	// byte=M-N, X-Y
 	fSlice := strings.Split(slices[1], ",")
@@ -334,13 +337,13 @@ func GetRangeOptions(opt *ObjectGetOptions) (*RangeOptions, error) {
 	var ropt RangeOptions
 	sted := strings.Split(rstr, "-")
 	if len(sted) != 2 {
-		return nil, fmt.Errorf("Invalid Parameter Range: %v", opt.Range)
+		return nil, fmt.Errorf("Invalid Parameter Range: %v", rangeStr)
 	}
 	// M
 	if len(sted[0]) > 0 {
 		ropt.Start, err = strconv.ParseInt(sted[0], 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("Invalid Parameter Range: %v,err: %v", opt.Range, err)
+			return nil, fmt.Errorf("Invalid Parameter Range: %v,err: %v", rangeStr, err)
 		}
 		ropt.HasStart = true
 	}
@@ -348,7 +351,7 @@ func GetRangeOptions(opt *ObjectGetOptions) (*RangeOptions, error) {
 	if len(sted[1]) > 0 {
 		ropt.End, err = strconv.ParseInt(sted[1], 10, 64)
 		if err != nil || ropt.End == 0 {
-			return nil, fmt.Errorf("Invalid Parameter Range: %v,err: %v", opt.Range, err)
+			return nil, fmt.Errorf("Invalid Parameter Range: %v,err: %v", rangeStr, err)
 		}
 		ropt.HasEnd = true
 	}
