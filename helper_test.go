@@ -93,5 +93,40 @@ func Test_CloneCompleteMultipartUploadOptions(t *testing.T) {
 	if reflect.DeepEqual(res, opt) {
 		t.Errorf("CloneCompleteMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
 	}
+}
 
+func Test_CopyOptionsToMulti(t *testing.T) {
+	opt := &ObjectCopyOptions{
+		&ObjectCopyHeaderOptions{
+			CacheControl:    "max-age=1",
+			ContentEncoding: "gzip",
+			ContentType:     "text/html",
+		},
+		nil,
+	}
+	mul := CopyOptionsToMulti(opt)
+	if opt.ContentType != mul.ContentType {
+		t.Errorf("CopyOptionsToMulti, returned:%+v,want:%+v", mul, opt)
+	}
+	if opt.CacheControl != mul.CacheControl {
+		t.Errorf("CopyOptionsToMulti, returned:%+v,want:%+v", mul, opt)
+	}
+	if opt.ContentEncoding != mul.ContentEncoding {
+		t.Errorf("CopyOptionsToMulti, returned:%+v,want:%+v", mul, opt)
+	}
+}
+
+func Test_CloneInitiateMultipartUploadOptions(t *testing.T) {
+	opt := &InitiateMultipartUploadOptions{
+		&ACLHeaderOptions{},
+		&ObjectPutHeaderOptions{
+			CacheControl:    "max-age=1",
+			ContentEncoding: "gzip",
+			ContentType:     "text/html",
+		},
+	}
+	res := CloneInitiateMultipartUploadOptions(opt)
+	if !reflect.DeepEqual(opt, res) {
+		t.Errorf("CloneInitiateMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
+	}
 }

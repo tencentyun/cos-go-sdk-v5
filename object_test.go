@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"hash/crc64"
 	"io"
 	"io/ioutil"
@@ -95,6 +97,7 @@ func TestObjectService_GetToFile(t *testing.T) {
 	defer os.Remove(filePath)
 	fd, err := os.Open(filePath)
 	if err != nil {
+		t.Errorf("Object.GetToFile open file failed: %v\n", err)
 	}
 	defer fd.Close()
 	bs, _ := ioutil.ReadAll(fd)
@@ -721,7 +724,14 @@ func TestObjectService_Upload(t *testing.T) {
 	opt := &MultiUploadOptions{
 		ThreadPoolSize: 3,
 		PartSize:       1,
+		OptIni: &InitiateMultipartUploadOptions{
+			nil,
+			&ObjectPutHeaderOptions{
+				XCosMetaXXX: &http.Header{},
+			},
+		},
 	}
+	opt.OptIni.XCosMetaXXX.Add("x-cos-meta-test", "test")
 	_, _, err = client.Object.Upload(context.Background(), "test.go.upload", filePath, opt)
 	if err != nil {
 		t.Fatalf("Object.Upload returned error: %v", err)
@@ -798,18 +808,10 @@ func TestObjectService_Download(t *testing.T) {
 	setup()
 	defer teardown()
 
-	filePath := "rsp.file" + time.Now().Format(time.RFC3339)
-	newfile, err := os.Create(filePath)
-	if err != nil {
-		t.Fatalf("create tmp file failed")
-	}
-	defer os.Remove(filePath)
 	// 源文件内容
 	totalBytes := int64(1024*1024*9 + 1230)
 	b := make([]byte, totalBytes)
-	_, err = rand.Read(b)
-	newfile.Write(b)
-	newfile.Close()
+	_, err := rand.Read(b)
 	tb := crc64.MakeTable(crc64.ECMA)
 	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
 
@@ -862,6 +864,38 @@ func TestObjectService_Download(t *testing.T) {
 	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
 	if err != nil {
 		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+
+	totalBytes = 103
+	name := "test/hello.txt"
+	data := make([]byte, totalBytes)
+	rand.Read(data)
+	tb = crc64.MakeTable(crc64.ECMA)
+	localcrc = strconv.FormatUint(crc64.Update(0, tb, data), 10)
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		testMethod(t, r, "GET")
+		w.Write(data)
+	})
+	fp := "test.file" + time.Now().Format(time.RFC3339)
+	_, err = client.Object.Download(context.Background(), name, fp, opt)
+	if err != nil {
+		t.Fatalf("Object.Get returned error: %v", err)
+	}
+	defer os.Remove(fp)
+	fd, err := os.Open(fp)
+	if err != nil {
+		t.Errorf("Object.GetToFile open file failed: %v\n", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("Object.GetToFile data isn't consistent")
 	}
 }
 
@@ -1168,5 +1202,180 @@ func TestObjectService_GetFetchTask(t *testing.T) {
 	}
 	if !reflect.DeepEqual(r, res) {
 		t.Errorf("object.GetFetchTask res: %+v, want: %+v", r, res)
+	}
+}
+
+func TestObjectService_Select(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &ObjectSelectOptions{
+		Expression:     "Select * from COSObject",
+		ExpressionType: "SQL",
+		InputSerialization: &SelectInputSerialization{
+			CSV: &CSVInputSerialization{
+				FileHeaderInfo: "IGNORE",
+			},
+		},
+		OutputSerialization: &SelectOutputSerialization{
+			CSV: &CSVOutputSerialization{
+				RecordDelimiter: "\n",
+			},
+		},
+		RequestProgress: "TRUE",
+	}
+
+	// send a frame
+	sendAFrame := func(header map[string]string, payload []byte) []byte {
+		buf := bytes.NewBuffer([]byte{})
+
+		var totalFrameLength, totalHeaderLength int
+		for k, v := range header {
+			totalHeaderLength += len(k) + len(v) + 4
+		}
+		totalFrameLength = 12 + totalHeaderLength + len(payload) + 4
+
+		// 预响应
+		binary.Write(buf, binary.BigEndian, int32(totalFrameLength))
+		binary.Write(buf, binary.BigEndian, int32(totalHeaderLength))
+		c := crc32.ChecksumIEEE(buf.Bytes())
+		binary.Write(buf, binary.BigEndian, c)
+
+		// headers
+		for k, v := range header {
+			binary.Write(buf, binary.BigEndian, int8(len(k)))
+			buf.Write([]byte(k))
+			binary.Write(buf, binary.BigEndian, int8(7))
+			binary.Write(buf, binary.BigEndian, int16(len(v)))
+			buf.Write([]byte(v))
+		}
+
+		// payload
+		buf.Write(payload)
+
+		// crc
+		c32 := crc32.ChecksumIEEE(buf.Bytes())
+		binary.Write(buf, binary.BigEndian, c32)
+
+		return buf.Bytes()
+	}
+
+	dataSize := 1222 * 3
+	data := make([]byte, dataSize)
+	rand.Read(data)
+	result := ObjectSelectResult{
+		ProgressFrame: ProgressFrame{
+			XMLName:        xml.Name{Local: "Progress"},
+			BytesScanned:   dataSize,
+			BytesProcessed: dataSize,
+			BytesReturned:  dataSize,
+		},
+		StatsFrame: StatsFrame{
+			XMLName:        xml.Name{Local: "Stats"},
+			BytesScanned:   dataSize,
+			BytesProcessed: dataSize,
+			BytesReturned:  dataSize,
+		},
+		ErrorFrame: &ErrorFrame{
+			Code:    "InternalError",
+			Message: "We encounted an internal error, Please try again",
+		},
+	}
+
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		// 检查请求
+		testMethod(t, r, "POST")
+		vs := values{
+			"select":      "",
+			"select-type": "2",
+		}
+		testFormValues(t, r, vs)
+		want := opt
+		want.XMLName = xml.Name{Local: "SelectRequest"}
+		v := new(ObjectSelectOptions)
+		xml.NewDecoder(r.Body).Decode(v)
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.Select request body: %+v, want %+v", v, want)
+		}
+
+		// Continue Message
+		w.Write(sendAFrame(map[string]string{
+			":message-type": "event",
+			":event-type":   "Cont"}, []byte{}))
+
+		// Records Message
+		w.Write(sendAFrame(map[string]string{
+			":message-type": "event",
+			":event-type":   "Records"}, data))
+
+		// Progress Message
+		pframe, _ := xml.Marshal(result.ProgressFrame)
+		w.Write(sendAFrame(map[string]string{
+			":message-type": "event",
+			":event-type":   "Progress"}, pframe))
+
+		// Stat Message
+		sframe, _ := xml.Marshal(result.StatsFrame)
+		w.Write(sendAFrame(map[string]string{
+			":message-type": "event",
+			":event-type":   "Stats"}, sframe))
+
+		// End Message
+		w.Write(sendAFrame(map[string]string{
+			":message-type": "event",
+			":event-type":   "End"}, []byte{}))
+	})
+
+	mux.HandleFunc("/test_error", func(w http.ResponseWriter, r *http.Request) {
+		// Records Message
+		w.Write(sendAFrame(map[string]string{
+			":message-type": "event",
+			":event-type":   "Records"}, data))
+
+		// Error Message
+		w.Write(sendAFrame(map[string]string{
+			":message-type":  "error",
+			":error-code":    result.ErrorFrame.Code,
+			":error-message": result.ErrorFrame.Message}, []byte{}))
+	})
+
+	// 测试正常情况
+	filePath := "test.file" + time.Now().Format(time.RFC3339)
+	res, err := client.Object.SelectToFile(context.Background(), "test", filePath, opt)
+	if err != nil {
+		t.Errorf("Object.Select failed: %v\n", err)
+	}
+	defer os.Remove(filePath)
+	fd, err := os.Open(filePath)
+	if err != nil {
+		t.Errorf("Object.Select open file failed: %v\n", err)
+	}
+	defer fd.Close()
+	bs, err := ioutil.ReadAll(fd)
+	if err != nil {
+		t.Errorf("Object.Select read failed: %v\n", err)
+	}
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("Object.Select compare failed\n")
+	}
+	if !reflect.DeepEqual(result.StatsFrame, res.Frame.StatsFrame) {
+		t.Errorf("Object.Select stat frame failed, return: %+v, want: %+v\n", res.Frame.StatsFrame, result.StatsFrame)
+	}
+	if !reflect.DeepEqual(result.ProgressFrame, res.Frame.ProgressFrame) {
+		t.Errorf("Object.Select progress frame failed, return: %+v, want: %+v\n", res.Frame.ProgressFrame, result.ProgressFrame)
+	}
+
+	// 测试错误情况
+	resp, err := client.Object.Select(context.Background(), "test_error", opt)
+	if err != nil {
+		t.Errorf("Object.Select failed: %v\n", err)
+	}
+	_, err = ioutil.ReadAll(resp)
+	ef, ok := err.(*ErrorFrame)
+	if !ok {
+		t.Errorf("Object.Select error is not ErrorFrame, %v", err)
+	}
+	if !reflect.DeepEqual(ef, result.ErrorFrame) {
+		t.Errorf("Object.Select error frame failed, return: %+v, want: %+v\n", res.Frame.ErrorFrame, result.ErrorFrame)
 	}
 }

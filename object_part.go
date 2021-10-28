@@ -286,12 +286,12 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 }
 
 type ObjectListUploadsOptions struct {
-	Delimiter      string `url:"Delimiter,omitempty"`
-	EncodingType   string `url:"EncodingType,omitempty"`
-	Prefix         string `url:"Prefix"`
-	MaxUploads     int    `url:"MaxUploads"`
-	KeyMarker      string `url:"KeyMarker"`
-	UploadIdMarker string `url:"UploadIDMarker"`
+	Delimiter      string `url:"delimiter,omitempty"`
+	EncodingType   string `url:"encoding-type,omitempty"`
+	Prefix         string `url:"prefix,omitempty"`
+	MaxUploads     int    `url:"max-uploads,omitempty"`
+	KeyMarker      string `url:"key-marker,omitempty"`
+	UploadIdMarker string `url:"upload-id-marker,omitempty"`
 }
 
 type ObjectListUploadsResult struct {
@@ -336,6 +336,7 @@ type MultiCopyOptions struct {
 	OptCopy        *ObjectCopyOptions
 	PartSize       int64
 	ThreadPoolSize int
+	useMulti       bool // use for ut
 }
 
 type CopyJobs struct {
@@ -386,7 +387,7 @@ func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *Ob
 		return
 	}
 
-	u, err := url.Parse(fmt.Sprintf("https://%s", surl[0]))
+	u, err := url.Parse(fmt.Sprintf("http://%s", surl[0]))
 	if err != nil {
 		return
 	}
@@ -429,7 +430,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	if err != nil {
 		return nil, nil, err
 	}
-	if partNum == 0 || totalBytes < singleUploadMaxLength {
+	if partNum == 0 || (totalBytes < singleUploadMaxLength && !opt.useMulti) {
 		if len(id) > 0 {
 			return s.Copy(ctx, name, sourceURL, opt.OptCopy, id[0])
 		} else {
