@@ -31,7 +31,7 @@ func TestNewAuthorization(t *testing.T) {
 		KeyStartTime:  startTime,
 		KeyEndTime:    endTime,
 	}
-	auth := newAuthorization(secretID, secretKey, req, authTime)
+	auth := newAuthorization(secretID, secretKey, req, authTime, true)
 
 	if auth != expectAuthorization {
 		t.Errorf("NewAuthorization returned \n%#v, want \n%#v", auth, expectAuthorization)
@@ -89,7 +89,7 @@ func TestCVMCredentialsTransport(t *testing.T) {
 		host := strings.TrimLeft(uri, "http://")
 		req, _ := http.NewRequest("GET", uri, nil)
 		req.Header.Add("Host", host)
-		expect := newAuthorization(ak, sk, req, authTime)
+		expect := newAuthorization(ak, sk, req, authTime, true)
 		if expect != auth {
 			t.Errorf("CVMCredentialsTransport Authorization error, want:%v, return:%v\n", expect, auth)
 		}
