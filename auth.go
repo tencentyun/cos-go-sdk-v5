@@ -48,11 +48,16 @@ var NeedSignHeaders = map[string]bool{
 	"content-type":                   true,
 	"content-length":                 true,
 	"content-md5":                    true,
+	"transfer-encoding":              true,
+	"versionid":                      true,
 	"expect":                         true,
 	"expires":                        true,
 	"x-cos-content-sha1":             true,
 	"x-cos-storage-class":            true,
+	"if-match":                       true,
 	"if-modified-since":              true,
+	"if-none-match":                  true,
+	"if-unmodified-since":            true,
 	"origin":                         true,
 	"access-control-request-method":  true,
 	"access-control-request-headers": true,
@@ -142,12 +147,14 @@ func (a *AuthTime) keyString() string {
 }
 
 // newAuthorization 通过一系列步骤生成最终需要的 Authorization 字符串
-func newAuthorization(secretID, secretKey string, req *http.Request, authTime *AuthTime) string {
+func newAuthorization(secretID, secretKey string, req *http.Request, authTime *AuthTime, signHost bool) string {
 	signTime := authTime.signString()
 	keyTime := authTime.keyString()
 	signKey := calSignKey(secretKey, keyTime)
 
-	req.Header.Set("Host", req.Host)
+	if signHost {
+		req.Header.Set("Host", req.Host)
+	}
 	formatHeaders := *new(string)
 	signedHeaderList := *new([]string)
 	formatHeaders, signedHeaderList = genFormatHeaders(req.Header)
@@ -170,7 +177,7 @@ func AddAuthorizationHeader(secretID, secretKey string, sessionToken string, req
 	}
 
 	auth := newAuthorization(secretID, secretKey, req,
-		authTime,
+		authTime, true,
 	)
 	if len(sessionToken) > 0 {
 		req.Header.Set("x-cos-security-token", sessionToken)

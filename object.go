@@ -115,12 +115,14 @@ func (s *ObjectService) GetObjectURL(name string) *url.URL {
 }
 
 type PresignedURLOptions struct {
-	Query  *url.Values  `xml:"-" url:"-" header:"-"`
-	Header *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	Query      *url.Values  `xml:"-" url:"-" header:"-"`
+	Header     *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	SignMerged bool         `xml:"-" url:"-" header:"-"`
 }
 
 // GetPresignedURL get the object presigned to down or upload file by url
-func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}) (*url.URL, error) {
+// 预签名函数，signHost: 默认签入Header Host, 您也可以选择不签入Header Host，但可能导致请求失败或安全漏洞
+func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name, []byte{'/'}),
@@ -129,9 +131,11 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		optHeader: opt,
 	}
 	if popt, ok := opt.(*PresignedURLOptions); ok {
-		qs := popt.Query.Encode()
-		if qs != "" {
-			sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+		if popt != nil && popt.Query != nil {
+			qs := popt.Query.Encode()
+			if qs != "" {
+				sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+			}
 		}
 	}
 	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
@@ -148,7 +152,24 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 	if authTime == nil {
 		authTime = NewAuthTime(expired)
 	}
-	authorization := newAuthorization(ak, sk, req, authTime)
+	signedHost := true
+	if len(signHost) > 0 {
+		signedHost = signHost[0]
+	}
+	authorization := newAuthorization(ak, sk, req, authTime, signedHost)
+	if opt != nil {
+		if opt, ok := opt.(*PresignedURLOptions); ok {
+			if opt.SignMerged {
+				sign := encodeURIComponent(authorization)
+				if req.URL.RawQuery == "" {
+					req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
+				} else {
+					req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
+				}
+				return req.URL, nil
+			}
+		}
+	}
 	sign := encodeURIComponent(authorization, []byte{'&', '='})
 
 	if req.URL.RawQuery == "" {
