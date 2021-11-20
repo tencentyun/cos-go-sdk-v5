@@ -332,21 +332,21 @@ type GetAudioAuditingJobResult struct {
 
 // AudioAuditingJobDetail is the detail of GetAudioAuditingJobResult
 type AudioAuditingJobDetail struct {
-	Code          string              `xml:",omitempty"`
-	Message       string              `xml:",omitempty"`
-	JobId         string              `xml:",omitempty"`
-	State         string              `xml:",omitempty"`
-	CreationTime  string              `xml:",omitempty"`
-	Object        string              `xml:",omitempty"`
-	Url           string              `xml:",omitempty"`
-	AudioText     string              `xml:",omitempty"`
-	Label         string              `xml:",omitempty"`
-	Result        int                 `xml:",omitempty"`
-	PornInfo      *RecognitionInfo    `xml:",omitempty"`
-	TerrorismInfo *RecognitionInfo    `xml:",omitempty"`
-	PoliticsInfo  *RecognitionInfo    `xml:",omitempty"`
-	AdsInfo       *RecognitionInfo    `xml:",omitempty"`
-	Section       *AudioSectionResult `xml:",omitempty"`
+	Code          string               `xml:",omitempty"`
+	Message       string               `xml:",omitempty"`
+	JobId         string               `xml:",omitempty"`
+	State         string               `xml:",omitempty"`
+	CreationTime  string               `xml:",omitempty"`
+	Object        string               `xml:",omitempty"`
+	Url           string               `xml:",omitempty"`
+	AudioText     string               `xml:",omitempty"`
+	Label         string               `xml:",omitempty"`
+	Result        int                  `xml:",omitempty"`
+	PornInfo      *RecognitionInfo     `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo     `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo     `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo     `xml:",omitempty"`
+	Section       []AudioSectionResult `xml:",omitempty"`
 }
 
 // 音频审核-查询任务 https://cloud.tencent.com/document/product/460/53396
