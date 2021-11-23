@@ -177,6 +177,7 @@ type PutVideoAuditingJobOptions struct {
 	XMLName     xml.Name              `xml:"Request"`
 	InputObject string                `xml:"Input>Object,omitempty"`
 	InputUrl    string                `xml:"Input>Url,omitempty"`
+	InputDataId string                `xml:"Input>DataId,omitempty"`
 	Conf        *VideoAuditingJobConf `xml:"Conf"`
 }
 
@@ -239,6 +240,7 @@ type AuditingJobDetail struct {
 	CreationTime  string                        `xml:",omitempty"`
 	Object        string                        `xml:",omitempty"`
 	Url           string                        `xml:",omitempty"`
+	DataId        string                        `xml:",omitempty"`
 	SnapshotCount string                        `xml:",omitempty"`
 	Label         string                        `xml:",omitempty"`
 	Result        int                           `xml:",omitempty"`
@@ -295,6 +297,7 @@ type PutAudioAuditingJobOptions struct {
 	XMLName     xml.Name              `xml:"Request"`
 	InputObject string                `xml:"Input>Object,omitempty"`
 	InputUrl    string                `xml:"Input>Url,omitempty"`
+	InputDataId string                `xml:"Input>DataId,omitempty"`
 	Conf        *AudioAuditingJobConf `xml:"Conf"`
 }
 
@@ -339,6 +342,7 @@ type AudioAuditingJobDetail struct {
 	CreationTime  string               `xml:",omitempty"`
 	Object        string               `xml:",omitempty"`
 	Url           string               `xml:",omitempty"`
+	DataId        string               `xml:",omitempty"`
 	AudioText     string               `xml:",omitempty"`
 	Label         string               `xml:",omitempty"`
 	Result        int                  `xml:",omitempty"`
@@ -367,6 +371,7 @@ type PutTextAuditingJobOptions struct {
 	XMLName      xml.Name             `xml:"Request"`
 	InputObject  string               `xml:"Input>Object,omitempty"`
 	InputContent string               `xml:"Input>Content,omitempty"`
+	InputDataId  string               `xml:"Input>DataId,omitempty"`
 	Conf         *TextAuditingJobConf `xml:"Conf"`
 }
 
@@ -411,6 +416,7 @@ type TextAuditingJobDetail struct {
 	CreationTime  string              `xml:",omitempty"`
 	Object        string              `xml:",omitempty"`
 	Url           string              `xml:",omitempty"`
+	DataId        string              `xml:",omitempty"`
 	Content       string              `xml:",omitempty"`
 	SectionCount  int                 `xml:",omitempty"`
 	Label         string              `xml:",omitempty"`
@@ -452,10 +458,11 @@ func (s *CIService) GetTextAuditingJob(ctx context.Context, jobid string) (*GetT
 
 // PutDocumentAuditingJobOptions is the option of PutDocumentAuditingJob
 type PutDocumentAuditingJobOptions struct {
-	XMLName   xml.Name                 `xml:"Request"`
-	InputUrl  string                   `xml:"Input>Url,omitempty"`
-	InputType string                   `xml:"Input>Type,omitempty"`
-	Conf      *DocumentAuditingJobConf `xml:"Conf"`
+	XMLName     xml.Name                 `xml:"Request"`
+	InputUrl    string                   `xml:"Input>Url,omitempty"`
+	InputType   string                   `xml:"Input>Type,omitempty"`
+	InputDataId string                   `xml:"Input>DataId,omitempty"`
+	Conf        *DocumentAuditingJobConf `xml:"Conf"`
 }
 
 // DocumentAuditingJobConf is the config of PutDocumentAuditingJobOptions
@@ -498,6 +505,7 @@ type DocumentAuditingJobDetail struct {
 	CreationTime string                   `xml:",omitempty"`
 	Object       string                   `xml:",omitempty"`
 	Url          string                   `xml:",omitempty"`
+	DataId       string                   `xml:",omitempty"`
 	PageCount    int                      `xml:",omitempty"`
 	Label        string                   `xml:",omitempty"`
 	Suggestion   int                      `xml:",omitempty"`
