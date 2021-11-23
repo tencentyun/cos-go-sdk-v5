@@ -172,6 +172,66 @@ func (s *CIService) ImageAuditing(ctx context.Context, name string, opt *ImageRe
 	return &res, resp, err
 }
 
+// ImageAuditingInputOptions is the option of BatchImageAuditingOptions
+type ImageAuditingInputOptions struct {
+	DataId    string `xml:",omitempty"`
+	Object    string `xml:",omitempty"`
+	Url       string `xml:",omitempty"`
+	Interval  int    `xml:",omitempty"`
+	MaxFrames int    `xml:",omitempty"`
+}
+
+// ImageAuditingJobConf is the config of BatchImageAuditingOptions
+type ImageAuditingJobConf struct {
+	DetectType string `xml:",omitempty"`
+	BizType    string `xml:",omitempty"`
+}
+
+// BatchImageAuditingOptions is the option of BatchImageAuditing
+type BatchImageAuditingOptions struct {
+	XMLName xml.Name                    `xml:"Request"`
+	Input   []ImageAuditingInputOptions `xml:"Input,omitempty"`
+	Conf    *ImageAuditingJobConf       `xml:"Conf"`
+}
+
+// ImageRecognitionResult is the result of BatchImageAuditingJobResult
+type ImageAuditingResult struct {
+	Code          string           `xml:",omitempty"`
+	Message       string           `xml:",omitempty"`
+	DataId        string           `xml:",omitempty"`
+	Object        string           `xml:",omitempty"`
+	Url           string           `xml:",omitempty"`
+	Text          string           `xml:",omitempty"`
+	Label         string           `xml:",omitempty"`
+	Result        int              `xml:",omitempty"`
+	Score         int              `xml:",omitempty"`
+	SubLabel      string           `xml:",omitempty"`
+	PornInfo      *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
+	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+}
+
+// BatchImageAuditingJobResult is the result of BatchImageAuditing
+type BatchImageAuditingJobResult struct {
+	XMLName    xml.Name              `xml:"Response"`
+	JobsDetail []ImageAuditingResult `xml:"JobsDetail,omitempty"`
+}
+
+// 图片批量审核接口
+func (s *CIService) BatchImageAuditing(ctx context.Context, opt *BatchImageAuditingOptions) (*BatchImageAuditingJobResult, *Response, error) {
+	var res BatchImageAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/image/auditing",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // PutVideoAuditingJobOptions is the option of PutVideoAuditingJob
 type PutVideoAuditingJobOptions struct {
 	XMLName     xml.Name              `xml:"Request"`
