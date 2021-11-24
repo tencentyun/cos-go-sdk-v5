@@ -215,7 +215,8 @@ type ImageAuditingResult struct {
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
 type BatchImageAuditingJobResult struct {
 	XMLName    xml.Name              `xml:"Response"`
-	JobsDetail []ImageAuditingResult `xml:"JobsDetail,omitempty"`
+	JobsDetail []ImageAuditingResult `xml:",omitempty"`
+	RequestId  string                `xml:",omitempty"`
 }
 
 // 图片批量审核接口
@@ -266,7 +267,9 @@ type PutVideoAuditingJobResult struct {
 		State        string `xml:"State,omitempty"`
 		CreationTime string `xml:"CreationTime,omitempty"`
 		Object       string `xml:"Object,omitempty"`
+		Url          string `xml:"Url,omitempty"`
 	} `xml:"JobsDetail,omitempty"`
+	RequestId string `xml:"RequestId,omitempty"`
 }
 
 // 视频审核-创建任务 https://cloud.tencent.com/document/product/460/46427
@@ -285,9 +288,9 @@ func (s *CIService) PutVideoAuditingJob(ctx context.Context, opt *PutVideoAuditi
 
 // GetVideoAuditingJobResult is the result of GetVideoAuditingJob
 type GetVideoAuditingJobResult struct {
-	XMLName        xml.Name           `xml:"Response"`
-	JobsDetail     *AuditingJobDetail `xml:",omitempty"`
-	NonExistJobIds string             `xml:",omitempty"`
+	XMLName    xml.Name           `xml:"Response"`
+	JobsDetail *AuditingJobDetail `xml:",omitempty"`
+	RequestId  string             `xml:",omitempty"`
 }
 
 // AuditingJobDetail is the detail of GetVideoAuditingJobResult
@@ -387,9 +390,9 @@ func (s *CIService) PutAudioAuditingJob(ctx context.Context, opt *PutAudioAuditi
 
 // GetAudioAuditingJobResult is the result of GetAudioAuditingJob
 type GetAudioAuditingJobResult struct {
-	XMLName        xml.Name                `xml:"Response"`
-	JobsDetail     *AudioAuditingJobDetail `xml:",omitempty"`
-	NonExistJobIds string                  `xml:",omitempty"`
+	XMLName    xml.Name                `xml:"Response"`
+	JobsDetail *AudioAuditingJobDetail `xml:",omitempty"`
+	RequestId  string                  `xml:",omitempty"`
 }
 
 // AudioAuditingJobDetail is the detail of GetAudioAuditingJobResult
@@ -461,9 +464,9 @@ func (s *CIService) PutTextAuditingJob(ctx context.Context, opt *PutTextAuditing
 
 // GetTextAuditingJobResult is the result of GetTextAuditingJob
 type GetTextAuditingJobResult struct {
-	XMLName        xml.Name               `xml:"Response"`
-	JobsDetail     *TextAuditingJobDetail `xml:",omitempty"`
-	NonExistJobIds string                 `xml:",omitempty"`
+	XMLName    xml.Name               `xml:"Response"`
+	JobsDetail *TextAuditingJobDetail `xml:",omitempty"`
+	RequestId  string                 `xml:",omitempty"`
 }
 
 // TextAuditingJobDetail is the detail of GetTextAuditingJobResult
@@ -527,6 +530,7 @@ func (s *CIService) GetTextAuditingJob(ctx context.Context, jobid string) (*GetT
 // PutDocumentAuditingJobOptions is the option of PutDocumentAuditingJob
 type PutDocumentAuditingJobOptions struct {
 	XMLName     xml.Name                 `xml:"Request"`
+	InputObject string                   `xml:"Input>Object,omitempty"`
 	InputUrl    string                   `xml:"Input>Url,omitempty"`
 	InputType   string                   `xml:"Input>Type,omitempty"`
 	InputDataId string                   `xml:"Input>DataId,omitempty"`
@@ -559,9 +563,9 @@ func (s *CIService) PutDocumentAuditingJob(ctx context.Context, opt *PutDocument
 
 // GetDocumentAuditingJobResult is the result of GetDocumentAuditingJob
 type GetDocumentAuditingJobResult struct {
-	XMLName        xml.Name                   `xml:"Response"`
-	JobsDetail     *DocumentAuditingJobDetail `xml:",omitempty"`
-	NonExistJobIds string                     `xml:",omitempty"`
+	XMLName    xml.Name                   `xml:"Response"`
+	JobsDetail *DocumentAuditingJobDetail `xml:",omitempty"`
+	RequestId  string                     `xml:",omitempty"`
 }
 
 // DocumentAuditingJobDetail is the detail of GetDocumentAuditingJobResult
@@ -610,14 +614,14 @@ type DocumentPageSegmentResultResult struct {
 
 // OcrResult
 type OcrResult struct {
-	Text     string    `xml:"Text"`
-	Keywords []string  `xml:"Keywords"`
+	Text     string    `xml:"Text,omitempty"`
+	Keywords []string  `xml:"Keywords,omitempty"`
 	Location *Location `xml:"Location,omitempty"`
 }
 
 // ObjectResult
 type ObjectResult struct {
-	Name     string    `xml:"Name"`
+	Name     string    `xml:"Name,omitempty"`
 	Location *Location `xml:"Location,omitempty"`
 }
 
