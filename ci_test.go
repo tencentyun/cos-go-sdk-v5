@@ -255,13 +255,42 @@ func TestCIService_ImageAuditing(t *testing.T) {
 		t.Errorf("CI.ImageAuditing failed, return:%+v, want:%+v", res, want)
 	}
 }
+
+func TestCIService_BatchImageAuditing(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<Request><Input><Object>test.jpg</Object></Input><Conf><DetectType>Porn,Terrorism,Politics,Ads</DetectType></Conf></Request>"
+
+	mux.HandleFunc("/image/auditing", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &BatchImageAuditingOptions{
+		Input: []ImageAuditingInputOptions{
+			ImageAuditingInputOptions{
+				Object: "test.jpg",
+			},
+		},
+		Conf: &ImageAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads",
+		},
+	}
+
+	_, _, err := client.CI.BatchImageAuditing(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.BatchImageAuditing error: %v", err)
+	}
+}
+
 func TestCIService_PutVideoAuditingJob(t *testing.T) {
 	setup()
 	defer teardown()
 	name := "test.mp4"
 	wantBody := "<Request><Input><Object>test.mp4</Object></Input>" +
 		"<Conf><DetectType>Porn,Terrorism,Politics,Ads</DetectType>" +
-		"<Snapshot><Mode>Interval</Mode><Count>100</Count><TimeInterval>50</TimeInterval><Start>0.5</Start></Snapshot>" +
+		"<Snapshot><Mode>Interval</Mode><Count>100</Count><TimeInterval>50</TimeInterval></Snapshot>" +
 		"<Callback>http://callback.com/call_back_test</Callback></Conf></Request>"
 
 	mux.HandleFunc("/video/auditing", func(writer http.ResponseWriter, r *http.Request) {
@@ -278,7 +307,6 @@ func TestCIService_PutVideoAuditingJob(t *testing.T) {
 				Mode:         "Interval",
 				Count:        100,
 				TimeInterval: 50,
-				Start:        0.5,
 			},
 			Callback: "http://callback.com/call_back_test",
 		},
@@ -430,6 +458,47 @@ func TestCIService_GetDocumentAuditingJob(t *testing.T) {
 		t.Fatalf("CI.GetDocumentAuditingJob returned error: %v", err)
 	}
 }
+
+func TestCIService_PutWebpageAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := `<Request><Input><Url>http://www.example.com</Url></Input><Conf><DetectType>Porn,Terrorism,Politics,Ads</DetectType><Callback>http://www.example.com/</Callback></Conf></Request>`
+
+	mux.HandleFunc("/webpage/auditing", func(writer http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &PutWebpageAuditingJobOptions{
+		InputUrl:  "http://www.example.com",
+		Conf: &WebpageAuditingJobConf{
+			DetectType: "Porn,Terrorism,Politics,Ads",
+			Callback:   "http://www.example.com/",
+		},
+	}
+
+	_, _, err := client.CI.PutWebpageAuditingJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutWebpageAuditingJob returned error: %v", err)
+	}
+}
+
+func TestCIService_GetWebpageAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "shb1ca9fc8a3ed11ea834c525400863904"
+
+	mux.HandleFunc("/webpage/auditing/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetWebpageAuditingJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetWebpageAuditingJob returned error: %v", err)
+	}
+}
+
 func TestCIService_Put(t *testing.T) {
 	setup()
 	defer teardown()
