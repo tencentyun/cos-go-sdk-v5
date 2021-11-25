@@ -829,9 +829,9 @@ func (s *CIService) PutFromFile(ctx context.Context, name string, filePath strin
 func (s *CIService) Get(ctx context.Context, name string, operation string, opt *ObjectGetOptions, id ...string) (*Response, error) {
 	var u string
 	if len(id) == 1 {
-		u = fmt.Sprintf("/%s?versionId=%s&%s", encodeURIComponent(name), id[0], operation)
+		u = fmt.Sprintf("/%s?versionId=%s&%s", encodeURIComponent(name), id[0], encodeURIComponent(operation))
 	} else if len(id) == 0 {
-		u = fmt.Sprintf("/%s?%s", encodeURIComponent(name), operation)
+		u = fmt.Sprintf("/%s?%s", encodeURIComponent(name), encodeURIComponent(operation))
 	} else {
 		return nil, errors.New("wrong params")
 	}

@@ -64,12 +64,6 @@ var NeedSignHeaders = map[string]bool{
 	"x-cos-object-type":              true,
 }
 
-var ciParameters = map[string]bool{
-	"imagemogr2/": true,
-	"watermark/":  true,
-	"imageview2/": true,
-}
-
 // 非线程安全，只能在进程初始化（而不是Client初始化）时做设置
 func SetNeedSignHeaders(key string, val bool) {
 	NeedSignHeaders[key] = val
@@ -88,7 +82,7 @@ func safeURLEncode(s string) string {
 type valuesSignMap map[string][]string
 
 func (vs valuesSignMap) Add(key, value string) {
-	key = strings.ToLower(key)
+	key = strings.ToLower(safeURLEncode(key))
 	vs[key] = append(vs[key], value)
 }
 
@@ -106,7 +100,7 @@ func (vs valuesSignMap) Encode() string {
 		for _, val := range items {
 			pairs = append(
 				pairs,
-				fmt.Sprintf("%s=%s", safeURLEncode(k), safeURLEncode(val)))
+				fmt.Sprintf("%s=%s", k, safeURLEncode(val)))
 		}
 	}
 	return strings.Join(pairs, "&")
@@ -232,12 +226,9 @@ func genFormatString(method string, uri url.URL, formatParameters, formatHeaders
 func genFormatParameters(parameters url.Values) (formatParameters string, signedParameterList []string) {
 	ps := valuesSignMap{}
 	for key, values := range parameters {
-		key = strings.ToLower(key)
 		for _, value := range values {
-			if !isCIParameter(key) {
-				ps.Add(key, value)
-				signedParameterList = append(signedParameterList, key)
-			}
+			ps.Add(key, value)
+			signedParameterList = append(signedParameterList, strings.ToLower(safeURLEncode(key)))
 		}
 	}
 	//formatParameters = strings.ToLower(ps.Encode())
@@ -250,11 +241,10 @@ func genFormatParameters(parameters url.Values) (formatParameters string, signed
 func genFormatHeaders(headers http.Header) (formatHeaders string, signedHeaderList []string) {
 	hs := valuesSignMap{}
 	for key, values := range headers {
-		key = strings.ToLower(key)
-		for _, value := range values {
-			if isSignHeader(key) {
+		if isSignHeader(strings.ToLower(key)) {
+		    for _, value := range values {
 				hs.Add(key, value)
-				signedHeaderList = append(signedHeaderList, key)
+				signedHeaderList = append(signedHeaderList, strings.ToLower(safeURLEncode(key)))
 			}
 		}
 	}
@@ -275,15 +265,6 @@ func calHMACDigest(key, msg, signMethod string) []byte {
 	h := hmac.New(hashFunc, []byte(key))
 	h.Write([]byte(msg))
 	return h.Sum(nil)
-}
-
-func isCIParameter(key string) bool {
-	for k, v := range ciParameters {
-		if strings.HasPrefix(key, k) && v {
-			return true
-		}
-	}
-	return false
 }
 
 func isSignHeader(key string) bool {

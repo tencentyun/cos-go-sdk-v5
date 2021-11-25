@@ -370,6 +370,25 @@ func TestObjectService_Head(t *testing.T) {
 	}
 }
 
+func TestObjectService_IsExist(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test/hello.txt"
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "HEAD")
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	isExisted, err := client.Object.IsExist(context.Background(), name)
+	if err != nil {
+		t.Fatalf("Object.Head returned error: %v", err)
+	}
+	if isExisted != false {
+		t.Errorf("object IsExist failed")
+	}
+}
+
 func TestObjectService_Options(t *testing.T) {
 	setup()
 	defer teardown()

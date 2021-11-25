@@ -151,6 +151,24 @@ func TestBucketService_Head(t *testing.T) {
 	}
 }
 
+func TestBucketService_IsExist(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodHead)
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	isExisted, err := client.Bucket.IsExist(context.Background())
+	if err != nil {
+		t.Fatalf("Bucket.Head returned error: %v", err)
+	}
+	if isExisted != false {
+		t.Errorf("bucket IsExist failed")
+	}
+}
+
 func TestBucketService_GetObjectVersions(t *testing.T) {
 	setup()
 	defer teardown()

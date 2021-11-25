@@ -453,6 +453,17 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 	return resp, err
 }
 
+func (s *ObjectService) IsExist(ctx context.Context, name string, id ...string) (bool, error) {
+	_, err := s.Head(ctx, name, nil, id...)
+	if err == nil {
+		return true, nil
+	}
+	if IsNotFoundError(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 // ObjectOptionsOptions is the option of object options
 type ObjectOptionsOptions struct {
 	Origin                      string `url:"-" header:"Origin"`
