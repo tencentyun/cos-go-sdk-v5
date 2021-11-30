@@ -50,15 +50,26 @@ func main() {
 		},
 	})
 
-	opt := &cos.BucketGetObjectVersionsOptions{
-		Delimiter: "/",
-		MaxKeys:   1,
+	keyMarker := ""
+	versionIdMarker := ""
+	isTruncated := true
+	opt := &cos.BucketGetObjectVersionsOptions{}
+	for isTruncated {
+		opt.KeyMarker = keyMarker
+		opt.VersionIdMarker = versionIdMarker
+		v, _, err := c.Bucket.GetObjectVersions(context.Background(), opt)
+		if err != nil {
+			log_status(err)
+			break
+		}
+		for _, vc := range v.Version {
+			fmt.Printf("Version: %v, %v, %v, %v\n", vc.Key, vc.Size, vc.VersionId, vc.IsLatest)
+		}
+		for _, dc := range v.DeleteMarker {
+			fmt.Printf("DeleteMarker: %v, %v, %v\n", dc.Key, dc.VersionId, dc.IsLatest)
+		}
+		keyMarker = v.NextKeyMarker
+		versionIdMarker = v.NextVersionIdMarker
+		isTruncated = v.IsTruncated
 	}
-	v, _, err := c.Bucket.GetObjectVersions(context.Background(), opt)
-	log_status(err)
-
-	for _, c := range v.Version {
-		fmt.Printf("%v, %v, %v\n", c.Key, c.Size, c.IsLatest)
-	}
-
 }

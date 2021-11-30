@@ -123,9 +123,16 @@ type PresignedURLOptions struct {
 // GetPresignedURL get the object presigned to down or upload file by url
 // 预签名函数，signHost: 默认签入Header Host, 您也可以选择不签入Header Host，但可能导致请求失败或安全漏洞
 func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
+	// 兼容 name 以 / 开头的情况
+	if strings.HasPrefix(name, "/") {
+		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	} else {
+		name = encodeURIComponent(name, []byte{'/'})
+	}
+
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + encodeURIComponent(name, []byte{'/'}),
+		uri:       "/" + name,
 		method:    httpMethod,
 		optQuery:  opt,
 		optHeader: opt,
@@ -451,6 +458,17 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 	}
 
 	return resp, err
+}
+
+func (s *ObjectService) IsExist(ctx context.Context, name string, id ...string) (bool, error) {
+	_, err := s.Head(ctx, name, nil, id...)
+	if err == nil {
+		return true, nil
+	}
+	if IsNotFoundError(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 // ObjectOptionsOptions is the option of object options

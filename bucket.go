@@ -111,6 +111,17 @@ func (s *BucketService) Head(ctx context.Context) (*Response, error) {
 	return resp, err
 }
 
+func (s *BucketService) IsExist(ctx context.Context) (bool, error) {
+	_, err := s.Head(ctx)
+	if err == nil {
+		return true, nil
+	}
+	if IsNotFoundError(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 // Bucket is the meta info of Bucket
 type Bucket struct {
 	Name         string
