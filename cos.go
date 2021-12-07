@@ -54,12 +54,18 @@ type BaseURL struct {
 //   bucketName: bucket名称, bucket的命名规则为{name}-{appid} ，此处填写的存储桶名称必须为此格式
 //   Region: 区域代码: ap-beijing-1,ap-beijing,ap-shanghai,ap-guangzhou...
 //   secure: 是否使用 https
-func NewBucketURL(bucketName, region string, secure bool) *url.URL {
+func NewBucketURL(bucketName, region string, secure bool) (*url.URL, error) {
 	schema := "https"
 	if !secure {
 		schema = "http"
 	}
 
+	if region == "" {
+		return nil, fmt.Errorf("region[%v] is invalid", region)
+	}
+	if bucketName == "" || !strings.ContainsAny(bucketName, "-") {
+		return nil, fmt.Errorf("bucketName[%v] is invalid", bucketName)
+	}
 	w := bytes.NewBuffer(nil)
 	bucketURLTemplate.Execute(w, struct {
 		Schema     string
@@ -70,7 +76,7 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 	})
 
 	u, _ := url.Parse(w.String())
-	return u
+	return u, nil
 }
 
 type RetryOptions struct {

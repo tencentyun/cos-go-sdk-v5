@@ -242,7 +242,7 @@ func genFormatHeaders(headers http.Header) (formatHeaders string, signedHeaderLi
 	hs := valuesSignMap{}
 	for key, values := range headers {
 		if isSignHeader(strings.ToLower(key)) {
-		    for _, value := range values {
+			for _, value := range values {
 				hs.Add(key, value)
 				signedHeaderList = append(signedHeaderList, strings.ToLower(safeURLEncode(key)))
 			}
@@ -308,6 +308,13 @@ func (t *AuthorizationTransport) RoundTrip(req *http.Request) (*http.Response, e
 	req = cloneRequest(req) // per RoundTrip contract
 
 	ak, sk, token := t.GetCredential()
+	if strings.HasPrefix(ak, " ") || strings.HasSuffix(ak, " ") {
+		return nil, fmt.Errorf("SecretID is invalid")
+	}
+	if strings.HasPrefix(sk, " ") || strings.HasSuffix(sk, " ") {
+		return nil, fmt.Errorf("SecretKey is invalid")
+	}
+
 	// 增加 Authorization header
 	authTime := NewAuthTime(defaultAuthExpire)
 	AddAuthorizationHeader(ak, sk, token, req, authTime)
