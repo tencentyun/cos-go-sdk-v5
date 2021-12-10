@@ -124,6 +124,7 @@ type ImageRecognitionResult struct {
 	TerroristInfo *RecognitionInfo `xml:"TerroristInfo,omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:"PoliticsInfo,omitempty"`
 	AdsInfo       *RecognitionInfo `xml:"AdsInfo,omitempty"`
+	TeenagerInfo  *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
 }
 
 // RecognitionInfo is the result of auditing scene
@@ -212,6 +213,7 @@ type ImageAuditingResult struct {
 	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	TeenagerInfo  *RecognitionInfo `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
@@ -332,6 +334,7 @@ type AuditingJobDetail struct {
 	TerrorismInfo *RecognitionInfo              `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo              `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo              `xml:",omitempty"`
+	TeenagerInfo  *RecognitionInfo              `xml:",omitempty"`
 	Snapshot      []GetVideoAuditingJobSnapshot `xml:",omitempty"`
 	AudioSection  []AudioSectionResult          `xml:",omitempty"`
 }
@@ -347,6 +350,7 @@ type GetVideoAuditingJobSnapshot struct {
 	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	TeenagerInfo  *RecognitionInfo `xml:",omitempty"`
 }
 
 // AudioSectionResult is the audio section result of AuditingJobDetail/AudioAuditingJobDetail
