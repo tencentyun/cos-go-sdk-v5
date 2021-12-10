@@ -114,6 +114,7 @@ type ImageRecognitionOptions struct {
 // ImageRecognitionResult is the result of ImageRecognition/ImageAuditing
 type ImageRecognitionResult struct {
 	XMLName       xml.Name         `xml:"RecognitionResult"`
+	JobId         string           `xml:"JobId,omitempty"`
 	Text          string           `xml:"Text,omitempty"`
 	Label         string           `xml:"Label,omitempty"`
 	Result        int              `xml:"Result,omitempty"`
@@ -123,6 +124,7 @@ type ImageRecognitionResult struct {
 	TerroristInfo *RecognitionInfo `xml:"TerroristInfo,omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:"PoliticsInfo,omitempty"`
 	AdsInfo       *RecognitionInfo `xml:"AdsInfo,omitempty"`
+	TeenagerInfo  *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
 }
 
 // RecognitionInfo is the result of auditing scene
@@ -198,6 +200,7 @@ type BatchImageAuditingOptions struct {
 type ImageAuditingResult struct {
 	Code          string           `xml:",omitempty"`
 	Message       string           `xml:",omitempty"`
+	JobId         string           `xml:"JobId,omitempty"`
 	DataId        string           `xml:",omitempty"`
 	Object        string           `xml:",omitempty"`
 	Url           string           `xml:",omitempty"`
@@ -210,6 +213,7 @@ type ImageAuditingResult struct {
 	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	TeenagerInfo  *RecognitionInfo `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
@@ -227,6 +231,26 @@ func (s *CIService) BatchImageAuditing(ctx context.Context, opt *BatchImageAudit
 		uri:     "/image/auditing",
 		method:  http.MethodPost,
 		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// GetImageAuditingJobResult is the result of GetImageAuditingJob
+type GetImageAuditingJobResult struct {
+	XMLName    xml.Name             `xml:"Response"`
+	JobsDetail *ImageAuditingResult `xml:",omitempty"`
+	RequestId  string               `xml:",omitempty"`
+}
+
+// 图片审核-查询任务
+func (s *CIService) GetImageAuditingJob(ctx context.Context, jobid string) (*GetImageAuditingJobResult, *Response, error) {
+	var res GetImageAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/image/auditing/" + jobid,
+		method:  http.MethodGet,
 		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
@@ -310,6 +334,7 @@ type AuditingJobDetail struct {
 	TerrorismInfo *RecognitionInfo              `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo              `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo              `xml:",omitempty"`
+	TeenagerInfo  *RecognitionInfo              `xml:",omitempty"`
 	Snapshot      []GetVideoAuditingJobSnapshot `xml:",omitempty"`
 	AudioSection  []AudioSectionResult          `xml:",omitempty"`
 }
@@ -325,6 +350,7 @@ type GetVideoAuditingJobSnapshot struct {
 	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	TeenagerInfo  *RecognitionInfo `xml:",omitempty"`
 }
 
 // AudioSectionResult is the audio section result of AuditingJobDetail/AudioAuditingJobDetail
@@ -432,6 +458,7 @@ func (s *CIService) GetAudioAuditingJob(ctx context.Context, jobid string) (*Get
 type PutTextAuditingJobOptions struct {
 	XMLName      xml.Name             `xml:"Request"`
 	InputObject  string               `xml:"Input>Object,omitempty"`
+	InputUrl     string               `xml:"Input>Url,omitempty"`
 	InputContent string               `xml:"Input>Content,omitempty"`
 	InputDataId  string               `xml:"Input>DataId,omitempty"`
 	Conf         *TextAuditingJobConf `xml:"Conf"`
@@ -760,6 +787,81 @@ func (s *CIService) GetWebpageAuditingJob(ctx context.Context, jobid string) (*G
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
 		uri:     "/webpage/auditing/" + jobid,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// PutVirusDetectJobOptions is the option of PutVirusDetectJob
+type PutVirusDetectJobOptions struct {
+	XMLName     xml.Name            `xml:"Request"`
+	InputObject string              `xml:"Input>Object,omitempty"`
+	InputUrl    string              `xml:"Input>Url,omitempty"`
+	Conf        *VirusDetectJobConf `xml:"Conf"`
+}
+
+// VirusDetectJobConf is the config of PutVirusDetectJobOptions
+type VirusDetectJobConf struct {
+	DetectType string `xml:",omitempty"`
+	Callback   string `xml:",omitempty"`
+}
+
+// PutVirusDetectJobResult is the result of PutVirusDetectJob
+type PutVirusDetectJobResult PutVideoAuditingJobResult
+
+// 云查毒接口-提交病毒检测任务 https://cloud.tencent.com/document/product/436/63961
+func (s *CIService) PutVirusDetectJob(ctx context.Context, opt *PutVirusDetectJobOptions) (*PutVirusDetectJobResult, *Response, error) {
+	var res PutVirusDetectJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/virus/detect",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// GetVirusDetectJobResult is the result of GetVirusDetectJob
+type GetVirusDetectJobResult struct {
+	XMLName    xml.Name              `xml:"Response"`
+	JobsDetail *VirusDetectJobDetail `xml:",omitempty"`
+	RequestId  string                `xml:",omitempty"`
+}
+
+// VirusDetectJobDetail is the detail of GetVirusDetectJobResult
+type VirusDetectJobDetail struct {
+	Code         string        `xml:",omitempty"`
+	Message      string        `xml:",omitempty"`
+	JobId        string        `xml:",omitempty"`
+	State        string        `xml:",omitempty"`
+	CreationTime string        `xml:",omitempty"`
+	Object       string        `xml:",omitempty"`
+	Url          string        `xml:",omitempty"`
+	Suggestion   string        `xml:",omitempty"`
+	DetectDetail *VirusResults `xml:",omitempty"`
+}
+
+// VirusResults
+type VirusResults struct {
+	Result []VirusInfo `xml:",omitempty"`
+}
+
+// VirusInfo
+type VirusInfo struct {
+	FileName  string `xml:",omitempty"`
+	VirusName string `xml:",omitempty"`
+}
+
+// 云查毒接口-查询病毒检测任务结果 https://cloud.tencent.com/document/product/436/63962
+func (s *CIService) GetVirusDetectJob(ctx context.Context, jobid string) (*GetVirusDetectJobResult, *Response, error) {
+	var res GetVirusDetectJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/virus/detect/" + jobid,
 		method:  http.MethodGet,
 		result:  &res,
 	}
