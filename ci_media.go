@@ -3,8 +3,10 @@ package cos
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type JobInput struct {
@@ -16,6 +18,7 @@ type JobOutput struct {
 	Bucket       string `xml:"Bucket,omitempty"`
 	Object       string `xml:"Object,omitempty"`
 	SpriteObject string `xml:"SpriteObject,omitempty"`
+	AuObject     string `xml:"AuObject,omitempty"`
 }
 
 type Container struct {
@@ -155,17 +158,78 @@ type Segment struct {
 	Duration string `xml:"Duration,omitempty"`
 }
 
+type VideoMontageVideo struct {
+	Codec   string `xml:"Codec"`
+	Width   string `xml:"Width"`
+	Height  string `xml:"Height"`
+	Fps     string `xml:"Fps"`
+	Remove  string `xml:"Remove,omitempty"`
+	Bitrate string `xml:"Bitrate"`
+	Crf     string `xml:"Crf"`
+}
+
+type VideoMontage struct {
+	Container *Container         `xml:"Container,omitempty"`
+	Video     *VideoMontageVideo `xml:"Video,omitempty"`
+	Audio     *Audio             `xml:"Audio,omitempty"`
+	Duration  string             `xml:"Duration,omitempty"`
+}
+
+type AudioConfig struct {
+	Codec      string `xml:"Codec"`
+	Samplerate string `xml:"Samplerate"`
+	Bitrate    string `xml:"Bitrate"`
+	Channels   string `xml:"Channels"`
+}
+
+type VoiceSeparate struct {
+	AudioMode   string       `xml:"AudioMode,omitempty"` // IsAudio 人声, IsBackground 背景声, AudioAndBackground 人声和背景声
+	AudioConfig *AudioConfig `xml:"AudioConfig,omitempty"`
+}
+
+type ColorEnhance struct {
+	Enable     string `xml:"Enable"`
+	Contrast   string `xml:"Contrast"`
+	Correction string `xml:"Correction"`
+	Saturation string `xml:"Saturation"`
+}
+
+type MsSharpen struct {
+	Enable       string `xml:"Enable"`
+	SharpenLevel string `xml:"SharpenLevel"`
+}
+
+type VideoProcess struct {
+	ColorEnhance *ColorEnhance `xml:"ColorEnhance,omitempty"`
+	MsSharpen    *MsSharpen    `xml:"MsSharpen,omitempty"`
+}
+
+type SDRtoHDR struct {
+	HdrMode string `xml:"HdrMode,omitempty"` // HLG、HDR10
+}
+
+type SuperResolution struct {
+	Resolution    string `xml:"Resolution,omitempty"` // sdtohd、hdto4k
+	EnableScaleUp string `xml:"EnableScaleUp,omitempty"`
+}
+
 type MediaProcessJobOperation struct {
-	Tag                 string          `xml:"Tag,omitempty"`
-	Output              *JobOutput      `xml:"Output,omitempty"`
-	Transcode           *Transcode      `xml:"Transcode,omitempty"`
-	Watermark           *Watermark      `xml:"Watermark,omitempty"`
-	TemplateId          string          `xml:"TemplateId,omitempty"`
-	WatermarkTemplateId []string        `xml:"WatermarkTemplateId,omitempty"`
-	ConcatTemplate      *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
-	Snapshot            *Snapshot       `xml:"Snapshot,omitempty"`
-	Animation           *Animation      `xml:"Animation,omitempty"`
-	Segment             *Segment        `xml:"Segment,omitempty"`
+	Tag                 string           `xml:"Tag,omitempty"`
+	Output              *JobOutput       `xml:"Output,omitempty"`
+	Transcode           *Transcode       `xml:"Transcode,omitempty"`
+	Watermark           *Watermark       `xml:"Watermark,omitempty"`
+	TemplateId          string           `xml:"TemplateId,omitempty"`
+	WatermarkTemplateId []string         `xml:"WatermarkTemplateId,omitempty"`
+	ConcatTemplate      *ConcatTemplate  `xml:"ConcatTemplate,omitempty"`
+	Snapshot            *Snapshot        `xml:"Snapshot,omitempty"`
+	Animation           *Animation       `xml:"Animation,omitempty"`
+	Segment             *Segment         `xml:"Segment,omitempty"`
+	VideoMontage        *VideoMontage    `xml:"VideoMontage,omitempty"`
+	VoiceSeparate       *VoiceSeparate   `xml:"VoiceSeparate,omitempty"`
+	VideoProcess        *VideoProcess    `xml:"VideoProcess,omitempty"`
+	TranscodeTemplateId string           `xml:"TranscodeTemplateId,omitempty"` // 视频增强、超分、SDRtoHDR任务类型，可以选择转码模板相关参数
+	SDRtoHDR            *SDRtoHDR        `xml:"SDRtoHDR,omitempty"`
+	SuperResolution     *SuperResolution `xml:"SuperResolution,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
@@ -380,6 +444,31 @@ func (s *CIService) DescribeMediaJob(ctx context.Context, jobid string) (*Descri
 	return &res, resp, err
 }
 
+type DescribeMutilMediaProcessJobResult struct {
+	XMLName        xml.Name                `xml:"Response"`
+	JobsDetail     []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+	NonExistJobIds []string                `xml:"NonExistJobIds,omitempty"`
+}
+
+func (s *CIService) DescribeMultiMediaJob(ctx context.Context, jobids []string) (*DescribeMutilMediaProcessJobResult, *Response, error) {
+	jobidsStr := ""
+	if len(jobids) < 1 {
+		return nil, nil, errors.New("empty param jobids")
+	} else {
+		jobidsStr = strings.Join(jobids, ",")
+	}
+
+	var res DescribeMutilMediaProcessJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs/" + jobidsStr,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 type DescribeMediaJobsOptions struct {
 	QueueId           string `url:"queueId,omitempty"`
 	Tag               string `url:"tag,omitempty"`
@@ -397,6 +486,7 @@ type DescribeMediaJobsResult struct {
 	NextToken  string                  `xml:"NextToken,omitempty"`
 }
 
+// https://cloud.tencent.com/document/product/460/48235
 func (s *CIService) DescribeMediaJobs(ctx context.Context, opt *DescribeMediaJobsOptions) (*DescribeMediaJobsResult, *Response, error) {
 	var res DescribeMediaJobsResult
 	sendOpt := sendOptions{
@@ -626,6 +716,32 @@ func (s *CIService) GetSnapshot(ctx context.Context, name string, opt *GetSnapsh
 		u = fmt.Sprintf("/%s?versionId=%s&ci-process=snapshot", encodeURIComponent(name), id[0])
 	} else if len(id) == 0 {
 		u = fmt.Sprintf("/%s?ci-process=snapshot", encodeURIComponent(name))
+	} else {
+		return nil, fmt.Errorf("wrong params")
+	}
+
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              u,
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+type GetPrivateM3U8Options struct {
+	Expires int `url:"expires"`
+}
+
+// 获取私有m3u8资源接口 https://cloud.tencent.com/document/product/460/63738
+func (s *CIService) GetPrivateM3U8(ctx context.Context, name string, opt *GetPrivateM3U8Options, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=pm3u8", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?ci-process=pm3u8", encodeURIComponent(name))
 	} else {
 		return nil, fmt.Errorf("wrong params")
 	}
