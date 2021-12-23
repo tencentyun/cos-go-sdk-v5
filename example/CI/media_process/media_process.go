@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net/http"
@@ -871,6 +872,81 @@ func InvokeSuperResolutionJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+func TriggerWorkflow() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	triggerWorkflowOpt := &cos.TriggerWorkflowOptions{
+		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
+		Object: "100986-2999.mp4",
+	}
+	triggerWorkflowRes, _, err := c.CI.TriggerWorkflow(context.Background(), triggerWorkflowOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", triggerWorkflowRes)
+}
+
+func DescribeWorkflowExecutions() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	describeWorkflowExecutionsOpt := &cos.DescribeWorkflowExecutionsOptions{
+		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
+	}
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecutions(context.Background(), describeWorkflowExecutionsOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
+}
+
+func DescribeMultiWorkflowExecution() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecution(context.Background(),  "i00689df860ad11ec9c5952540019ee59")
+	log_status(err)
+	a, _ := json.Marshal(describeWorkflowExecutionsRes)
+	fmt.Println(string(a))
+	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
+}
+
 func main() {
 	// InvokeSnapshotJob()
 	// InvokeConcatJob()
@@ -886,5 +962,8 @@ func main() {
 	// InvokeVoiceSeparateJob()
 	// InvokeVideoProcessJob()
 	// InvokeSDRtoHDRJob()
-	InvokeSuperResolutionJob()
+	// InvokeSuperResolutionJob()
+	// TriggerWorkflow()
+	// DescribeWorkflowExecutions()
+	DescribeMultiWorkflowExecution()
 }
