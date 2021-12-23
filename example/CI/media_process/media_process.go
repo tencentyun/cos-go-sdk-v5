@@ -891,7 +891,7 @@ func TriggerWorkflow() {
 	})
 	triggerWorkflowOpt := &cos.TriggerWorkflowOptions{
 		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
-		Object: "100986-2999.mp4",
+		Object:     "100986-2999.mp4",
 	}
 	triggerWorkflowRes, _, err := c.CI.TriggerWorkflow(context.Background(), triggerWorkflowOpt)
 	log_status(err)
@@ -940,7 +940,7 @@ func DescribeMultiWorkflowExecution() {
 			},
 		},
 	})
-	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecution(context.Background(),  "i00689df860ad11ec9c5952540019ee59")
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecution(context.Background(), "i00689df860ad11ec9c5952540019ee59")
 	log_status(err)
 	a, _ := json.Marshal(describeWorkflowExecutionsRes)
 	fmt.Println(string(a))

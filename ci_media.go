@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/clbanning/mxj"
+	"github.com/mitchellh/mapstructure"
 )
 
 type JobInput struct {
@@ -755,4 +758,222 @@ func (s *CIService) GetPrivateM3U8(ctx context.Context, name string, opt *GetPri
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+type TriggerWorkflowOptions struct {
+	WorkflowId string `url:"workflowId"`
+	Object     string `url:"object"`
+}
+
+type TriggerWorkflowResult struct {
+	XMLName    xml.Name `xml:"Response"`
+	InstanceId string   `xml:"InstanceId"`
+	RequestId  string   `xml:"RequestId"`
+}
+
+//单文件触发工作流 https://cloud.tencent.com/document/product/460/54640
+func (s *CIService) TriggerWorkflow(ctx context.Context, opt *TriggerWorkflowOptions) (*TriggerWorkflowResult, *Response, error) {
+	var res TriggerWorkflowResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/triggerworkflow",
+		optQuery: opt,
+		method:   http.MethodPost,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type DescribeWorkflowExecutionsOptions struct {
+	WorkflowId        string `url:"workflowId,omitempty"`
+	Name              string `url:"Name,omitempty"`
+	OrderByTime       string `url:"orderByTime,omitempty"`
+	NextToken         string `url:"nextToken,omitempty"`
+	Size              int    `url:"size,omitempty"`
+	States            string `url:"states,omitempty"`
+	StartCreationTime string `url:"startCreationTime,omitempty"`
+	EndCreationTime   string `url:"endCreationTime,omitempty"`
+}
+
+type WorkflowExecutionList struct {
+	RunId        string `xml:"RunId,omitempty"`
+	WorkflowId   string `xml:"WorkflowId,omitempty"`
+	State        string `xml:"State,omitempty"`
+	CreationTime string `xml:"CreationTime,omitempty"`
+	Object       string `xml:"Object,omitempty"`
+}
+
+type DescribeWorkflowExecutionsResult struct {
+	XMLName               xml.Name                `xml:"Response"`
+	WorkflowExecutionList []WorkflowExecutionList `xml:"WorkflowExecutionList,omitempty"`
+	NextToken             string                  `xml:"NextToken,omitempty"`
+}
+
+//获取工作流实例列表 https://cloud.tencent.com/document/product/460/45950
+func (s *CIService) DescribeWorkflowExecutions(ctx context.Context, opt *DescribeWorkflowExecutionsOptions) (*DescribeWorkflowExecutionsResult, *Response, error) {
+	var res DescribeWorkflowExecutionsResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/workflowexecution",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type NotifyConfig struct {
+	URL   string `xml:"Url,omitempty"`
+	Event string `xml:"Event,omitempty"`
+	Type  string `xml:"Type,omitempty"`
+}
+
+type ExtFilter struct {
+	State      string `xml:"State,omitempty"`
+	Audio      string `xml:"Audio,omitempty"`
+	Custom     string `xml:"Custom,omitempty"`
+	CustomExts string `xml:"CustomExts,omitempty"`
+	AllFile    string `xml:"AllFile,omitempty"`
+}
+
+type NodeInput struct {
+	QueueId      string        `xml:"QueueId,omitempty"`
+	ObjectPrefix string        `xml:"ObjectPrefix,omitempty"`
+	NotifyConfig *NotifyConfig `xml:"NotifyConfig,omitempty" json:"NotifyConfig,omitempty"`
+	ExtFilter    *ExtFilter    `xml:"ExtFilter,omitempty" json:"ExtFilter,omitempty"`
+}
+
+type NodeSegment struct {
+	Format   string `xml:"Format,omitempty"`
+	Duration string `xml:"Duration,omitempty"`
+}
+
+type NodeOutput struct {
+	Region       string `xml:"Region,omitempty"`
+	Bucket       string `xml:"Bucket,omitempty"`
+	Object       string `xml:"Object,omitempty"`
+	AuObject     string `xml:"AuObject,omitempty"`
+	SpriteObject string `xml:"SpriteObject,omitempty"`
+}
+
+type NodeSCF struct {
+	Region       string `xml:"Region,omitempty"`
+	FunctionName string `xml:"FunctionName,omitempty"`
+	Namespace    string `xml:"Namespace,omitempty"`
+}
+
+type NodeSDRtoHDR struct {
+	HdrMode string `xml:"HdrMode,omitempty"`
+}
+
+type NodeSmartCover struct {
+	Format           string `xml:"Format,omitempty"`
+	Width            string `xml:"Width,omitempty"`
+	Height           string `xml:"Height,omitempty"`
+	Count            string `xml:"Count,omitempty"`
+	DeleteDuplicates string `xml:"DeleteDuplicates,omitempty"`
+}
+
+type NodeOperation struct {
+	TemplateId          string          `xml:"TemplateId,omitempty" json:"TemplateId,omitempty"`
+	Segment             *NodeSegment    `xml:"Segment,omitempty" json:"Segment,omitempty" `
+	Output              *NodeOutput     `xml:"Output,omitempty" json:"Output,omitempty"`
+	SCF                 *NodeSCF        `xml:"SCF,omitempty" json:"SCF,omitempty"`
+	SDRtoHDR            *NodeSDRtoHDR   `xml:"SDRtoHDR,omitempty" json:"SDRtoHDR,omitempty"`
+	SmartCover          *NodeSmartCover `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
+	WatermarkTemplateId string          `xml:"WatermarkTemplateId,omitempty" json:"WatermarkTemplateId,omitempty`
+	TranscodeTemplateId string          `xml:"TranscodeTemplateId,omitempty" json:"TranscodeTemplateId,omitempty"`
+}
+
+type Node struct {
+	Type      string         `xml:"Type"`
+	Input     *NodeInput     `xml:"Input,omitempty" json:"Input,omitempty"`
+	Operation *NodeOperation `xml:"Operation,omitempty" json:"Operation,omitempty"`
+}
+
+type Topology struct {
+	Dependencies map[string]string `json:"Dependencies,omitempty"`
+	Nodes        map[string]Node   `json:"Nodes,omitempty"`
+}
+
+func (m *Topology) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var v struct {
+		XMLName      xml.Name //`xml:"Topology"`
+		Dependencies struct {
+			Inner []byte `xml:",innerxml"`
+		} `xml:"Dependencies"`
+		Nodes struct {
+			Inner []byte `xml:",innerxml"`
+		} `xml:"Nodes"`
+	}
+	err := d.DecodeElement(&v, &start)
+	if err != nil {
+		return err
+	}
+
+	myMap := make(map[string]interface{})
+
+	// ... do the mxj magic here ... -
+
+	temp := v.Nodes.Inner
+
+	prefix := "<Nodes>"
+	postfix := "</Nodes>"
+	str := prefix + string(temp) + postfix
+	//fmt.Println(str)
+	myMxjMap, _ := mxj.NewMapXml([]byte(str))
+	myMap, _ = myMxjMap["Nodes"].(map[string]interface{})
+	nodesMap := make(map[string]Node)
+
+	for k, v := range myMap {
+		var node Node
+		mapstructure.Decode(v, &node)
+		nodesMap[k] = node
+	}
+
+	// fill myMap
+	m.Nodes = nodesMap
+
+	deps := make(map[string]interface{})
+
+	tep := "<Dependencies>" + string(v.Dependencies.Inner) + "</Dependencies>"
+	tepMxjMap, _ := mxj.NewMapXml([]byte(tep))
+	deps, _ = tepMxjMap["Dependencies"].(map[string]interface{})
+	depsString := make(map[string]string)
+	for k, v := range deps {
+		depsString[k] = v.(string)
+	}
+	m.Dependencies = depsString
+	return nil
+}
+
+type WorkflowExecution struct {
+	RunId        string   `xml:"RunId,omitempty" json:"RunId,omitempty"`
+	WorkflowId   string   `xml:"WorkflowId,omitempty" json:"WorkflowId,omitempty"`
+	WorkflowName string   `xml:"WorkflowName,omitempty" json:"WorkflowName,omitempty"`
+	State        string   `xml:"State,omitempty" json:"State,omitempty"`
+	CreateTime   string   `xml:"CreateTime,omitempty" json:"CreateTime,omitempty"`
+	Object       string   `xml:"Object,omitempty" json:"Object,omitempty"`
+	Topology     Topology `xml:"Topology,omitempty" json:"Topology,omitempty"`
+}
+
+type DescribeWorkflowExecutionResult struct {
+	XMLName           xml.Name            `xml:"Response"`
+	WorkflowExecution []WorkflowExecution `xml:"WorkflowExecution,omitempty" json:"WorkflowExecution,omitempty"`
+	NextToken         string              `xml:"NextToken,omitempty" json:"NextToken,omitempty"`
+}
+
+//获取工作流实例详情 https://cloud.tencent.com/document/product/460/45949
+func (s *CIService) DescribeWorkflowExecution(ctx context.Context, runId string) (*DescribeWorkflowExecutionResult, *Response, error) {
+	var res DescribeWorkflowExecutionResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/workflowexecution/" + runId,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
