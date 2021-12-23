@@ -124,7 +124,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewBucketURL_secure_false(t *testing.T) {
-	got := NewBucketURL("bname-idx", "ap-guangzhou", false).String()
+	u, _ := NewBucketURL("bname-idx", "ap-guangzhou", false)
+	got := u.String()
 	want := "http://bname-idx.cos.ap-guangzhou.myqcloud.com"
 	if got != want {
 		t.Errorf("NewBucketURL is %v, want %v", got, want)
@@ -132,7 +133,8 @@ func TestNewBucketURL_secure_false(t *testing.T) {
 }
 
 func TestNewBucketURL_secure_true(t *testing.T) {
-	got := NewBucketURL("bname-idx", "ap-guangzhou", true).String()
+	u, _ := NewBucketURL("bname-idx", "ap-guangzhou", true)
+	got := u.String()
 	want := "https://bname-idx.cos.ap-guangzhou.myqcloud.com"
 	if got != want {
 		t.Errorf("NewBucketURL is %v, want %v", got, want)
