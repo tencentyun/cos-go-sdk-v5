@@ -160,17 +160,35 @@ type Credential struct {
 }
 
 func (c *Client) GetCredential() *Credential {
-	auth, ok := c.client.Transport.(*AuthorizationTransport)
-	if !ok {
-		return nil
+	if auth, ok := c.client.Transport.(*AuthorizationTransport); ok {
+		auth.rwLocker.Lock()
+		defer auth.rwLocker.Unlock()
+		return &Credential{
+			SecretID:     auth.SecretID,
+			SecretKey:    auth.SecretKey,
+			SessionToken: auth.SessionToken,
+		}
 	}
-	auth.rwLocker.Lock()
-	defer auth.rwLocker.Unlock()
-	return &Credential{
-		SecretID:     auth.SecretID,
-		SecretKey:    auth.SecretKey,
-		SessionToken: auth.SessionToken,
+	if auth, ok := c.client.Transport.(*CVMCredentialTransport); ok {
+		ak, sk, token, err := auth.GetCredential()
+		if err != nil {
+			return nil
+		}
+		return &Credential{
+			SecretID:     ak,
+			SecretKey:    sk,
+			SessionToken: token,
+		}
 	}
+	if auth, ok := c.client.Transport.(*CredentialTransport); ok {
+		ak, sk, token := auth.Credential.GetSecretId(), auth.Credential.GetSecretKey(), auth.Credential.GetToken()
+		return &Credential{
+			SecretID:     ak,
+			SecretKey:    sk,
+			SessionToken: token,
+		}
+	}
+	return nil
 }
 
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {

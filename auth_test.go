@@ -57,7 +57,7 @@ func TestAuthorizationTransport(t *testing.T) {
 	client.doAPI(context.Background(), req, nil, true)
 }
 
-func TestCVMCredentialsTransport(t *testing.T) {
+func TestCVMCredentialTransport(t *testing.T) {
 	setup()
 	defer teardown()
 	uri := client.BaseURL.BucketURL.String()
@@ -67,15 +67,15 @@ func TestCVMCredentialsTransport(t *testing.T) {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("x-cos-security-token") != token {
-			t.Errorf("CVMCredentialsTransport x-cos-security-token error, want:%v, return:%v\n", token, r.Header.Get("x-cos-security-token"))
+			t.Errorf("CVMCredentialTransport x-cos-security-token error, want:%v, return:%v\n", token, r.Header.Get("x-cos-security-token"))
 		}
 		auth := r.Header.Get("Authorization")
 		if auth == "" {
-			t.Error("CVMCredentialsTransport didn't add Authorization header")
+			t.Error("CVMCredentialTransport didn't add Authorization header")
 		}
 		field := strings.Split(auth, "&")
 		if len(field) != 7 {
-			t.Errorf("CVMCredentialsTransport Authorization header format error: %v\n", auth)
+			t.Errorf("CVMCredentialTransport Authorization header format error: %v\n", auth)
 		}
 		st_et := strings.Split(strings.Split(field[2], "=")[1], ";")
 		st, _ := strconv.ParseInt(st_et[0], 10, 64)
@@ -91,7 +91,7 @@ func TestCVMCredentialsTransport(t *testing.T) {
 		req.Header.Add("Host", host)
 		expect := newAuthorization(ak, sk, req, authTime, true)
 		if expect != auth {
-			t.Errorf("CVMCredentialsTransport Authorization error, want:%v, return:%v\n", expect, auth)
+			t.Errorf("CVMCredentialTransport Authorization error, want:%v, return:%v\n", expect, auth)
 		}
 	})
 
@@ -116,7 +116,7 @@ func TestCVMCredentialsTransport(t *testing.T) {
         }`, ak, sk, time.Now().Unix()+3600, token))
 	})
 
-	client.client.Transport = &CVMCredentialsTransport{}
+	client.client.Transport = &CVMCredentialTransport{}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
 
