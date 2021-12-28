@@ -15,9 +15,15 @@ type BucketGetInventoryResult BucketPutInventoryOptions
 // BucketListInventoryConfiguartion same struct to options
 type BucketListInventoryConfiguartion BucketPutInventoryOptions
 
+type BucketInventoryFilterPeriod struct {
+	StartTime int64 `xml:"StartTime,omitempty"`
+	EndTime   int64 `xml:"EndTime,omitempty"`
+}
+
 // BucketInventoryFilter ...
 type BucketInventoryFilter struct {
-	Prefix string `xml:"Prefix,omitempty"`
+	Prefix string                       `xml:"Prefix,omitempty"`
+	Period *BucketInventoryFilterPeriod `xml:"Period,omitempty"`
 }
 
 // BucketInventoryOptionalFields ...
