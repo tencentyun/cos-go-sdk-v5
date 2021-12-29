@@ -371,6 +371,10 @@ func copyworker(ctx context.Context, s *ObjectService, jobs <-chan *CopyJobs, re
 					results <- &copyres
 					break
 				}
+				if resp != nil && resp.StatusCode < 499 {
+					results <- &copyres
+					break
+				}
 				time.Sleep(10 * time.Millisecond)
 				continue
 			}
@@ -464,6 +468,12 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 		for _, chunk := range chunks {
 			partOpt := &ObjectCopyPartOptions{
 				XCosCopySource: u,
+			}
+			if opt.OptCopy != nil && opt.OptCopy.ObjectCopyHeaderOptions != nil {
+				partOpt.XCosCopySourceIfModifiedSince = opt.OptCopy.XCosCopySourceIfModifiedSince
+				partOpt.XCosCopySourceIfUnmodifiedSince = opt.OptCopy.XCosCopySourceIfUnmodifiedSince
+				partOpt.XCosCopySourceIfMatch = opt.OptCopy.XCosCopySourceIfMatch
+				partOpt.XCosCopySourceIfNoneMatch = opt.OptCopy.XCosCopySourceIfNoneMatch
 			}
 			job := &CopyJobs{
 				Name:       name,
