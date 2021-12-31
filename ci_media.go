@@ -220,7 +220,7 @@ type MediaProcessJobOperation struct {
 	Tag                 string           `xml:"Tag,omitempty"`
 	Output              *JobOutput       `xml:"Output,omitempty"`
 	Transcode           *Transcode       `xml:"Transcode,omitempty"`
-	Watermark           *Watermark       `xml:"Watermark,omitempty"`
+	Watermark           []Watermark      `xml:"Watermark,omitempty"`
 	TemplateId          string           `xml:"TemplateId,omitempty"`
 	WatermarkTemplateId []string         `xml:"WatermarkTemplateId,omitempty"`
 	ConcatTemplate      *ConcatTemplate  `xml:"ConcatTemplate,omitempty"`
@@ -971,6 +971,90 @@ func (s *CIService) DescribeWorkflowExecution(ctx context.Context, runId string)
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
 		uri:     "/workflowexecution/" + runId,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type SpeechRecognition struct {
+	ChannelNum      string `xml:"ChannelNum,omitempty"`
+	ConvertNumMode  string `xml:"ConvertNumMode,omitempty"`
+	EngineModelType string `xml:"EngineModelType,omitempty"`
+	FilterDirty     string `xml:"FilterDirty,omitempty"`
+	FilterModal     string `xml:"FilterModal,omitempty"`
+	ResTextFormat   string `xml:"ResTextFormat,omitempty"`
+}
+
+type SpeechRecognitionResult struct {
+	AudioTime float64  `xml:"AudioTime,omitempty"`
+	Result    []string `xml:"Result,omitempty"`
+}
+type ASRJobOperation struct {
+	Tag                     string                   `xml:"Tag,omitempty"`
+	Output                  *JobOutput               `xml:"Output,omitempty"`
+	SpeechRecognition       *SpeechRecognition       `xml:"SpeechRecognition,omitempty"`
+	SpeechRecognitionResult *SpeechRecognitionResult `xml:"SpeechRecognitionResult,omitempty"`
+}
+
+type CreateASRJobsOptions struct {
+	XMLName   xml.Name         `xml:"Request"`
+	Tag       string           `xml:"Tag,omitempty"`
+	Input     *JobInput        `xml:"Input,omitempty"`
+	Operation *ASRJobOperation `xml:"Operation,omitempty"`
+	QueueId   string           `xml:"QueueId,omitempty"`
+	CallBack  string           `xml:"CallBack,omitempty"`
+}
+
+type ASRJobDetail struct {
+	Code         string           `xml:"Code,omitempty"`
+	Message      string           `xml:"Message,omitempty"`
+	JobId        string           `xml:"JobId,omitempty"`
+	Tag          string           `xml:"Tag,omitempty"`
+	State        string           `xml:"State,omitempty"`
+	CreationTime string           `xml:"CreationTime,omitempty"`
+	QueueId      string           `xml:"QueueId,omitempty"`
+	Input        *JobInput        `xml:"Input,omitempty"`
+	Operation    *ASRJobOperation `xml:"Operation,omitempty"`
+}
+
+type CreateASRJobsResult struct {
+	XMLName    xml.Name      `xml:"Response"`
+	JobsDetail *ASRJobDetail `xml:"JobsDetail,omitempty"`
+}
+
+func (s *CIService) CreateASRJobs(ctx context.Context, opt *CreateASRJobsOptions) (*CreateASRJobsResult, *Response, error) {
+	var res CreateASRJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/asr_jobs",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type DescribeMutilASRJobResult struct {
+	XMLName        xml.Name       `xml:"Response"`
+	JobsDetail     []ASRJobDetail `xml:"JobsDetail,omitempty"`
+	NonExistJobIds []string       `xml:"NonExistJobIds,omitempty"`
+}
+
+func (s *CIService) DescribeMultiASRJob(ctx context.Context, jobids []string) (*DescribeMutilASRJobResult, *Response, error) {
+	jobidsStr := ""
+	if len(jobids) < 1 {
+		return nil, nil, errors.New("empty param jobids")
+	} else {
+		jobidsStr = strings.Join(jobids, ",")
+	}
+
+	var res DescribeMutilASRJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/asr_jobs/" + jobidsStr,
 		method:  http.MethodGet,
 		result:  &res,
 	}
