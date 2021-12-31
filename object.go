@@ -1241,14 +1241,21 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	if opt.Opt != nil && opt.Opt.Range != "" {
 		return nil, fmt.Errorf("Download doesn't support Range Options")
 	}
-	// 获取文件长度和CRC
-	var coscrc string
-	resp, err := s.Head(ctx, name, nil, id...)
+
+	headOpt := &ObjectHeadOptions{
+		XCosSSECustomerAglo:   opt.Opt.XCosSSECustomerAglo,
+		XCosSSECustomerKey:    opt.Opt.XCosSSECustomerKey,
+		XCosSSECustomerKeyMD5: opt.Opt.XCosSSECustomerKeyMD5,
+		XOptionHeader:         opt.Opt.XOptionHeader,
+	}
+	resp, err := s.Head(ctx, name, headOpt, id...)
 	if err != nil {
 		return resp, err
 	}
+
+	// 获取文件长度和CRC
 	// 如果对象不存在x-cos-hash-crc64ecma，则跳过不做校验
-	coscrc = resp.Header.Get("x-cos-hash-crc64ecma")
+	coscrc := resp.Header.Get("x-cos-hash-crc64ecma")
 	strTotalBytes := resp.Header.Get("Content-Length")
 	totalBytes, err := strconv.ParseInt(strTotalBytes, 10, 64)
 	if err != nil {
