@@ -947,6 +947,72 @@ func DescribeMultiWorkflowExecution() {
 	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
 }
 
+func InvokeASRJob() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateASRJobsOptions{
+		Tag: "SpeechRecognition",
+		Input: &cos.JobInput{
+			Object: "abc.mp3",
+		},
+		Operation: &cos.ASRJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "music.txt",
+				Bucket: "wwj-cq-1253960454",
+			},
+			SpeechRecognition: &cos.SpeechRecognition{
+				ChannelNum:      "1",
+				EngineModelType: "8k_zh",
+			},
+		},
+		QueueId: "p1db6a1a76ff04806b6af0d96e9bc80ab",
+	}
+	createJobRes, _, err := c.CI.CreateASRJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+	DescribeJobRes, _, err := c.CI.DescribeMultiASRJob(context.Background(), []string{createJobRes.JobsDetail.JobId})
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+func DescribeASRJob() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	DescribeJobRes, _, err := c.CI.DescribeMultiASRJob(context.Background(), []string{"sa59de0a06a4711ec9b81df13272c69a9"})
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail[0].Operation.SpeechRecognitionResult)
+}
+
 func main() {
 	// InvokeSnapshotJob()
 	// InvokeConcatJob()
@@ -965,5 +1031,7 @@ func main() {
 	// InvokeSuperResolutionJob()
 	// TriggerWorkflow()
 	// DescribeWorkflowExecutions()
-	DescribeMultiWorkflowExecution()
+	// DescribeMultiWorkflowExecution()
+	//InvokeASRJob()
+	DescribeASRJob()
 }
