@@ -687,9 +687,10 @@ func (s *CIService) GetDocumentAuditingJob(ctx context.Context, jobid string) (*
 
 // PutWebpageAuditingJobOptions is the option of PutWebpageAuditingJob
 type PutWebpageAuditingJobOptions struct {
-	XMLName  xml.Name                `xml:"Request"`
-	InputUrl string                  `xml:"Input>Url,omitempty"`
-	Conf     *WebpageAuditingJobConf `xml:"Conf"`
+	XMLName     xml.Name                `xml:"Request"`
+	InputUrl    string                  `xml:"Input>Url,omitempty"`
+	InputDataId string                  `xml:"Input>DataId,omitempty"`
+	Conf        *WebpageAuditingJobConf `xml:"Conf"`
 }
 
 // WebpageAuditingJobConf is the config of PutWebpageAuditingJobOptions
@@ -736,6 +737,7 @@ type WebpageAuditingJobDetail struct {
 	ImageResults  *WebpageImageResults `xml:",omitempty"`
 	TextResults   *WebpageTextResults  `xml:",omitempty"`
 	HighlightHtml string               `xml:",omitempty"`
+	DataId        string               `xml:",omitempty"`
 }
 
 // WebpageResultInfo
