@@ -103,29 +103,31 @@ func (s *CIService) ImageProcess(ctx context.Context, name string, opt *ImagePro
 
 // ImageRecognitionOptions is the option of ImageAuditing
 type ImageRecognitionOptions struct {
-	CIProcess  string `url:"ci-process,omitempty"`
-	DetectType string `url:"detect-type,omitempty"`
-	DetectUrl  string `url:"detect-url,omitempty"`
-	Interval   int    `url:"interval,omitempty"`
-	MaxFrames  int    `url:"max-frames,omitempty"`
-	BizType    string `url:"biz-type,omitempty"`
+	CIProcess        string `url:"ci-process,omitempty"`
+	DetectType       string `url:"detect-type,omitempty"`
+	DetectUrl        string `url:"detect-url,omitempty"`
+	Interval         int    `url:"interval,omitempty"`
+	MaxFrames        int    `url:"max-frames,omitempty"`
+	BizType          string `url:"biz-type,omitempty"`
+	LargeImageDetect int    `url:"large-image-detect,omitempty"`
 }
 
 // ImageRecognitionResult is the result of ImageRecognition/ImageAuditing
 type ImageRecognitionResult struct {
-	XMLName       xml.Name         `xml:"RecognitionResult"`
-	JobId         string           `xml:"JobId,omitempty"`
-	Text          string           `xml:"Text,omitempty"`
-	Label         string           `xml:"Label,omitempty"`
-	Result        int              `xml:"Result,omitempty"`
-	Score         int              `xml:"Score,omitempty"`
-	SubLabel      string           `xml:"SubLabel,omitempty"`
-	PornInfo      *RecognitionInfo `xml:"PornInfo,omitempty"`
-	TerroristInfo *RecognitionInfo `xml:"TerroristInfo,omitempty"`
-	PoliticsInfo  *RecognitionInfo `xml:"PoliticsInfo,omitempty"`
-	AdsInfo       *RecognitionInfo `xml:"AdsInfo,omitempty"`
-	TeenagerInfo  *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
-	TerrorismInfo *RecognitionInfo `xml:"TerrorismInfo,omitempty"`
+	XMLName           xml.Name         `xml:"RecognitionResult"`
+	JobId             string           `xml:"JobId,omitempty"`
+	Text              string           `xml:"Text,omitempty"`
+	Label             string           `xml:"Label,omitempty"`
+	Result            int              `xml:"Result,omitempty"`
+	Score             int              `xml:"Score,omitempty"`
+	SubLabel          string           `xml:"SubLabel,omitempty"`
+	PornInfo          *RecognitionInfo `xml:"PornInfo,omitempty"`
+	TerroristInfo     *RecognitionInfo `xml:"TerroristInfo,omitempty"`
+	PoliticsInfo      *RecognitionInfo `xml:"PoliticsInfo,omitempty"`
+	AdsInfo           *RecognitionInfo `xml:"AdsInfo,omitempty"`
+	TeenagerInfo      *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
+	TerrorismInfo     *RecognitionInfo `xml:"TerrorismInfo,omitempty"`
+	CompressionResult int              `xml:"CompressionResult,omitempty"`
 }
 
 // RecognitionInfo is the result of auditing scene
@@ -177,11 +179,12 @@ func (s *CIService) ImageAuditing(ctx context.Context, name string, opt *ImageRe
 
 // ImageAuditingInputOptions is the option of BatchImageAuditingOptions
 type ImageAuditingInputOptions struct {
-	DataId    string `xml:",omitempty"`
-	Object    string `xml:",omitempty"`
-	Url       string `xml:",omitempty"`
-	Interval  int    `xml:",omitempty"`
-	MaxFrames int    `xml:",omitempty"`
+	DataId           string `xml:",omitempty"`
+	Object           string `xml:",omitempty"`
+	Url              string `xml:",omitempty"`
+	Interval         int    `xml:",omitempty"`
+	MaxFrames        int    `xml:",omitempty"`
+	LargeImageDetect int    `xml:",omitempty"`
 }
 
 // ImageAuditingJobConf is the config of BatchImageAuditingOptions
@@ -197,24 +200,25 @@ type BatchImageAuditingOptions struct {
 	Conf    *ImageAuditingJobConf       `xml:"Conf"`
 }
 
-// ImageRecognitionResult is the result of BatchImageAuditingJobResult
+// ImageAuditingResult is the result of BatchImageAuditingJobResult
 type ImageAuditingResult struct {
-	Code          string           `xml:",omitempty"`
-	Message       string           `xml:",omitempty"`
-	JobId         string           `xml:"JobId,omitempty"`
-	DataId        string           `xml:",omitempty"`
-	Object        string           `xml:",omitempty"`
-	Url           string           `xml:",omitempty"`
-	Text          string           `xml:",omitempty"`
-	Label         string           `xml:",omitempty"`
-	Result        int              `xml:",omitempty"`
-	Score         int              `xml:",omitempty"`
-	SubLabel      string           `xml:",omitempty"`
-	PornInfo      *RecognitionInfo `xml:",omitempty"`
-	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
-	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
-	AdsInfo       *RecognitionInfo `xml:",omitempty"`
-	TeenagerInfo  *RecognitionInfo `xml:",omitempty"`
+	Code              string           `xml:",omitempty"`
+	Message           string           `xml:",omitempty"`
+	JobId             string           `xml:"JobId,omitempty"`
+	DataId            string           `xml:",omitempty"`
+	Object            string           `xml:",omitempty"`
+	Url               string           `xml:",omitempty"`
+	Text              string           `xml:",omitempty"`
+	Label             string           `xml:",omitempty"`
+	Result            int              `xml:",omitempty"`
+	Score             int              `xml:",omitempty"`
+	SubLabel          string           `xml:",omitempty"`
+	PornInfo          *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo     *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo      *RecognitionInfo `xml:",omitempty"`
+	AdsInfo           *RecognitionInfo `xml:",omitempty"`
+	TeenagerInfo      *RecognitionInfo `xml:",omitempty"`
+	CompressionResult int              `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
