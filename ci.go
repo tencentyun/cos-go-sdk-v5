@@ -125,6 +125,7 @@ type ImageRecognitionResult struct {
 	PoliticsInfo  *RecognitionInfo `xml:"PoliticsInfo,omitempty"`
 	AdsInfo       *RecognitionInfo `xml:"AdsInfo,omitempty"`
 	TeenagerInfo  *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
+	TerrorismInfo *RecognitionInfo `xml:"TerrorismInfo,omitempty"`
 }
 
 // RecognitionInfo is the result of auditing scene
