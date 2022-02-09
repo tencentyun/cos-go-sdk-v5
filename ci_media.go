@@ -216,9 +216,93 @@ type SuperResolution struct {
 	EnableScaleUp string `xml:"EnableScaleUp,omitempty"`
 }
 
+type MediaResult struct {
+	OutputFile struct {
+		Bucket  string `xml:"Bucket,omitempty"`
+		Md5Info []struct {
+			Md5        string `xml:"Md5,omitempty"`
+			ObjectName string `xml:"ObjectName,omitempty"`
+		} `xml:"Md5Info,omitempty"`
+		ObjectName       []string `xml:"ObjectName,omitempty"`
+		ObjectPrefix     string   `xml:"ObjectPrefix,omitempty"`
+		Region           string   `xml:"Region,omitempty"`
+		SpriteOutputFile struct {
+			Bucket  string `xml:"Bucket,omitempty"`
+			Md5Info []struct {
+				Md5        string `xml:"Md5,omitempty"`
+				ObjectName string `xml:"ObjectName,omitempty"`
+			} `xml:"Md5Info,omitempty"`
+			ObjectName   []string `xml:"ObjectName,omitempty"`
+			ObjectPrefix string   `xml:"ObjectPrefix,omitempty"`
+			Region       string   `xml:"Region,omitempty"`
+		} `xml:"SpriteOutputFile,omitempty"`
+	} `xml:"OutputFile,omitempty"`
+}
+
+type MediaInfo struct {
+	Format struct {
+		Bitrate        string `xml:"Bitrate"`
+		Duration       string `xml:"Duration"`
+		FormatLongName string `xml:"FormatLongName"`
+		FormatName     string `xml:"FormatName"`
+		NumProgram     string `xml:"NumProgram"`
+		NumStream      string `xml:"NumStream"`
+		Size           string `xml:"Size"`
+		StartTime      string `xml:"StartTime"`
+	} `xml:"Format"`
+	Stream struct {
+		Audio []struct {
+			Bitrate        string `xml:"Bitrate"`
+			Channel        string `xml:"Channel"`
+			ChannelLayout  string `xml:"ChannelLayout"`
+			CodecLongName  string `xml:"CodecLongName"`
+			CodecName      string `xml:"CodecName"`
+			CodecTag       string `xml:"CodecTag"`
+			CodecTagString string `xml:"CodecTagString"`
+			CodecTimeBase  string `xml:"CodecTimeBase"`
+			Duration       string `xml:"Duration"`
+			Index          string `xml:"Index"`
+			Language       string `xml:"Language"`
+			SampleFmt      string `xml:"SampleFmt"`
+			SampleRate     string `xml:"SampleRate"`
+			StartTime      string `xml:"StartTime"`
+			Timebase       string `xml:"Timebase"`
+		} `xml:"Audio"`
+		Subtitle string `xml:"Subtitle"`
+		Video    []struct {
+			AvgFps         string `xml:"AvgFps"`
+			Bitrate        string `xml:"Bitrate"`
+			CodecLongName  string `xml:"CodecLongName"`
+			CodecName      string `xml:"CodecName"`
+			CodecTag       string `xml:"CodecTag"`
+			CodecTagString string `xml:"CodecTagString"`
+			CodecTimeBase  string `xml:"CodecTimeBase"`
+			Dar            string `xml:"Dar"`
+			Duration       string `xml:"Duration"`
+			Fps            string `xml:"Fps"`
+			HasBFrame      string `xml:"HasBFrame"`
+			Height         string `xml:"Height"`
+			Index          string `xml:"Index"`
+			Language       string `xml:"Language"`
+			Level          string `xml:"Level"`
+			NumFrames      string `xml:"NumFrames"`
+			PixFormat      string `xml:"PixFormat"`
+			Profile        string `xml:"Profile"`
+			RefFrames      string `xml:"RefFrames"`
+			Rotation       string `xml:"Rotation"`
+			Sar            string `xml:"Sar"`
+			StartTime      string `xml:"StartTime"`
+			Timebase       string `xml:"Timebase"`
+			Width          string `xml:"Width"`
+		} `xml:"Video"`
+	} `xml:"Stream"`
+}
+
 type MediaProcessJobOperation struct {
 	Tag                 string           `xml:"Tag,omitempty"`
 	Output              *JobOutput       `xml:"Output,omitempty"`
+	MediaResult         *MediaResult     `xml:"MediaResult,omitempty"`
+	MediaInfo           *MediaInfo       `xml:"MediaInfo,omitempty"`
 	Transcode           *Transcode       `xml:"Transcode,omitempty"`
 	Watermark           []Watermark      `xml:"Watermark,omitempty"`
 	TemplateId          string           `xml:"TemplateId,omitempty"`
@@ -249,6 +333,7 @@ type MediaProcessJobDetail struct {
 	Message      string                    `xml:"Message,omitempty"`
 	JobId        string                    `xml:"JobId,omitempty"`
 	Tag          string                    `xml:"Tag,omitempty"`
+	Progress     string                    `xml:"Progress,omitempty"`
 	State        string                    `xml:"State,omitempty"`
 	CreationTime string                    `xml:"CreationTime,omitempty"`
 	QueueId      string                    `xml:"QueueId,omitempty"`
@@ -290,74 +375,9 @@ type MediaProcessJobsNotifyBody struct {
 		JobId     string `xml:"JobId"`
 		Message   string `xml:"Message"`
 		Operation struct {
-			MediaInfo struct {
-				Format struct {
-					Text           string `xml:",chardata"`
-					Bitrate        string `xml:"Bitrate"`
-					Duration       string `xml:"Duration"`
-					FormatLongName string `xml:"FormatLongName"`
-					FormatName     string `xml:"FormatName"`
-					NumProgram     string `xml:"NumProgram"`
-					NumStream      string `xml:"NumStream"`
-					Size           string `xml:"Size"`
-					StartTime      string `xml:"StartTime"`
-				} `xml:"Format"`
-				Stream struct {
-					Audio []struct {
-						Bitrate        string `xml:"Bitrate"`
-						Channel        string `xml:"Channel"`
-						ChannelLayout  string `xml:"ChannelLayout"`
-						CodecLongName  string `xml:"CodecLongName"`
-						CodecName      string `xml:"CodecName"`
-						CodecTag       string `xml:"CodecTag"`
-						CodecTagString string `xml:"CodecTagString"`
-						CodecTimeBase  string `xml:"CodecTimeBase"`
-						Duration       string `xml:"Duration"`
-						Index          string `xml:"Index"`
-						Language       string `xml:"Language"`
-						SampleFmt      string `xml:"SampleFmt"`
-						SampleRate     string `xml:"SampleRate"`
-						StartTime      string `xml:"StartTime"`
-						Timebase       string `xml:"Timebase"`
-					} `xml:"Audio"`
-					Subtitle string `xml:"Subtitle"`
-					Video    []struct {
-						AvgFps         string `xml:"AvgFps"`
-						Bitrate        string `xml:"Bitrate"`
-						CodecLongName  string `xml:"CodecLongName"`
-						CodecName      string `xml:"CodecName"`
-						CodecTag       string `xml:"CodecTag"`
-						CodecTagString string `xml:"CodecTagString"`
-						CodecTimeBase  string `xml:"CodecTimeBase"`
-						Dar            string `xml:"Dar"`
-						Duration       string `xml:"Duration"`
-						Fps            string `xml:"Fps"`
-						HasBFrame      string `xml:"HasBFrame"`
-						Height         string `xml:"Height"`
-						Index          string `xml:"Index"`
-						Language       string `xml:"Language"`
-						Level          string `xml:"Level"`
-						NumFrames      string `xml:"NumFrames"`
-						PixFormat      string `xml:"PixFormat"`
-						Profile        string `xml:"Profile"`
-						RefFrames      string `xml:"RefFrames"`
-						Rotation       string `xml:"Rotation"`
-						Sar            string `xml:"Sar"`
-						StartTime      string `xml:"StartTime"`
-						Timebase       string `xml:"Timebase"`
-						Width          string `xml:"Width"`
-					} `xml:"Video"`
-				} `xml:"Stream"`
-			} `xml:"MediaInfo"`
-			MediaResult struct {
-				OutputFile struct {
-					Bucket       string   `xml:"Bucket"`
-					ObjectName   []string `xml:"ObjectName"`
-					ObjectPrefix string   `xml:"ObjectPrefix"`
-					Region       string   `xml:"Region"`
-				} `xml:"OutputFile"`
-			} `xml:"MediaResult"`
-			Output struct {
+			MediaInfo   *MediaInfo   `xml:"MediaInfo"`
+			MediaResult *MediaResult `xml:"MediaResult"`
+			Output      struct {
 				Bucket string `xml:"Bucket"`
 				Object string `xml:"Object"`
 				Region string `xml:"Region"`
