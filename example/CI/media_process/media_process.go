@@ -325,13 +325,15 @@ func InvokeMultiJobs() {
 }
 
 func JobNotifyCallback() {
-	taskBody := "<Response><EventName>TaskFinish</EventName><JobsDetail><Code>Success</Code><CreationTime>2021-09-14T14:38:59+0800</CreationTime><EndTime>2021-09-14T14:39:59+0800</EndTime><Input><BucketId></BucketId><Object>e28ef88b61ed41b7a6ea76a8147f4f9e</Object><Region>ap-guangzhou</Region></Input><JobId>j7123e78c152611ec9e8c1ba6632b91a8</JobId><Message/><Operation><MediaInfo><Format><Bitrate>3775.738000</Bitrate><Duration>143.732000</Duration><FormatLongName>QuickTime / MOV</FormatLongName><FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName><NumProgram>0</NumProgram><NumStream>2</NumStream><Size>67836813</Size><StartTime>0.000000</StartTime></Format><Stream><Audio><Bitrate>125.049000</Bitrate><Channel>2</Channel><ChannelLayout>stereo</ChannelLayout><CodecLongName>AAC (Advanced Audio Coding)</CodecLongName><CodecName>aac</CodecName><CodecTag>0x6134706d</CodecTag><CodecTagString>mp4a</CodecTagString><CodecTimeBase>1/44100</CodecTimeBase><Duration>143.730998</Duration><Index>1</Index><Language>und</Language><SampleFmt>fltp</SampleFmt><SampleRate>44100</SampleRate><StartTime>0.000000</StartTime><Timebase>1/44100</Timebase></Audio><Subtitle/><Video><AvgFps>25/1</AvgFps><Bitrate>3645.417000</Bitrate><CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName><CodecName>h264</CodecName><CodecTag>0x31637661</CodecTag><CodecTagString>avc1</CodecTagString><CodecTimeBase>1/12800</CodecTimeBase><Dar>9:16</Dar><Duration>143.680000</Duration><Fps>25.500000</Fps><HasBFrame>2</HasBFrame><Height>3412</Height><Index>0</Index><Language>und</Language><Level>51</Level><NumFrames>3592</NumFrames><PixFormat>yuv420p</PixFormat><Profile>High</Profile><RefFrames>1</RefFrames><Rotation>0.000000</Rotation><Sar>2559:2560</Sar><StartTime>0.000000</StartTime><Timebase>1/12800</Timebase><Width>1920</Width></Video></Stream></MediaInfo><MediaResult><OutputFile><Bucket></Bucket><ObjectName>f89f22f7a8be4f478434da58eb11d7da.mp4</ObjectName><ObjectPrefix/><Region>ap-guangzhou</Region></OutputFile></MediaResult><Output><Bucket></Bucket><Object>f89f22f7a8be4f478434da58eb11d7da.mp4</Object><Region>ap-guangzhou</Region></Output><TemplateId>t064fb9214850f49aaac44b5561a7b0b3b</TemplateId><TemplateName>MP4-FHD</TemplateName></Operation><QueueId>p6f358a37bf9442ad8f859db055cd0edb</QueueId><StartTime>2021-09-14T14:38:59+0800</StartTime><State>Success</State><Tag>Transcode</Tag></JobsDetail></Response>"
+	taskBody := "<Response><JobsDetail><Code>Success</Code><CreationTime>2022-02-09T11:25:43+0800</CreationTime><EndTime>2022-02-09T11:25:47+0800</EndTime><Input><BucketId>wwj-cq-1253960454</BucketId><Object>input/117374C.mp4</Object><Region>ap-chongqing</Region></Input><JobId>jf6717076895711ecafdd594be6cca70c</JobId><Message/><Operation><MediaInfo><Format><Bitrate>215.817000</Bitrate><Duration>96.931000</Duration><FormatLongName>QuickTime / MOV</FormatLongName><FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName><NumProgram>0</NumProgram><NumStream>1</NumStream><Size>2614921</Size><StartTime>0.000000</StartTime></Format><Stream><Audio/><Subtitle/><Video><AvgFps>29.970030</AvgFps><Bitrate>212.875000</Bitrate><CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName><CodecName>h264</CodecName><CodecTag>0x31637661</CodecTag><CodecTagString>avc1</CodecTagString><CodecTimeBase>1/30000</CodecTimeBase><Dar>16:9</Dar><Duration>96.930167</Duration><Fps>29.970030</Fps><HasBFrame>2</HasBFrame><Height>400</Height><Index>0</Index><Language>und</Language><Level>30</Level><NumFrames>2905</NumFrames><PixFormat>yuv420p</PixFormat><Profile>High</Profile><RefFrames>1</RefFrames><Rotation>0.000000</Rotation><Sar>640:639</Sar><StartTime>0.000000</StartTime><Timebase>1/30000</Timebase><Width>710</Width></Video></Stream></MediaInfo><MediaResult><OutputFile><Bucket>wwj-cq-1253960454</Bucket><Md5Info><Md5>38f0b40c78562f819421137541043f09</Md5><ObjectName>output/go_117374C.mp4</ObjectName></Md5Info><ObjectName>output/go_117374C.mp4</ObjectName><ObjectPrefix/><Region>ap-chongqing</Region><SpriteOutputFile><Bucket/><Md5Info/><ObjectName/><ObjectPrefix/><Region/></SpriteOutputFile></OutputFile></MediaResult><Output><Bucket>wwj-cq-1253960454</Bucket><Object>output/go_117374C.mp4</Object><Region>ap-chongqing</Region></Output><Transcode><Audio><Bitrate/><Channels/><Codec>AAC</Codec><KeepTwoTracks>false</KeepTwoTracks><Profile/><Remove>false</Remove><SampleFormat/><Samplerate>44100</Samplerate><SwitchTrack>false</SwitchTrack></Audio><Container><Format>mp4</Format></Container><TimeInterval><Duration/><Start>10</Start></TimeInterval><TransConfig><AdjDarMethod/><AudioBitrateAdjMethod/><DeleteMetadata>false</DeleteMetadata><IsCheckAudioBitrate>false</IsCheckAudioBitrate><IsCheckReso>false</IsCheckReso><IsCheckVideoBitrate>false</IsCheckVideoBitrate><IsHdr2Sdr>false</IsHdr2Sdr><IsStreamCopy>false</IsStreamCopy><ResoAdjMethod/><VideoBitrateAdjMethod/></TransConfig><Video><AnimateFramesPerSecond/><AnimateOnlyKeepKeyFrame>false</AnimateOnlyKeepKeyFrame><AnimateTimeIntervalOfFrame/><Bitrate/><Bufsize/><Codec>H.264</Codec><Crf>25</Crf><Crop/><Fps/><Gop/><Height/><Interlaced>false</Interlaced><LongShortMode>false</LongShortMode><Maxrate/><Pad/><Pixfmt/><Preset>medium</Preset><Profile>high</Profile><Quality/><Remove>false</Remove><ScanMode/><SliceTime>5</SliceTime><Width/></Video></Transcode></Operation><Progress>100</Progress><QueueId>paaf4fce5521a40888a3034a5de80f6ca</QueueId><StartTime>2022-02-09T11:25:43+0800</StartTime><State>Success</State><Tag>Transcode</Tag></JobsDetail></Response>"
 	var body cos.MediaProcessJobsNotifyBody
 	err := xml.Unmarshal([]byte(taskBody), &body)
 	if err != nil {
 		fmt.Println(fmt.Sprintf("err:%v", err))
 	} else {
-		fmt.Println(fmt.Sprintf("body:%v", body))
+		fmt.Println(fmt.Sprintf("body:%+v", body))
+		fmt.Println(fmt.Sprintf("mediaInfo:%+v", body.JobsDetail.Operation.MediaInfo))
+		fmt.Println(fmt.Sprintf("mediaResult:%+v", body.JobsDetail.Operation.MediaResult))
 	}
 }
 
@@ -1013,6 +1015,31 @@ func DescribeASRJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail[0].Operation.SpeechRecognitionResult)
 }
 
+func DescribeJob() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "jf6717076895711ecafdd594be6cca70c")
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaInfo)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaResult)
+}
+
 func main() {
 	// InvokeSnapshotJob()
 	// InvokeConcatJob()
@@ -1032,6 +1059,7 @@ func main() {
 	// TriggerWorkflow()
 	// DescribeWorkflowExecutions()
 	// DescribeMultiWorkflowExecution()
-	//InvokeASRJob()
-	DescribeASRJob()
+	// InvokeASRJob()
+	// DescribeASRJob()
+	DescribeJob()
 }
