@@ -48,16 +48,25 @@ func main() {
 		},
 	})
 	opt := &cos.PutFetchTaskOptions{
+		// 源站资源地址,需要url encode,不支持https
 		Url: "http://" + bucket + ".cos.ap-guangzhou.myqcloud.com/exampleobject",
+		// COS中的文件路径，不需要url encode
 		Key: "exampleobject",
+		/*
+		MD5: 文件 MD5 校验值, 可选
+		SuccessCallbackUrl: 回源拉取成功的回调地址，可选
+		FailureCallbackUrl: 回源拉取失败的回调地址，可选
+		*/
 	}
 
+	// 发起离线回源
 	res, _, err := c.Object.PutFetchTask(context.Background(), bucket, opt)
 	log_status(err)
 	fmt.Printf("res: %+v\n", res)
 
 	time.Sleep(time.Second * 3)
 
+	// 查询回源进度
 	rs, _, err := c.Object.GetFetchTask(context.Background(), bucket, res.Data.TaskId)
 	log_status(err)
 	fmt.Printf("res: %+v\n", rs)
