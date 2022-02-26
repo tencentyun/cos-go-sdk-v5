@@ -723,6 +723,26 @@ func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGe
 	return &res, resp, err
 }
 
+type GenerateMediaInfoOptions struct {
+	XMLName xml.Name  `xml:"Request"`
+	Input   *JobInput `xml:"Input,omitempty"`
+}
+
+// 生成媒体信息接口，支持大文件，耗时较大请求
+func (s *CIService) GenerateMediaInfo(ctx context.Context, opt *GenerateMediaInfoOptions) (*GetMediaInfoResult, *Response, error) {
+
+	var res GetMediaInfoResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/mediainfo",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 type GetSnapshotOptions struct {
 	Time   float32 `url:"time,omitempty"`
 	Height int     `url:"height,omitempty"`
