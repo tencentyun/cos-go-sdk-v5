@@ -94,6 +94,10 @@ func (s *BucketService) Delete(ctx context.Context) (*Response, error) {
 	return resp, err
 }
 
+type BucketHeadOptions struct {
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
 // Head Bucket请求可以确认是否存在该Bucket，是否有权限访问，Head的权限与Read一致。
 //
 //   当其存在时，返回 HTTP 状态码200；
@@ -101,11 +105,16 @@ func (s *BucketService) Delete(ctx context.Context) (*Response, error) {
 //   当不存在时，返回 HTTP 状态码404。
 //
 // https://www.qcloud.com/document/product/436/7735
-func (s *BucketService) Head(ctx context.Context) (*Response, error) {
+func (s *BucketService) Head(ctx context.Context, opt ...*BucketHeadOptions) (*Response, error) {
+	var hopt *BucketHeadOptions
+	if len(opt) > 0 {
+		hopt = opt[0]
+	}
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     "/",
-		method:  http.MethodHead,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/",
+		method:    http.MethodHead,
+		optHeader: hopt,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
