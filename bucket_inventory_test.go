@@ -17,7 +17,7 @@ func TestBucketService_PutInventory(t *testing.T) {
 		ID:                     "list1",
 		IsEnabled:              "True",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{"myPrefix"},
+		Filter:                 &BucketInventoryFilter{"myPrefix", nil},
 		Schedule:               &BucketInventorySchedule{"Daily"},
 		Destination: &BucketInventoryDestination{
 			Bucket:     "qcs::cos:ap-guangzhou::examplebucket-1250000000",
@@ -108,7 +108,7 @@ func TestBucketService_GetInventory(t *testing.T) {
 		ID:                     "list1",
 		IsEnabled:              "True",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{"myPrefix"},
+		Filter:                 &BucketInventoryFilter{"myPrefix", nil},
 		Schedule:               &BucketInventorySchedule{"Daily"},
 		Destination: &BucketInventoryDestination{
 			Bucket:    "qcs::cos:ap-guangzhou::examplebucket-1250000000",
@@ -221,7 +221,7 @@ func TestBucketService_ListInventory(t *testing.T) {
 				ID:                     "list1",
 				IsEnabled:              "True",
 				IncludedObjectVersions: "All",
-				Filter:                 &BucketInventoryFilter{"myPrefix"},
+				Filter:                 &BucketInventoryFilter{"myPrefix", nil},
 				Schedule:               &BucketInventorySchedule{"Daily"},
 				Destination: &BucketInventoryDestination{
 					Bucket:     "qcs::cos:ap-beijing::examplebucket-1250000000",
@@ -246,7 +246,7 @@ func TestBucketService_ListInventory(t *testing.T) {
 				ID:                     "list2",
 				IsEnabled:              "True",
 				IncludedObjectVersions: "All",
-				Filter:                 &BucketInventoryFilter{"myPrefix2"},
+				Filter:                 &BucketInventoryFilter{"myPrefix2", nil},
 				Schedule:               &BucketInventorySchedule{"Weekly"},
 				Destination: &BucketInventoryDestination{
 					Bucket:    "qcs::cos:ap-beijing::examplebucket-1250000000",

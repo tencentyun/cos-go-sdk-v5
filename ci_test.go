@@ -108,15 +108,17 @@ func TestCIService_ImageProcess(t *testing.T) {
 				Orientation: 0,
 			},
 		},
-		ProcessResults: &PicProcessObject{
-			Key:      "format.jpg",
-			Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
-			Format:   "PNG",
-			Width:    103,
-			Height:   99,
-			Size:     21351,
-			Quality:  100,
-			ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+		ProcessResults: []PicProcessObject{
+			{
+				Key:      "format.jpg",
+				Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
+				Format:   "PNG",
+				Width:    103,
+				Height:   99,
+				Size:     21351,
+				Quality:  100,
+				ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+			},
 		},
 	}
 
@@ -471,7 +473,7 @@ func TestCIService_PutWebpageAuditingJob(t *testing.T) {
 	})
 
 	opt := &PutWebpageAuditingJobOptions{
-		InputUrl:  "http://www.example.com",
+		InputUrl: "http://www.example.com",
 		Conf: &WebpageAuditingJobConf{
 			DetectType: "Porn,Terrorism,Politics,Ads",
 			Callback:   "http://www.example.com/",
@@ -583,15 +585,17 @@ func TestCIService_Put(t *testing.T) {
 				Orientation: 0,
 			},
 		},
-		ProcessResults: &PicProcessObject{
-			Key:      "format.jpg",
-			Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
-			Format:   "PNG",
-			Width:    103,
-			Height:   99,
-			Size:     21351,
-			Quality:  100,
-			ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+		ProcessResults: []PicProcessObject{
+			{
+				Key:      "format.jpg",
+				Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
+				Format:   "PNG",
+				Width:    103,
+				Height:   99,
+				Size:     21351,
+				Quality:  100,
+				ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+			},
 		},
 	}
 
@@ -704,15 +708,17 @@ func TestCIService_PutFromFile(t *testing.T) {
 				Orientation: 0,
 			},
 		},
-		ProcessResults: &PicProcessObject{
-			Key:      "format.jpg",
-			Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
-			Format:   "PNG",
-			Width:    103,
-			Height:   99,
-			Size:     21351,
-			Quality:  100,
-			ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+		ProcessResults: []PicProcessObject{
+			{
+				Key:      "format.jpg",
+				Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
+				Format:   "PNG",
+				Width:    103,
+				Height:   99,
+				Size:     21351,
+				Quality:  100,
+				ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+			},
 		},
 	}
 

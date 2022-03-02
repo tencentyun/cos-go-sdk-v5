@@ -39,9 +39,9 @@ func EncodePicOperations(pic *PicOperations) string {
 }
 
 type ImageProcessResult struct {
-	XMLName        xml.Name          `xml:"UploadResult"`
-	OriginalInfo   *PicOriginalInfo  `xml:"OriginalInfo,omitempty"`
-	ProcessResults *PicProcessObject `xml:"ProcessResults>Object,omitempty"`
+	XMLName        xml.Name           `xml:"UploadResult"`
+	OriginalInfo   *PicOriginalInfo   `xml:"OriginalInfo,omitempty"`
+	ProcessResults []PicProcessObject `xml:"ProcessResults>Object,omitempty"`
 }
 type PicOriginalInfo struct {
 	Key       string        `xml:"Key,omitempty"`
