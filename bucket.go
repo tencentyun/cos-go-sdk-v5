@@ -139,12 +139,13 @@ type Bucket struct {
 }
 
 type BucketGetObjectVersionsOptions struct {
-	Prefix          string `url:"prefix,omitempty"`
-	Delimiter       string `url:"delimiter,omitempty"`
-	EncodingType    string `url:"encoding-type,omitempty"`
-	KeyMarker       string `url:"key-marker,omitempty"`
-	VersionIdMarker string `url:"version-id-marker,omitempty"`
-	MaxKeys         int    `url:"max-keys,omitempty"`
+	Prefix          string       `url:"prefix,omitempty" header:"-"`
+	Delimiter       string       `url:"delimiter,omitempty" header:"-"`
+	EncodingType    string       `url:"encoding-type,omitempty" header:"-"`
+	KeyMarker       string       `url:"key-marker,omitempty" header:"-"`
+	VersionIdMarker string       `url:"version-id-marker,omitempty" header:"-"`
+	MaxKeys         int          `url:"max-keys,omitempty" header:"-"`
+	XOptionHeader   *http.Header `url:"-" header:"-,omitempty" xml:"-"`
 }
 
 type BucketGetObjectVersionsResult struct {
@@ -186,11 +187,12 @@ type ListVersionsResultDeleteMarker struct {
 func (s *BucketService) GetObjectVersions(ctx context.Context, opt *BucketGetObjectVersionsOptions) (*BucketGetObjectVersionsResult, *Response, error) {
 	var res BucketGetObjectVersionsResult
 	sendOpt := sendOptions{
-		baseURL:  s.client.BaseURL.BucketURL,
-		uri:      "/?versions",
-		method:   http.MethodGet,
-		optQuery: opt,
-		result:   &res,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/?versions",
+		method:    http.MethodGet,
+		optQuery:  opt,
+		optHeader: opt,
+		result:    &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
