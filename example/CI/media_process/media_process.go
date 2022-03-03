@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -1068,6 +1069,56 @@ func GenerateMediaInfo() {
 	fmt.Printf("%+v\n", res)
 }
 
+func InvokeMediaInfoJob() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "MediaInfo",
+		Input: &cos.JobInput{
+			Object: "input/117374C.mp4",
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+	
+	for {
+		time.Sleep(100 * time.Second)
+		// DescribeMediaJobs
+		DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+		if DescribeJobRes.JobsDetail.State == "Success" {
+			break
+		}
+	}
+}
+
 func main() {
 	// InvokeSnapshotJob()
 	// InvokeConcatJob()
@@ -1090,5 +1141,6 @@ func main() {
 	// InvokeASRJob()
 	// DescribeASRJob()
 	// DescribeJob()
-	GenerateMediaInfo()
+	// GenerateMediaInfo()
+	InvokeMediaInfoJob()
 }
