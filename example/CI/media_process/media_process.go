@@ -450,12 +450,16 @@ func InvokeSegmentJob() {
 		Operation: &cos.MediaProcessJobOperation{
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Object: "output/abc-${Number}.mp4",
+				Object: "output/m3u8/a",
 				Bucket: "wwj-cq-1253960454",
 			},
 			Segment: &cos.Segment{
-				Format:   "mp4",
+				Format:   "hls",
 				Duration: "10",
+				HlsEncrypt: &cos.HlsEncrypt{
+					IsHlsEncrypt: true,
+					UriKey:       "http://abc.com/",
+				},
 			},
 		},
 		QueueId: DescribeQueueRes.QueueList[0].QueueId,
@@ -1106,7 +1110,7 @@ func InvokeMediaInfoJob() {
 	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
 	log_status(err)
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
-	
+
 	for {
 		time.Sleep(100 * time.Second)
 		// DescribeMediaJobs
@@ -1127,7 +1131,7 @@ func main() {
 	// JobNotifyCallback()
 	// WorkflowExecutionNotifyCallback()
 	// InvokeSpriteSnapshotJob()
-	// InvokeSegmentJob()
+	InvokeSegmentJob()
 	// DescribeMultiMediaJob()
 	// GetPrivateM3U8()
 	// InvokeVideoMontageJob()
@@ -1142,5 +1146,5 @@ func main() {
 	// DescribeASRJob()
 	// DescribeJob()
 	// GenerateMediaInfo()
-	InvokeMediaInfoJob()
+	// InvokeMediaInfoJob()
 }
