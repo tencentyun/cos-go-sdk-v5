@@ -156,9 +156,15 @@ type Animation struct {
 	TimeInterval *TimeInterval   `xml:"TimeInterval,omitempty"`
 }
 
+type HlsEncrypt struct {
+	IsHlsEncrypt bool   `xml:"IsHlsEncrypt,omitempty"`
+	UriKey       string `xml:"UriKey,omitempty"`
+}
+
 type Segment struct {
-	Format   string `xml:"Format,omitempty"`
-	Duration string `xml:"Duration,omitempty"`
+	Format     string      `xml:"Format,omitempty"`
+	Duration   string      `xml:"Duration,omitempty"`
+	HlsEncrypt *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
 }
 
 type VideoMontageVideo struct {
@@ -635,68 +641,8 @@ func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *Descri
 }
 
 type GetMediaInfoResult struct {
-	XMLName   xml.Name `xml:"Response"`
-	MediaInfo struct {
-		Format struct {
-			Bitrate        float32 `xml:"Bitrate"`
-			Duration       float32 `xml:"Duration"`
-			FormatLongName string  `xml:"FormatLongName"`
-			FormatName     string  `xml:"FormatName"`
-			NumProgram     int     `xml:"NumProgram"`
-			NumStream      int     `xml:"NumStream"`
-			Size           int     `xml:"Size"`
-			StartTime      float32 `xml:"StartTime"`
-		} `xml:"Format"`
-		Stream struct {
-			Audio []struct {
-				Index          int     `xml:"Index"`
-				CodecName      string  `xml:"CodecName"`
-				CodecLongName  string  `xml:"CodecLongName"`
-				CodecTimeBase  string  `xml:"CodecTimeBase"`
-				CodecTagString string  `xml:"CodecTagString"`
-				CodecTag       string  `xml:"CodecTag"`
-				SampleFmt      string  `xml:"SampleFmt"`
-				SampleRate     int     `xml:"SampleRate"`
-				Channel        int     `xml:"Channel"`
-				ChannelLayout  string  `xml:"ChannelLayout"`
-				Timebase       string  `xml:"Timebase"`
-				StartTime      float32 `xml:"StartTime"`
-				Duration       float32 `xml:"Duration"`
-				Bitrate        float32 `xml:"Bitrate"`
-				Language       string  `xml:"Language"`
-			} `xml:"Audio"`
-			Subtitle struct {
-				Index    int    `xml:"Index"`
-				Language string `xml:"Language"`
-			} `xml:"Subtitle"`
-			Video struct {
-				Index          int     `xml:"Index"`
-				CodecName      string  `xml:"CodecName"`
-				CodecLongName  string  `xml:"CodecLongName"`
-				CodecTimeBase  string  `xml:"CodecTimeBase"`
-				CodecTagString string  `xml:"CodecTagString"`
-				CodecTag       string  `xml:"CodecTag"`
-				Profile        string  `xml:"Profile"`
-				Height         int     `xml:"Height"`
-				Width          int     `xml:"Width"`
-				HasBFrame      int     `xml:"HasBFrame"`
-				RefFrames      int     `xml:"RefFrames"`
-				Sar            string  `xml:"Sar"`
-				Dar            string  `xml:"Dar"`
-				PixFormat      string  `xml:"PixFormat"`
-				FieldOrder     string  `xml:"FieldOrder"`
-				Level          int     `xml:"Level"`
-				Fps            float32 `xml:"Fps"`
-				AvgFps         string  `xml:"AvgFps"`
-				Timebase       string  `xml:"Timebase"`
-				StartTime      float32 `xml:"StartTime"`
-				Duration       float32 `xml:"Duration"`
-				Bitrate        float32 `xml:"Bitrate"`
-				NumFrames      int     `xml:"NumFrames"`
-				Language       string  `xml:"Language"`
-			} `xml:"Video"`
-		} `xml:"Stream"`
-	} `xml:"MediaInfo"`
+	XMLName   xml.Name   `xml:"Response"`
+	MediaInfo *MediaInfo `xml:"MediaInfo"`
 }
 
 // 媒体信息接口 https://cloud.tencent.com/document/product/436/55672
