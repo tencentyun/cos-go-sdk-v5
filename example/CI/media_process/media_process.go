@@ -1038,7 +1038,7 @@ func DescribeJob() {
 		},
 	})
 	// DescribeMediaJobs
-	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "jf6717076895711ecafdd594be6cca70c")
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "jba3c8aa6b18811ec95980d419f73c3cf")
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaInfo)
@@ -1064,7 +1064,7 @@ func GenerateMediaInfo() {
 	})
 	opt := &cos.GenerateMediaInfoOptions{
 		Input: &cos.JobInput{
-			Object: "video02.mp4",
+			Object: "input/117374C.mp4",
 		},
 	}
 	// DescribeMediaJobs
@@ -1123,6 +1123,69 @@ func InvokeMediaInfoJob() {
 	}
 }
 
+func InvokeStreamExtractJob() {
+	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	streamEtract := make([]cos.StreamExtract, 0)
+	streamEtract = append(streamEtract, cos.StreamExtract{
+		Index:  "1",
+		Object: "stream/video02_1.mp4",
+	})
+
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "StreamExtract",
+		Input: &cos.JobInput{
+			Object: "video02.mp4",
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region:        "ap-chongqing",
+				Bucket:        "wwj-cq-1253960454",
+				StreamExtract: streamEtract,
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	for {
+		time.Sleep(100 * time.Second)
+		// DescribeMediaJobs
+		DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+		if DescribeJobRes.JobsDetail.State == "Success" {
+			break
+		}
+	}
+}
+
 func main() {
 	// InvokeSnapshotJob()
 	// InvokeConcatJob()
@@ -1131,7 +1194,7 @@ func main() {
 	// JobNotifyCallback()
 	// WorkflowExecutionNotifyCallback()
 	// InvokeSpriteSnapshotJob()
-	InvokeSegmentJob()
+	// InvokeSegmentJob()
 	// DescribeMultiMediaJob()
 	// GetPrivateM3U8()
 	// InvokeVideoMontageJob()
@@ -1147,4 +1210,5 @@ func main() {
 	// DescribeJob()
 	// GenerateMediaInfo()
 	// InvokeMediaInfoJob()
+	InvokeStreamExtractJob()
 }
