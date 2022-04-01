@@ -16,12 +16,18 @@ type JobInput struct {
 	Object string `xml:"Object,omitempty"`
 }
 
+type StreamExtract struct {
+	Index  string `xml:"Index,omitempty"`
+	Object string `xml:"Object,omitempty"`
+}
+
 type JobOutput struct {
-	Region       string `xml:"Region,omitempty"`
-	Bucket       string `xml:"Bucket,omitempty"`
-	Object       string `xml:"Object,omitempty"`
-	SpriteObject string `xml:"SpriteObject,omitempty"`
-	AuObject     string `xml:"AuObject,omitempty"`
+	Region        string          `xml:"Region,omitempty"`
+	Bucket        string          `xml:"Bucket,omitempty"`
+	Object        string          `xml:"Object,omitempty"`
+	SpriteObject  string          `xml:"SpriteObject,omitempty"`
+	AuObject      string          `xml:"AuObject,omitempty"`
+	StreamExtract []StreamExtract `xml:"StreamExtract,omitempty"`
 }
 
 type Container struct {
@@ -96,7 +102,7 @@ type Text struct {
 
 type Watermark struct {
 	Type      string `xml:"Type,omitempty"`
-	Pos       string `xml:"Pos,omitempty"`
+	Pos       string `xml:"Pos,omitempty"` // TopLeft：左上; Top：上居中; TopRight：右上; Left：左居中; Center：正中心; Right：右居中; BottomLeft：左下; Bottom：下居中; BottomRight：右下
 	LocMode   string `xml:"LocMode,omitempty"`
 	Dx        string `xml:"Dx,omitempty"`
 	Dy        string `xml:"Dy,omitempty"`
@@ -300,6 +306,9 @@ type MediaInfo struct {
 			StartTime      string `xml:"StartTime"`
 			Timebase       string `xml:"Timebase"`
 			Width          string `xml:"Width"`
+			ColorRange     string `xml:"ColorRange"`
+			ColorTransfer  string `xml:"ColorTransfer"`
+			ColorPrimaries string `xml:"ColorPrimaries"`
 		} `xml:"Video"`
 	} `xml:"Stream"`
 }
