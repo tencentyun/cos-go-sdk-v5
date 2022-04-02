@@ -313,6 +313,47 @@ type MediaInfo struct {
 	} `xml:"Stream"`
 }
 
+type PicProcess struct {
+	IsPicInfo   string `xml:"IsPicInfo,omitempty"`
+	ProcessRule string `xml:"ProcessRule,omitempty"`
+}
+
+type PicProcessResult struct {
+	UploadResult struct {
+		OriginalInfo struct {
+			Key       string `xml:"Key"`
+			Location  string `xml:"Location"`
+			ETag      string `xml:"ETag"`
+			ImageInfo struct {
+				Format      string `xml:"Format"`
+				Width       int32  `xml:"Width"`
+				Height      int32  `xml:"Height"`
+				Quality     int32  `xml:"Quality"`
+				Ave         string `xml:"Ave"`
+				Orientation int32  `xml:"Orientation"`
+			} `xml:"ImageInfo"`
+		} `xml:"OriginalInfo"`
+		ProcessResults struct {
+			Object struct {
+				Key      string `xml:"Key"`
+				Location string `xml:"Location"`
+				Format   string `xml:"Format"`
+				Width    int32  `xml:"Width"`
+				Height   int32  `xml:"Height"`
+				Size     int32  `xml:"Size"`
+				Quality  int32  `xml:"Quality"`
+				Etag     string `xml:"Etag"`
+			} `xml:"Object"`
+		} `xml:"ProcessResults"`
+	} `xml:"UploadResult"`
+}
+
+type PicProcessJobOperation struct {
+	PicProcess       *PicProcess       `xml:"PicProcess,omitempty"`
+	PicProcessResult *PicProcessResult `xml:"PicProcessResult,omitempty"`
+	Output           *JobOutput        `xml:"Output,omitempty"`
+}
+
 type MediaProcessJobOperation struct {
 	Tag                 string           `xml:"Tag,omitempty"`
 	Output              *JobOutput       `xml:"Output,omitempty"`
@@ -332,6 +373,15 @@ type MediaProcessJobOperation struct {
 	TranscodeTemplateId string           `xml:"TranscodeTemplateId,omitempty"` // 视频增强、超分、SDRtoHDR任务类型，可以选择转码模板相关参数
 	SDRtoHDR            *SDRtoHDR        `xml:"SDRtoHDR,omitempty"`
 	SuperResolution     *SuperResolution `xml:"SuperResolution,omitempty"`
+}
+
+type CreatePicJobsOptions struct {
+	XMLName   xml.Name                `xml:"Request"`
+	Tag       string                  `xml:"Tag,omitempty"`
+	Input     *JobInput               `xml:"Input,omitempty"`
+	Operation *PicProcessJobOperation `xml:"Operation,omitempty"`
+	QueueId   string                  `xml:"QueueId,omitempty"`
+	CallBack  string                  `xml:"CallBack,omitempty"`
 }
 
 type CreateMediaJobsOptions struct {
@@ -356,6 +406,7 @@ type MediaProcessJobDetail struct {
 	Operation    *MediaProcessJobOperation `xml:"Operation,omitempty"`
 }
 
+type CreatePicJobsResult CreateMediaJobsResult
 type CreateMediaJobsResult struct {
 	XMLName    xml.Name               `xml:"Response"`
 	JobsDetail *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
@@ -464,6 +515,20 @@ func (s *CIService) CreateMediaJobs(ctx context.Context, opt *CreateMediaJobsOpt
 	return &res, resp, err
 }
 
+func (s *CIService) CreatePicProcessJobs(ctx context.Context, opt *CreatePicJobsOptions) (*CreatePicJobsResult, *Response, error) {
+	var res CreatePicJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/pic_jobs",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type DescribePicProcessJobResult DescribeMediaProcessJobResult
 type DescribeMediaProcessJobResult struct {
 	XMLName        xml.Name               `xml:"Response"`
 	JobsDetail     *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
@@ -475,6 +540,18 @@ func (s *CIService) DescribeMediaJob(ctx context.Context, jobid string) (*Descri
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
 		uri:     "/jobs/" + jobid,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) DescribePicProcessJob(ctx context.Context, jobid string) (*DescribePicProcessJobResult, *Response, error) {
+	var res DescribePicProcessJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/pic_jobs/" + jobid,
 		method:  http.MethodGet,
 		result:  &res,
 	}
@@ -538,6 +615,7 @@ func (s *CIService) DescribeMediaJobs(ctx context.Context, opt *DescribeMediaJob
 	return &res, resp, err
 }
 
+type DescribePicProcessQueuesOptions DescribeMediaProcessQueuesOptions
 type DescribeMediaProcessQueuesOptions struct {
 	QueueIds   string `url:"queueIds,omitempty"`
 	State      string `url:"state,omitempty"`
@@ -545,6 +623,7 @@ type DescribeMediaProcessQueuesOptions struct {
 	PageSize   int    `url:"pageSize,omitempty"`
 }
 
+type DescribePicProcessQueuesResult DescribeMediaProcessQueuesResult
 type DescribeMediaProcessQueuesResult struct {
 	XMLName      xml.Name            `xml:"Response"`
 	RequestId    string              `xml:"RequestId,omitempty"`
@@ -578,6 +657,19 @@ func (s *CIService) DescribeMediaProcessQueues(ctx context.Context, opt *Describ
 	sendOpt := sendOptions{
 		baseURL:  s.client.BaseURL.CIURL,
 		uri:      "/queue",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) DescribePicProcessQueues(ctx context.Context, opt *DescribePicProcessQueuesOptions) (*DescribePicProcessQueuesResult, *Response, error) {
+	var res DescribePicProcessQueuesResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/picqueue",
 		optQuery: opt,
 		method:   http.MethodGet,
 		result:   &res,
