@@ -12,15 +12,18 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// JobInput TODO
 type JobInput struct {
 	Object string `xml:"Object,omitempty"`
 }
 
+// StreamExtract TODO
 type StreamExtract struct {
 	Index  string `xml:"Index,omitempty"`
 	Object string `xml:"Object,omitempty"`
 }
 
+// JobOutput TODO
 type JobOutput struct {
 	Region        string          `xml:"Region,omitempty"`
 	Bucket        string          `xml:"Bucket,omitempty"`
@@ -30,10 +33,12 @@ type JobOutput struct {
 	StreamExtract []StreamExtract `xml:"StreamExtract,omitempty"`
 }
 
+// Container TODO
 type Container struct {
 	Format string `xml:"Format"`
 }
 
+// Video TODO
 type Video struct {
 	Codec         string `xml:"Codec"`
 	Width         string `xml:"Width"`
@@ -52,11 +57,13 @@ type Video struct {
 	LongShortMode string `xml:"LongShortMode"`
 }
 
+// TimeInterval TODO
 type TimeInterval struct {
 	Start    string `xml:"Start"`
 	Duration string `xml:"Duration"`
 }
 
+// Audio TODO
 type Audio struct {
 	Codec      string `xml:"Codec"`
 	Samplerate string `xml:"Samplerate"`
@@ -65,6 +72,7 @@ type Audio struct {
 	Remove     string `xml:"Remove,omitempty"`
 }
 
+// TransConfig TODO
 type TransConfig struct {
 	AdjDarMethod          string `xml:"AdjDarMethod"`
 	IsCheckReso           string `xml:"IsCheckReso"`
@@ -75,6 +83,7 @@ type TransConfig struct {
 	AudioBitrateAdjMethod string `xml:"AudioBitrateAdjMethod"`
 }
 
+// Transcode TODO
 type Transcode struct {
 	Container    *Container    `xml:"Container,omitempty"`
 	Video        *Video        `xml:"Video,omitempty"`
@@ -83,6 +92,7 @@ type Transcode struct {
 	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
 }
 
+// Image TODO
 type Image struct {
 	Url          string `xml:"Url,omitempty"`
 	Mode         string `xml:"Mode,omitempty"`
@@ -92,6 +102,7 @@ type Image struct {
 	Background   string `xml:"Background,omitempty"`
 }
 
+// Text TODO
 type Text struct {
 	FontSize     string `xml:"FontSize,omitempty"`
 	FontType     string `xml:"FontType,omitempty"`
@@ -100,6 +111,7 @@ type Text struct {
 	Text         string `xml:"Text,omitempty"`
 }
 
+// Watermark TODO
 type Watermark struct {
 	Type      string `xml:"Type,omitempty"`
 	Pos       string `xml:"Pos,omitempty"` // TopLeft：左上; Top：上居中; TopRight：右上; Left：左居中; Center：正中心; Right：右居中; BottomLeft：左下; Bottom：下居中; BottomRight：右下
@@ -111,11 +123,15 @@ type Watermark struct {
 	Image     *Image `xml:"Image,omitempty"`
 	Text      *Text  `xml:"Text,omitempty"`
 }
+
+// ConcatFragment TODO
 type ConcatFragment struct {
 	Url       string `xml:"Url,omitempty"`
 	StartTime string `xml:"StartTime,omitempty"`
 	EndTime   string `xml:"EndTime,omitempty"`
 }
+
+// ConcatTemplate TODO
 type ConcatTemplate struct {
 	ConcatFragment []ConcatFragment `xml:"ConcatFragment,omitempty"`
 	Audio          *Audio           `xml:"Audio,omitempty"`
@@ -124,6 +140,7 @@ type ConcatTemplate struct {
 	Index          string           `xml:"Index,omitempty"`
 }
 
+// SpriteSnapshotConfig TODO
 type SpriteSnapshotConfig struct {
 	CellHeight string `xml:"CellHeight,omitempty"`
 	CellWidth  string `xml:"CellWidth,omitempty"`
@@ -133,6 +150,8 @@ type SpriteSnapshotConfig struct {
 	Margin     string `xml:"Margin,omitempty"`
 	Padding    string `xml:"Padding,omitempty"`
 }
+
+// Snapshot TODO
 type Snapshot struct {
 	Mode                 string                `xml:"Mode,omitempty"`
 	Start                string                `xml:"Start,omitempty"`
@@ -144,6 +163,7 @@ type Snapshot struct {
 	SpriteSnapshotConfig *SpriteSnapshotConfig `xml:"SpriteSnapshotConfig,omitempty"`
 }
 
+// AnimationVideo TODO
 // 有意和转码区分，两种任务关注的参数不一样避免干扰
 type AnimationVideo struct {
 	Codec                      string `xml:"Codec"`
@@ -156,23 +176,27 @@ type AnimationVideo struct {
 	Quality                    string `xml:"Quality"`
 }
 
+// Animation TODO
 type Animation struct {
 	Container    *Container      `xml:"Container,omitempty"`
 	Video        *AnimationVideo `xml:"Video,omitempty"`
 	TimeInterval *TimeInterval   `xml:"TimeInterval,omitempty"`
 }
 
+// HlsEncrypt TODO
 type HlsEncrypt struct {
 	IsHlsEncrypt bool   `xml:"IsHlsEncrypt,omitempty"`
 	UriKey       string `xml:"UriKey,omitempty"`
 }
 
+// Segment TODO
 type Segment struct {
 	Format     string      `xml:"Format,omitempty"`
 	Duration   string      `xml:"Duration,omitempty"`
 	HlsEncrypt *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
 }
 
+// VideoMontageVideo TODO
 type VideoMontageVideo struct {
 	Codec   string `xml:"Codec"`
 	Width   string `xml:"Width"`
@@ -183,6 +207,7 @@ type VideoMontageVideo struct {
 	Crf     string `xml:"Crf"`
 }
 
+// VideoMontage TODO
 type VideoMontage struct {
 	Container *Container         `xml:"Container,omitempty"`
 	Video     *VideoMontageVideo `xml:"Video,omitempty"`
@@ -190,6 +215,7 @@ type VideoMontage struct {
 	Duration  string             `xml:"Duration,omitempty"`
 }
 
+// AudioConfig TODO
 type AudioConfig struct {
 	Codec      string `xml:"Codec"`
 	Samplerate string `xml:"Samplerate"`
@@ -197,11 +223,13 @@ type AudioConfig struct {
 	Channels   string `xml:"Channels"`
 }
 
+// VoiceSeparate TODO
 type VoiceSeparate struct {
 	AudioMode   string       `xml:"AudioMode,omitempty"` // IsAudio 人声, IsBackground 背景声, AudioAndBackground 人声和背景声
 	AudioConfig *AudioConfig `xml:"AudioConfig,omitempty"`
 }
 
+// ColorEnhance TODO
 type ColorEnhance struct {
 	Enable     string `xml:"Enable"`
 	Contrast   string `xml:"Contrast"`
@@ -209,25 +237,48 @@ type ColorEnhance struct {
 	Saturation string `xml:"Saturation"`
 }
 
+// MsSharpen TODO
 type MsSharpen struct {
 	Enable       string `xml:"Enable"`
 	SharpenLevel string `xml:"SharpenLevel"`
 }
 
+// VideoProcess TODO
 type VideoProcess struct {
 	ColorEnhance *ColorEnhance `xml:"ColorEnhance,omitempty"`
 	MsSharpen    *MsSharpen    `xml:"MsSharpen,omitempty"`
 }
 
+// SDRtoHDR TODO
 type SDRtoHDR struct {
 	HdrMode string `xml:"HdrMode,omitempty"` // HLG、HDR10
 }
 
+// SuperResolution TODO
 type SuperResolution struct {
 	Resolution    string `xml:"Resolution,omitempty"` // sdtohd、hdto4k
 	EnableScaleUp string `xml:"EnableScaleUp,omitempty"`
 }
 
+// DigitalWatermark TODO
+type DigitalWatermark struct {
+	Message string `xml:"Message"`
+	Type    string `xml:"Type"`
+	Version string `xml:"Version"`
+}
+
+// ExtractDigitalWatermark TODO
+type ExtractDigitalWatermark struct {
+	Type    string `xml:"Type"`
+	Version string `xml:"Version"`
+}
+
+// VideoTag TODO
+type VideoTag struct {
+	Scenario string `xml:"Scenario"`
+}
+
+// MediaResult TODO
 type MediaResult struct {
 	OutputFile struct {
 		Bucket  string `xml:"Bucket,omitempty"`
@@ -251,6 +302,7 @@ type MediaResult struct {
 	} `xml:"OutputFile,omitempty"`
 }
 
+// MediaInfo TODO
 type MediaInfo struct {
 	Format struct {
 		Bitrate        string `xml:"Bitrate"`
@@ -313,11 +365,13 @@ type MediaInfo struct {
 	} `xml:"Stream"`
 }
 
+// PicProcess TODO
 type PicProcess struct {
 	IsPicInfo   string `xml:"IsPicInfo,omitempty"`
 	ProcessRule string `xml:"ProcessRule,omitempty"`
 }
 
+// PicProcessResult TODO
 type PicProcessResult struct {
 	UploadResult struct {
 		OriginalInfo struct {
@@ -348,33 +402,39 @@ type PicProcessResult struct {
 	} `xml:"UploadResult"`
 }
 
+// PicProcessJobOperation TODO
 type PicProcessJobOperation struct {
 	PicProcess       *PicProcess       `xml:"PicProcess,omitempty"`
 	PicProcessResult *PicProcessResult `xml:"PicProcessResult,omitempty"`
 	Output           *JobOutput        `xml:"Output,omitempty"`
 }
 
+// MediaProcessJobOperation TODO
 type MediaProcessJobOperation struct {
-	Tag                 string           `xml:"Tag,omitempty"`
-	Output              *JobOutput       `xml:"Output,omitempty"`
-	MediaResult         *MediaResult     `xml:"MediaResult,omitempty"`
-	MediaInfo           *MediaInfo       `xml:"MediaInfo,omitempty"`
-	Transcode           *Transcode       `xml:"Transcode,omitempty"`
-	Watermark           []Watermark      `xml:"Watermark,omitempty"`
-	TemplateId          string           `xml:"TemplateId,omitempty"`
-	WatermarkTemplateId []string         `xml:"WatermarkTemplateId,omitempty"`
-	ConcatTemplate      *ConcatTemplate  `xml:"ConcatTemplate,omitempty"`
-	Snapshot            *Snapshot        `xml:"Snapshot,omitempty"`
-	Animation           *Animation       `xml:"Animation,omitempty"`
-	Segment             *Segment         `xml:"Segment,omitempty"`
-	VideoMontage        *VideoMontage    `xml:"VideoMontage,omitempty"`
-	VoiceSeparate       *VoiceSeparate   `xml:"VoiceSeparate,omitempty"`
-	VideoProcess        *VideoProcess    `xml:"VideoProcess,omitempty"`
-	TranscodeTemplateId string           `xml:"TranscodeTemplateId,omitempty"` // 视频增强、超分、SDRtoHDR任务类型，可以选择转码模板相关参数
-	SDRtoHDR            *SDRtoHDR        `xml:"SDRtoHDR,omitempty"`
-	SuperResolution     *SuperResolution `xml:"SuperResolution,omitempty"`
+	Tag                     string                   `xml:"Tag,omitempty"`
+	Output                  *JobOutput               `xml:"Output,omitempty"`
+	MediaResult             *MediaResult             `xml:"MediaResult,omitempty"`
+	MediaInfo               *MediaInfo               `xml:"MediaInfo,omitempty"`
+	Transcode               *Transcode               `xml:"Transcode,omitempty"`
+	Watermark               []Watermark              `xml:"Watermark,omitempty"`
+	TemplateId              string                   `xml:"TemplateId,omitempty"`
+	WatermarkTemplateId     []string                 `xml:"WatermarkTemplateId,omitempty"`
+	ConcatTemplate          *ConcatTemplate          `xml:"ConcatTemplate,omitempty"`
+	Snapshot                *Snapshot                `xml:"Snapshot,omitempty"`
+	Animation               *Animation               `xml:"Animation,omitempty"`
+	Segment                 *Segment                 `xml:"Segment,omitempty"`
+	VideoMontage            *VideoMontage            `xml:"VideoMontage,omitempty"`
+	VoiceSeparate           *VoiceSeparate           `xml:"VoiceSeparate,omitempty"`
+	VideoProcess            *VideoProcess            `xml:"VideoProcess,omitempty"`
+	TranscodeTemplateId     string                   `xml:"TranscodeTemplateId,omitempty"` // 视频增强、超分、SDRtoHDR任务类型，可以选择转码模板相关参数
+	SDRtoHDR                *SDRtoHDR                `xml:"SDRtoHDR,omitempty"`
+	SuperResolution         *SuperResolution         `xml:"SuperResolution,omitempty"`
+	DigitalWatermark        *DigitalWatermark        `xml:"DigitalWatermark,omitempty"`
+	ExtractDigitalWatermark *ExtractDigitalWatermark `xml:"ExtractDigitalWatermark,omitempty"`
+	VideoTag                *VideoTag                `xml:"VideoTag,omitempty"`
 }
 
+// CreatePicJobsOptions TODO
 type CreatePicJobsOptions struct {
 	XMLName   xml.Name                `xml:"Request"`
 	Tag       string                  `xml:"Tag,omitempty"`
@@ -384,6 +444,7 @@ type CreatePicJobsOptions struct {
 	CallBack  string                  `xml:"CallBack,omitempty"`
 }
 
+// CreateMediaJobsOptions TODO
 type CreateMediaJobsOptions struct {
 	XMLName   xml.Name                  `xml:"Request"`
 	Tag       string                    `xml:"Tag,omitempty"`
@@ -393,6 +454,7 @@ type CreateMediaJobsOptions struct {
 	CallBack  string                    `xml:"CallBack,omitempty"`
 }
 
+// MediaProcessJobDetail TODO
 type MediaProcessJobDetail struct {
 	Code         string                    `xml:"Code,omitempty"`
 	Message      string                    `xml:"Message,omitempty"`
@@ -406,12 +468,16 @@ type MediaProcessJobDetail struct {
 	Operation    *MediaProcessJobOperation `xml:"Operation,omitempty"`
 }
 
+// CreatePicJobsResult TODO
 type CreatePicJobsResult CreateMediaJobsResult
+
+// CreateMediaJobsResult TODO
 type CreateMediaJobsResult struct {
 	XMLName    xml.Name               `xml:"Response"`
 	JobsDetail *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
+// CreateMultiMediaJobsOptions TODO
 type CreateMultiMediaJobsOptions struct {
 	XMLName   xml.Name                   `xml:"Request"`
 	Tag       string                     `xml:"Tag,omitempty"`
@@ -421,11 +487,13 @@ type CreateMultiMediaJobsOptions struct {
 	CallBack  string                     `xml:"CallBack,omitempty"`
 }
 
+// CreateMultiMediaJobsResult TODO
 type CreateMultiMediaJobsResult struct {
 	XMLName    xml.Name                `xml:"Response"`
 	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
+// MediaProcessJobsNotifyBody TODO
 type MediaProcessJobsNotifyBody struct {
 	XMLName    xml.Name `xml:"Response"`
 	EventName  string   `xml:"EventName"`
@@ -458,6 +526,7 @@ type MediaProcessJobsNotifyBody struct {
 	} `xml:"JobsDetail"`
 }
 
+// WorkflowExecutionNotifyBody TODO
 type WorkflowExecutionNotifyBody struct {
 	XMLName           xml.Name `xml:"Response"`
 	EventName         string   `xml:"EventName"`
@@ -489,6 +558,7 @@ type WorkflowExecutionNotifyBody struct {
 	} `xml:"WorkflowExecution"`
 }
 
+// CreateMultiMediaJobs TODO
 func (s *CIService) CreateMultiMediaJobs(ctx context.Context, opt *CreateMultiMediaJobsOptions) (*CreateMultiMediaJobsResult, *Response, error) {
 	var res CreateMultiMediaJobsResult
 	sendOpt := sendOptions{
@@ -502,6 +572,7 @@ func (s *CIService) CreateMultiMediaJobs(ctx context.Context, opt *CreateMultiMe
 	return &res, resp, err
 }
 
+// CreateMediaJobs TODO
 func (s *CIService) CreateMediaJobs(ctx context.Context, opt *CreateMediaJobsOptions) (*CreateMediaJobsResult, *Response, error) {
 	var res CreateMediaJobsResult
 	sendOpt := sendOptions{
@@ -515,6 +586,7 @@ func (s *CIService) CreateMediaJobs(ctx context.Context, opt *CreateMediaJobsOpt
 	return &res, resp, err
 }
 
+// CreatePicProcessJobs TODO
 func (s *CIService) CreatePicProcessJobs(ctx context.Context, opt *CreatePicJobsOptions) (*CreatePicJobsResult, *Response, error) {
 	var res CreatePicJobsResult
 	sendOpt := sendOptions{
@@ -528,13 +600,17 @@ func (s *CIService) CreatePicProcessJobs(ctx context.Context, opt *CreatePicJobs
 	return &res, resp, err
 }
 
+// DescribePicProcessJobResult TODO
 type DescribePicProcessJobResult DescribeMediaProcessJobResult
+
+// DescribeMediaProcessJobResult TODO
 type DescribeMediaProcessJobResult struct {
 	XMLName        xml.Name               `xml:"Response"`
 	JobsDetail     *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 	NonExistJobIds string                 `xml:"NonExistJobIds,omitempty"`
 }
 
+// DescribeMediaJob TODO
 func (s *CIService) DescribeMediaJob(ctx context.Context, jobid string) (*DescribeMediaProcessJobResult, *Response, error) {
 	var res DescribeMediaProcessJobResult
 	sendOpt := sendOptions{
@@ -547,6 +623,7 @@ func (s *CIService) DescribeMediaJob(ctx context.Context, jobid string) (*Descri
 	return &res, resp, err
 }
 
+// DescribePicProcessJob TODO
 func (s *CIService) DescribePicProcessJob(ctx context.Context, jobid string) (*DescribePicProcessJobResult, *Response, error) {
 	var res DescribePicProcessJobResult
 	sendOpt := sendOptions{
@@ -559,12 +636,14 @@ func (s *CIService) DescribePicProcessJob(ctx context.Context, jobid string) (*D
 	return &res, resp, err
 }
 
+// DescribeMutilMediaProcessJobResult TODO
 type DescribeMutilMediaProcessJobResult struct {
 	XMLName        xml.Name                `xml:"Response"`
 	JobsDetail     []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 	NonExistJobIds []string                `xml:"NonExistJobIds,omitempty"`
 }
 
+// DescribeMultiMediaJob TODO
 func (s *CIService) DescribeMultiMediaJob(ctx context.Context, jobids []string) (*DescribeMutilMediaProcessJobResult, *Response, error) {
 	jobidsStr := ""
 	if len(jobids) < 1 {
@@ -584,6 +663,7 @@ func (s *CIService) DescribeMultiMediaJob(ctx context.Context, jobids []string) 
 	return &res, resp, err
 }
 
+// DescribeMediaJobsOptions TODO
 type DescribeMediaJobsOptions struct {
 	QueueId           string `url:"queueId,omitempty"`
 	Tag               string `url:"tag,omitempty"`
@@ -595,12 +675,14 @@ type DescribeMediaJobsOptions struct {
 	EndCreationTime   string `url:"endCreationTime,omitempty"`
 }
 
+// DescribeMediaJobsResult TODO
 type DescribeMediaJobsResult struct {
 	XMLName    xml.Name                `xml:"Response"`
 	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 	NextToken  string                  `xml:"NextToken,omitempty"`
 }
 
+// DescribeMediaJobs TODO
 // https://cloud.tencent.com/document/product/460/48235
 func (s *CIService) DescribeMediaJobs(ctx context.Context, opt *DescribeMediaJobsOptions) (*DescribeMediaJobsResult, *Response, error) {
 	var res DescribeMediaJobsResult
@@ -615,7 +697,10 @@ func (s *CIService) DescribeMediaJobs(ctx context.Context, opt *DescribeMediaJob
 	return &res, resp, err
 }
 
+// DescribePicProcessQueuesOptions TODO
 type DescribePicProcessQueuesOptions DescribeMediaProcessQueuesOptions
+
+// DescribeMediaProcessQueuesOptions TODO
 type DescribeMediaProcessQueuesOptions struct {
 	QueueIds   string `url:"queueIds,omitempty"`
 	State      string `url:"state,omitempty"`
@@ -623,7 +708,10 @@ type DescribeMediaProcessQueuesOptions struct {
 	PageSize   int    `url:"pageSize,omitempty"`
 }
 
+// DescribePicProcessQueuesResult TODO
 type DescribePicProcessQueuesResult DescribeMediaProcessQueuesResult
+
+// DescribeMediaProcessQueuesResult TODO
 type DescribeMediaProcessQueuesResult struct {
 	XMLName      xml.Name            `xml:"Response"`
 	RequestId    string              `xml:"RequestId,omitempty"`
@@ -634,6 +722,7 @@ type DescribeMediaProcessQueuesResult struct {
 	NonExistPIDs []string            `xml:"NonExistPIDs,omitempty"`
 }
 
+// MediaProcessQueue TODO
 type MediaProcessQueue struct {
 	QueueId       string                         `xml:"QueueId,omitempty"`
 	Name          string                         `xml:"Name,omitempty"`
@@ -645,6 +734,7 @@ type MediaProcessQueue struct {
 	NotifyConfig  *MediaProcessQueueNotifyConfig `xml:"NotifyConfig,omitempty"`
 }
 
+// MediaProcessQueueNotifyConfig TODO
 type MediaProcessQueueNotifyConfig struct {
 	Url   string `xml:"Url,omitempty"`
 	State string `xml:"State,omitempty"`
@@ -652,6 +742,7 @@ type MediaProcessQueueNotifyConfig struct {
 	Event string `xml:"Event,omitempty"`
 }
 
+// DescribeMediaProcessQueues TODO
 func (s *CIService) DescribeMediaProcessQueues(ctx context.Context, opt *DescribeMediaProcessQueuesOptions) (*DescribeMediaProcessQueuesResult, *Response, error) {
 	var res DescribeMediaProcessQueuesResult
 	sendOpt := sendOptions{
@@ -665,6 +756,7 @@ func (s *CIService) DescribeMediaProcessQueues(ctx context.Context, opt *Describ
 	return &res, resp, err
 }
 
+// DescribePicProcessQueues TODO
 func (s *CIService) DescribePicProcessQueues(ctx context.Context, opt *DescribePicProcessQueuesOptions) (*DescribePicProcessQueuesResult, *Response, error) {
 	var res DescribePicProcessQueuesResult
 	sendOpt := sendOptions{
@@ -678,6 +770,7 @@ func (s *CIService) DescribePicProcessQueues(ctx context.Context, opt *DescribeP
 	return &res, resp, err
 }
 
+// UpdateMediaProcessQueueOptions TODO
 type UpdateMediaProcessQueueOptions struct {
 	XMLName      xml.Name                       `xml:"Request"`
 	Name         string                         `xml:"Name,omitempty"`
@@ -686,12 +779,14 @@ type UpdateMediaProcessQueueOptions struct {
 	NotifyConfig *MediaProcessQueueNotifyConfig `xml:"NotifyConfig,omitempty"`
 }
 
+// UpdateMediaProcessQueueResult TODO
 type UpdateMediaProcessQueueResult struct {
 	XMLName   xml.Name           `xml:"Response"`
 	RequestId string             `xml:"RequestId"`
 	Queue     *MediaProcessQueue `xml:"Queue"`
 }
 
+// UpdateMediaProcessQueue TODO
 func (s *CIService) UpdateMediaProcessQueue(ctx context.Context, opt *UpdateMediaProcessQueueOptions) (*UpdateMediaProcessQueueResult, *Response, error) {
 	var res UpdateMediaProcessQueueResult
 	sendOpt := sendOptions{
@@ -705,6 +800,7 @@ func (s *CIService) UpdateMediaProcessQueue(ctx context.Context, opt *UpdateMedi
 	return &res, resp, err
 }
 
+// DescribeMediaProcessBucketsOptions TODO
 type DescribeMediaProcessBucketsOptions struct {
 	Regions     string `url:"regions,omitempty"`
 	BucketNames string `url:"bucketNames,omitempty"`
@@ -713,6 +809,7 @@ type DescribeMediaProcessBucketsOptions struct {
 	PageSize    int    `url:"pageSize,omitempty"`
 }
 
+// DescribeMediaProcessBucketsResult TODO
 type DescribeMediaProcessBucketsResult struct {
 	XMLName         xml.Name             `xml:"Response"`
 	RequestId       string               `xml:"RequestId,omitempty"`
@@ -721,12 +818,15 @@ type DescribeMediaProcessBucketsResult struct {
 	PageSize        int                  `xml:"PageSize,omitempty"`
 	MediaBucketList []MediaProcessBucket `xml:"MediaBucketList,omitempty"`
 }
+
+// MediaProcessBucket TODO
 type MediaProcessBucket struct {
 	BucketId   string `xml:"BucketId,omitempty"`
 	Region     string `xml:"Region,omitempty"`
 	CreateTime string `xml:"CreateTime,omitempty"`
 }
 
+// DescribeMediaProcessBuckets TODO
 // 媒体bucket接口 https://cloud.tencent.com/document/product/436/48988
 func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *DescribeMediaProcessBucketsOptions) (*DescribeMediaProcessBucketsResult, *Response, error) {
 	var res DescribeMediaProcessBucketsResult
@@ -741,11 +841,13 @@ func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *Descri
 	return &res, resp, err
 }
 
+// GetMediaInfoResult TODO
 type GetMediaInfoResult struct {
 	XMLName   xml.Name   `xml:"Response"`
 	MediaInfo *MediaInfo `xml:"MediaInfo"`
 }
 
+// GetMediaInfo TODO
 // 媒体信息接口 https://cloud.tencent.com/document/product/436/55672
 func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*GetMediaInfoResult, *Response, error) {
 	var u string
@@ -770,11 +872,13 @@ func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGe
 	return &res, resp, err
 }
 
+// GenerateMediaInfoOptions TODO
 type GenerateMediaInfoOptions struct {
 	XMLName xml.Name  `xml:"Request"`
 	Input   *JobInput `xml:"Input,omitempty"`
 }
 
+// GenerateMediaInfo TODO
 // 生成媒体信息接口，支持大文件，耗时较大请求
 func (s *CIService) GenerateMediaInfo(ctx context.Context, opt *GenerateMediaInfoOptions) (*GetMediaInfoResult, *Response, error) {
 
@@ -790,6 +894,7 @@ func (s *CIService) GenerateMediaInfo(ctx context.Context, opt *GenerateMediaInf
 	return &res, resp, err
 }
 
+// GetSnapshotOptions TODO
 type GetSnapshotOptions struct {
 	Time   float32 `url:"time,omitempty"`
 	Height int     `url:"height,omitempty"`
@@ -799,6 +904,7 @@ type GetSnapshotOptions struct {
 	Mode   string  `url:"mode,omitempty"`
 }
 
+// GetSnapshot TODO
 // 媒体截图接口 https://cloud.tencent.com/document/product/436/55671
 func (s *CIService) GetSnapshot(ctx context.Context, name string, opt *GetSnapshotOptions, id ...string) (*Response, error) {
 	var u string
@@ -821,10 +927,12 @@ func (s *CIService) GetSnapshot(ctx context.Context, name string, opt *GetSnapsh
 	return resp, err
 }
 
+// GetPrivateM3U8Options TODO
 type GetPrivateM3U8Options struct {
 	Expires int `url:"expires"`
 }
 
+// GetPrivateM3U8 TODO
 // 获取私有m3u8资源接口 https://cloud.tencent.com/document/product/460/63738
 func (s *CIService) GetPrivateM3U8(ctx context.Context, name string, opt *GetPrivateM3U8Options, id ...string) (*Response, error) {
 	var u string
@@ -847,18 +955,21 @@ func (s *CIService) GetPrivateM3U8(ctx context.Context, name string, opt *GetPri
 	return resp, err
 }
 
+// TriggerWorkflowOptions TODO
 type TriggerWorkflowOptions struct {
 	WorkflowId string `url:"workflowId"`
 	Object     string `url:"object"`
 }
 
+// TriggerWorkflowResult TODO
 type TriggerWorkflowResult struct {
 	XMLName    xml.Name `xml:"Response"`
 	InstanceId string   `xml:"InstanceId"`
 	RequestId  string   `xml:"RequestId"`
 }
 
-//单文件触发工作流 https://cloud.tencent.com/document/product/460/54640
+// TriggerWorkflow TODO
+// 单文件触发工作流 https://cloud.tencent.com/document/product/460/54640
 func (s *CIService) TriggerWorkflow(ctx context.Context, opt *TriggerWorkflowOptions) (*TriggerWorkflowResult, *Response, error) {
 	var res TriggerWorkflowResult
 	sendOpt := sendOptions{
@@ -872,6 +983,7 @@ func (s *CIService) TriggerWorkflow(ctx context.Context, opt *TriggerWorkflowOpt
 	return &res, resp, err
 }
 
+// DescribeWorkflowExecutionsOptions TODO
 type DescribeWorkflowExecutionsOptions struct {
 	WorkflowId        string `url:"workflowId,omitempty"`
 	Name              string `url:"Name,omitempty"`
@@ -883,6 +995,7 @@ type DescribeWorkflowExecutionsOptions struct {
 	EndCreationTime   string `url:"endCreationTime,omitempty"`
 }
 
+// WorkflowExecutionList TODO
 type WorkflowExecutionList struct {
 	RunId        string `xml:"RunId,omitempty"`
 	WorkflowId   string `xml:"WorkflowId,omitempty"`
@@ -891,13 +1004,15 @@ type WorkflowExecutionList struct {
 	Object       string `xml:"Object,omitempty"`
 }
 
+// DescribeWorkflowExecutionsResult TODO
 type DescribeWorkflowExecutionsResult struct {
 	XMLName               xml.Name                `xml:"Response"`
 	WorkflowExecutionList []WorkflowExecutionList `xml:"WorkflowExecutionList,omitempty"`
 	NextToken             string                  `xml:"NextToken,omitempty"`
 }
 
-//获取工作流实例列表 https://cloud.tencent.com/document/product/460/45950
+// DescribeWorkflowExecutions TODO
+// 获取工作流实例列表 https://cloud.tencent.com/document/product/460/45950
 func (s *CIService) DescribeWorkflowExecutions(ctx context.Context, opt *DescribeWorkflowExecutionsOptions) (*DescribeWorkflowExecutionsResult, *Response, error) {
 	var res DescribeWorkflowExecutionsResult
 	sendOpt := sendOptions{
@@ -911,12 +1026,14 @@ func (s *CIService) DescribeWorkflowExecutions(ctx context.Context, opt *Describ
 	return &res, resp, err
 }
 
+// NotifyConfig TODO
 type NotifyConfig struct {
 	URL   string `xml:"Url,omitempty"`
 	Event string `xml:"Event,omitempty"`
 	Type  string `xml:"Type,omitempty"`
 }
 
+// ExtFilter TODO
 type ExtFilter struct {
 	State      string `xml:"State,omitempty"`
 	Audio      string `xml:"Audio,omitempty"`
@@ -925,6 +1042,7 @@ type ExtFilter struct {
 	AllFile    string `xml:"AllFile,omitempty"`
 }
 
+// NodeInput TODO
 type NodeInput struct {
 	QueueId      string        `xml:"QueueId,omitempty"`
 	ObjectPrefix string        `xml:"ObjectPrefix,omitempty"`
@@ -932,11 +1050,13 @@ type NodeInput struct {
 	ExtFilter    *ExtFilter    `xml:"ExtFilter,omitempty" json:"ExtFilter,omitempty"`
 }
 
+// NodeSegment TODO
 type NodeSegment struct {
 	Format   string `xml:"Format,omitempty"`
 	Duration string `xml:"Duration,omitempty"`
 }
 
+// NodeOutput TODO
 type NodeOutput struct {
 	Region       string `xml:"Region,omitempty"`
 	Bucket       string `xml:"Bucket,omitempty"`
@@ -945,16 +1065,19 @@ type NodeOutput struct {
 	SpriteObject string `xml:"SpriteObject,omitempty"`
 }
 
+// NodeSCF TODO
 type NodeSCF struct {
 	Region       string `xml:"Region,omitempty"`
 	FunctionName string `xml:"FunctionName,omitempty"`
 	Namespace    string `xml:"Namespace,omitempty"`
 }
 
+// NodeSDRtoHDR TODO
 type NodeSDRtoHDR struct {
 	HdrMode string `xml:"HdrMode,omitempty"`
 }
 
+// NodeSmartCover TODO
 type NodeSmartCover struct {
 	Format           string `xml:"Format,omitempty"`
 	Width            string `xml:"Width,omitempty"`
@@ -963,6 +1086,7 @@ type NodeSmartCover struct {
 	DeleteDuplicates string `xml:"DeleteDuplicates,omitempty"`
 }
 
+// NodeOperation TODO
 type NodeOperation struct {
 	TemplateId          string          `xml:"TemplateId,omitempty" json:"TemplateId,omitempty"`
 	Segment             *NodeSegment    `xml:"Segment,omitempty" json:"Segment,omitempty" `
@@ -974,17 +1098,20 @@ type NodeOperation struct {
 	TranscodeTemplateId string          `xml:"TranscodeTemplateId,omitempty" json:"TranscodeTemplateId,omitempty"`
 }
 
+// Node TODO
 type Node struct {
 	Type      string         `xml:"Type"`
 	Input     *NodeInput     `xml:"Input,omitempty" json:"Input,omitempty"`
 	Operation *NodeOperation `xml:"Operation,omitempty" json:"Operation,omitempty"`
 }
 
+// Topology TODO
 type Topology struct {
 	Dependencies map[string]string `json:"Dependencies,omitempty"`
 	Nodes        map[string]Node   `json:"Nodes,omitempty"`
 }
 
+// UnmarshalXML TODO
 func (m *Topology) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var v struct {
 		XMLName      xml.Name //`xml:"Topology"`
@@ -1036,6 +1163,7 @@ func (m *Topology) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
+// WorkflowExecution TODO
 type WorkflowExecution struct {
 	RunId        string   `xml:"RunId,omitempty" json:"RunId,omitempty"`
 	WorkflowId   string   `xml:"WorkflowId,omitempty" json:"WorkflowId,omitempty"`
@@ -1046,13 +1174,15 @@ type WorkflowExecution struct {
 	Topology     Topology `xml:"Topology,omitempty" json:"Topology,omitempty"`
 }
 
+// DescribeWorkflowExecutionResult TODO
 type DescribeWorkflowExecutionResult struct {
 	XMLName           xml.Name            `xml:"Response"`
 	WorkflowExecution []WorkflowExecution `xml:"WorkflowExecution,omitempty" json:"WorkflowExecution,omitempty"`
 	NextToken         string              `xml:"NextToken,omitempty" json:"NextToken,omitempty"`
 }
 
-//获取工作流实例详情 https://cloud.tencent.com/document/product/460/45949
+// DescribeWorkflowExecution TODO
+// 获取工作流实例详情 https://cloud.tencent.com/document/product/460/45949
 func (s *CIService) DescribeWorkflowExecution(ctx context.Context, runId string) (*DescribeWorkflowExecutionResult, *Response, error) {
 	var res DescribeWorkflowExecutionResult
 	sendOpt := sendOptions{
@@ -1065,6 +1195,7 @@ func (s *CIService) DescribeWorkflowExecution(ctx context.Context, runId string)
 	return &res, resp, err
 }
 
+// SpeechRecognition TODO
 type SpeechRecognition struct {
 	ChannelNum      string `xml:"ChannelNum,omitempty"`
 	ConvertNumMode  string `xml:"ConvertNumMode,omitempty"`
@@ -1074,10 +1205,13 @@ type SpeechRecognition struct {
 	ResTextFormat   string `xml:"ResTextFormat,omitempty"`
 }
 
+// SpeechRecognitionResult TODO
 type SpeechRecognitionResult struct {
 	AudioTime float64  `xml:"AudioTime,omitempty"`
 	Result    []string `xml:"Result,omitempty"`
 }
+
+// ASRJobOperation TODO
 type ASRJobOperation struct {
 	Tag                     string                   `xml:"Tag,omitempty"`
 	Output                  *JobOutput               `xml:"Output,omitempty"`
@@ -1085,6 +1219,7 @@ type ASRJobOperation struct {
 	SpeechRecognitionResult *SpeechRecognitionResult `xml:"SpeechRecognitionResult,omitempty"`
 }
 
+// CreateASRJobsOptions TODO
 type CreateASRJobsOptions struct {
 	XMLName   xml.Name         `xml:"Request"`
 	Tag       string           `xml:"Tag,omitempty"`
@@ -1094,6 +1229,7 @@ type CreateASRJobsOptions struct {
 	CallBack  string           `xml:"CallBack,omitempty"`
 }
 
+// ASRJobDetail TODO
 type ASRJobDetail struct {
 	Code         string           `xml:"Code,omitempty"`
 	Message      string           `xml:"Message,omitempty"`
@@ -1106,11 +1242,13 @@ type ASRJobDetail struct {
 	Operation    *ASRJobOperation `xml:"Operation,omitempty"`
 }
 
+// CreateASRJobsResult TODO
 type CreateASRJobsResult struct {
 	XMLName    xml.Name      `xml:"Response"`
 	JobsDetail *ASRJobDetail `xml:"JobsDetail,omitempty"`
 }
 
+// CreateASRJobs TODO
 func (s *CIService) CreateASRJobs(ctx context.Context, opt *CreateASRJobsOptions) (*CreateASRJobsResult, *Response, error) {
 	var res CreateASRJobsResult
 	sendOpt := sendOptions{
@@ -1124,12 +1262,14 @@ func (s *CIService) CreateASRJobs(ctx context.Context, opt *CreateASRJobsOptions
 	return &res, resp, err
 }
 
+// DescribeMutilASRJobResult TODO
 type DescribeMutilASRJobResult struct {
 	XMLName        xml.Name       `xml:"Response"`
 	JobsDetail     []ASRJobDetail `xml:"JobsDetail,omitempty"`
 	NonExistJobIds []string       `xml:"NonExistJobIds,omitempty"`
 }
 
+// DescribeMultiASRJob TODO
 func (s *CIService) DescribeMultiASRJob(ctx context.Context, jobids []string) (*DescribeMutilASRJobResult, *Response, error) {
 	jobidsStr := ""
 	if len(jobids) < 1 {

@@ -33,6 +33,124 @@ func log_status(err error) {
 	}
 }
 
+// InvokeAnimationJob TODO
+func InvokeAnimationJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "Animation",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "output/game.jpg",
+				Bucket: "test-1234567890",
+			},
+			Animation: &cos.Animation{
+				Container: &cos.Container{
+					Format: "gif",
+				},
+				Video: &cos.AnimationVideo{
+					Codec:                   "gif",
+					AnimateOnlyKeepKeyFrame: "true",
+				},
+				TimeInterval: &cos.TimeInterval{
+					Start:    "0",
+					Duration: "",
+				},
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeSmartCoverJob TODO
+func InvokeSmartCoverJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "SmartCover",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "output/mc-${number}.jpg",
+				Bucket: "test-1234567890",
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeSnapshotJob TODO
 func InvokeSnapshotJob() {
 	u, _ := url.Parse("https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-bj-1253960454.ci.ap-beijing.myqcloud.com")
@@ -89,6 +207,7 @@ func InvokeSnapshotJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeConcatJob TODO
 func InvokeConcatJob() {
 	u, _ := url.Parse("https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-bj-1253960454.ci.ap-beijing.myqcloud.com")
@@ -160,6 +279,7 @@ func InvokeConcatJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeTranscodeJob TODO
 func InvokeTranscodeJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -226,6 +346,7 @@ func InvokeTranscodeJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeMultiJobs TODO
 func InvokeMultiJobs() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -325,6 +446,7 @@ func InvokeMultiJobs() {
 	}
 }
 
+// JobNotifyCallback TODO
 func JobNotifyCallback() {
 	taskBody := "<Response><JobsDetail><Code>Success</Code><CreationTime>2022-02-09T11:25:43+0800</CreationTime><EndTime>2022-02-09T11:25:47+0800</EndTime><Input><BucketId>wwj-cq-1253960454</BucketId><Object>input/117374C.mp4</Object><Region>ap-chongqing</Region></Input><JobId>jf6717076895711ecafdd594be6cca70c</JobId><Message/><Operation><MediaInfo><Format><Bitrate>215.817000</Bitrate><Duration>96.931000</Duration><FormatLongName>QuickTime / MOV</FormatLongName><FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName><NumProgram>0</NumProgram><NumStream>1</NumStream><Size>2614921</Size><StartTime>0.000000</StartTime></Format><Stream><Audio/><Subtitle/><Video><AvgFps>29.970030</AvgFps><Bitrate>212.875000</Bitrate><CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName><CodecName>h264</CodecName><CodecTag>0x31637661</CodecTag><CodecTagString>avc1</CodecTagString><CodecTimeBase>1/30000</CodecTimeBase><Dar>16:9</Dar><Duration>96.930167</Duration><Fps>29.970030</Fps><HasBFrame>2</HasBFrame><Height>400</Height><Index>0</Index><Language>und</Language><Level>30</Level><NumFrames>2905</NumFrames><PixFormat>yuv420p</PixFormat><Profile>High</Profile><RefFrames>1</RefFrames><Rotation>0.000000</Rotation><Sar>640:639</Sar><StartTime>0.000000</StartTime><Timebase>1/30000</Timebase><Width>710</Width></Video></Stream></MediaInfo><MediaResult><OutputFile><Bucket>wwj-cq-1253960454</Bucket><Md5Info><Md5>38f0b40c78562f819421137541043f09</Md5><ObjectName>output/go_117374C.mp4</ObjectName></Md5Info><ObjectName>output/go_117374C.mp4</ObjectName><ObjectPrefix/><Region>ap-chongqing</Region><SpriteOutputFile><Bucket/><Md5Info/><ObjectName/><ObjectPrefix/><Region/></SpriteOutputFile></OutputFile></MediaResult><Output><Bucket>wwj-cq-1253960454</Bucket><Object>output/go_117374C.mp4</Object><Region>ap-chongqing</Region></Output><Transcode><Audio><Bitrate/><Channels/><Codec>AAC</Codec><KeepTwoTracks>false</KeepTwoTracks><Profile/><Remove>false</Remove><SampleFormat/><Samplerate>44100</Samplerate><SwitchTrack>false</SwitchTrack></Audio><Container><Format>mp4</Format></Container><TimeInterval><Duration/><Start>10</Start></TimeInterval><TransConfig><AdjDarMethod/><AudioBitrateAdjMethod/><DeleteMetadata>false</DeleteMetadata><IsCheckAudioBitrate>false</IsCheckAudioBitrate><IsCheckReso>false</IsCheckReso><IsCheckVideoBitrate>false</IsCheckVideoBitrate><IsHdr2Sdr>false</IsHdr2Sdr><IsStreamCopy>false</IsStreamCopy><ResoAdjMethod/><VideoBitrateAdjMethod/></TransConfig><Video><AnimateFramesPerSecond/><AnimateOnlyKeepKeyFrame>false</AnimateOnlyKeepKeyFrame><AnimateTimeIntervalOfFrame/><Bitrate/><Bufsize/><Codec>H.264</Codec><Crf>25</Crf><Crop/><Fps/><Gop/><Height/><Interlaced>false</Interlaced><LongShortMode>false</LongShortMode><Maxrate/><Pad/><Pixfmt/><Preset>medium</Preset><Profile>high</Profile><Quality/><Remove>false</Remove><ScanMode/><SliceTime>5</SliceTime><Width/></Video></Transcode></Operation><Progress>100</Progress><QueueId>paaf4fce5521a40888a3034a5de80f6ca</QueueId><StartTime>2022-02-09T11:25:43+0800</StartTime><State>Success</State><Tag>Transcode</Tag></JobsDetail></Response>"
 	var body cos.MediaProcessJobsNotifyBody
@@ -338,6 +460,7 @@ func JobNotifyCallback() {
 	}
 }
 
+// WorkflowExecutionNotifyCallback TODO
 func WorkflowExecutionNotifyCallback() {
 	workflowExecutionBody := "<Response><EventName>WorkflowFinish</EventName><WorkflowExecution><RunId>i70ae991a152911ecb184525400a8700f</RunId><BucketId></BucketId><Object>62ddbc1245.mp4</Object><CosHeaders><Key>x-cos-meta-id</Key><Value>62ddbc1245</Value></CosHeaders><CosHeaders><Key>Content-Type</Key><Value>video/mp4</Value></CosHeaders><WorkflowId>w29ba54d02b7340dd9fb44eb5beb786b9</WorkflowId><WorkflowName></WorkflowName><CreateTime>2021-09-14 15:00:26+0800</CreateTime><State>Success</State><Tasks><Type>Transcode</Type><CreateTime>2021-09-14 15:00:27+0800</CreateTime><EndTime>2021-09-14 15:00:42+0800</EndTime><State>Success</State><JobId>j70bab192152911ecab79bba409874f7f</JobId><Name>Transcode_1607323983818</Name><TemplateId>t088613dea8d564a9ba7e6b02cbd5de877</TemplateId><TemplateName>HLS-FHD</TemplateName></Tasks></WorkflowExecution></Response>"
 	var body cos.WorkflowExecutionNotifyBody
@@ -349,6 +472,7 @@ func WorkflowExecutionNotifyCallback() {
 	}
 }
 
+// InvokeSpriteSnapshotJob TODO
 func InvokeSpriteSnapshotJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -415,6 +539,7 @@ func InvokeSpriteSnapshotJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeSegmentJob TODO
 func InvokeSegmentJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -474,6 +599,7 @@ func InvokeSegmentJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// DescribeMultiMediaJob TODO
 func DescribeMultiMediaJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -534,6 +660,7 @@ func DescribeMultiMediaJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// GetPrivateM3U8 TODO
 func GetPrivateM3U8() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -559,6 +686,7 @@ func GetPrivateM3U8() {
 	fmt.Printf("%+v\n", getPrivateM3U8Res)
 }
 
+// InvokeVideoMontageJob TODO
 func InvokeVideoMontageJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -621,6 +749,7 @@ func InvokeVideoMontageJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeVoiceSeparateJob TODO
 func InvokeVoiceSeparateJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -678,6 +807,7 @@ func InvokeVoiceSeparateJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeVideoProcessJob TODO
 func InvokeVideoProcessJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -748,6 +878,7 @@ func InvokeVideoProcessJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeSDRtoHDRJob TODO
 func InvokeSDRtoHDRJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -813,6 +944,7 @@ func InvokeSDRtoHDRJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeSuperResolutionJob TODO
 func InvokeSuperResolutionJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -879,6 +1011,7 @@ func InvokeSuperResolutionJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// TriggerWorkflow TODO
 func TriggerWorkflow() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -905,6 +1038,7 @@ func TriggerWorkflow() {
 	fmt.Printf("%+v\n", triggerWorkflowRes)
 }
 
+// DescribeWorkflowExecutions TODO
 func DescribeWorkflowExecutions() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -930,6 +1064,7 @@ func DescribeWorkflowExecutions() {
 	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
 }
 
+// DescribeMultiWorkflowExecution TODO
 func DescribeMultiWorkflowExecution() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -954,6 +1089,7 @@ func DescribeMultiWorkflowExecution() {
 	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
 }
 
+// InvokeASRJob TODO
 func InvokeASRJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -998,6 +1134,7 @@ func InvokeASRJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// DescribeASRJob TODO
 func DescribeASRJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -1020,9 +1157,10 @@ func DescribeASRJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail[0].Operation.SpeechRecognitionResult)
 }
 
+// DescribeJob TODO
 func DescribeJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1038,13 +1176,14 @@ func DescribeJob() {
 		},
 	})
 	// DescribeMediaJobs
-	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "jba3c8aa6b18811ec95980d419f73c3cf")
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "j650f9ffebef411ecbd2081a7c7059a5d")
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaInfo)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaResult)
 }
 
+// GenerateMediaInfo TODO
 func GenerateMediaInfo() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -1073,6 +1212,7 @@ func GenerateMediaInfo() {
 	fmt.Printf("%+v\n", res)
 }
 
+// InvokeMediaInfoJob TODO
 func InvokeMediaInfoJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -1123,6 +1263,7 @@ func InvokeMediaInfoJob() {
 	}
 }
 
+// InvokeStreamExtractJob TODO
 func InvokeStreamExtractJob() {
 	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
@@ -1186,6 +1327,7 @@ func InvokeStreamExtractJob() {
 	}
 }
 
+// InvokePicProcessJob TODO
 func InvokePicProcessJob() {
 	// todo 需要替换为自己的域名
 	u, _ := url.Parse("https://testpic-1253960454.cos.ap-chongqing.myqcloud.com")
@@ -1254,8 +1396,168 @@ func InvokePicProcessJob() {
 	}
 }
 
+// InvokeDigitalWatermarkJob TODO
+func InvokeDigitalWatermarkJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "DigitalWatermark",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "output/test.mp4",
+				Bucket: "test-1234567890",
+			},
+			DigitalWatermark: &cos.DigitalWatermark{
+				Message: "HelloWorld",
+				Type:    "Text",
+				Version: "V1",
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeExtractDigitalWatermarkJob TODO
+func InvokeExtractDigitalWatermarkJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "ExtractDigitalWatermark",
+		Input: &cos.JobInput{
+			Object: "output/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			ExtractDigitalWatermark: &cos.ExtractDigitalWatermark{
+				Type:    "Text",
+				Version: "V1",
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeVideoTagJob TODO
+func InvokeVideoTagJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "VideoTag",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			VideoTag: &cos.VideoTag{
+				Scenario: "Stream",
+			},
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
 func main() {
+	// InvokeAnimationJob()
 	// InvokeSnapshotJob()
+	// InvokeSmartCoverJob()
 	// InvokeConcatJob()
 	// InvokeTranscodeJob()
 	// InvokeMultiJobs()
@@ -1278,6 +1580,9 @@ func main() {
 	// DescribeJob()
 	// GenerateMediaInfo()
 	// InvokeMediaInfoJob()
-	//InvokeStreamExtractJob()
-	InvokePicProcessJob()
+	// InvokeStreamExtractJob()
+	// InvokePicProcessJob()
+	// InvokeDigitalWatermarkJob()
+	// InvokeExtractDigitalWatermarkJob()
+	InvokeVideoTagJob()
 }
