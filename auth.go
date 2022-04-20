@@ -1,14 +1,18 @@
 package cos
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"hash"
 	"io/ioutil"
+	math_rand "math/rand"
+	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -26,7 +30,51 @@ var (
 	defaultCVMSchema     = "http"
 	defaultCVMMetaHost   = "metadata.tencentyun.com"
 	defaultCVMCredURI    = "latest/meta-data/cam/security-credentials"
+	internalHost         = regexp.MustCompile(`^.*cos-internal\.[a-z-1]+\.tencentcos\.cn$`)
 )
+
+var DNSScatterDialContext = DNSScatterDialContextFunc
+
+var DNSScatterTransport = &http.Transport{
+	Proxy:                 http.ProxyFromEnvironment,
+	DialContext:           DNSScatterDialContext,
+	MaxIdleConns:          100,
+	IdleConnTimeout:       90 * time.Second,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: 1 * time.Second,
+}
+
+func DNSScatterDialContextFunc(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+		DualStack: true,
+	}
+	// DNS 打散
+	math_rand.Seed(time.Now().UnixNano())
+	start := math_rand.Intn(len(ips))
+	for i := start; i < len(ips); i++ {
+		conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ips[i].IP.String(), port))
+		if err == nil {
+			return
+		}
+	}
+	for i := 0; i < start; i++ {
+		conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ips[i].IP.String(), port))
+		if err == nil {
+			break
+		}
+	}
+	return
+}
 
 // 需要校验的 Headers 列表
 var NeedSignHeaders = map[string]bool{
@@ -319,13 +367,17 @@ func (t *AuthorizationTransport) RoundTrip(req *http.Request) (*http.Response, e
 	authTime := NewAuthTime(defaultAuthExpire)
 	AddAuthorizationHeader(ak, sk, token, req, authTime)
 
-	resp, err := t.transport().RoundTrip(req)
+	resp, err := t.transport(req).RoundTrip(req)
 	return resp, err
 }
 
-func (t *AuthorizationTransport) transport() http.RoundTripper {
+func (t *AuthorizationTransport) transport(req *http.Request) http.RoundTripper {
 	if t.Transport != nil {
 		return t.Transport
+	}
+	// 内部域名默认使用DNS打散
+	if rc := internalHost.MatchString(req.URL.Hostname()); rc {
+		return DNSScatterTransport
 	}
 	return http.DefaultTransport
 }

@@ -15,6 +15,7 @@ import (
 	"text/template"
 	"time"
 
+	"regexp"
 	"strconv"
 
 	"github.com/google/go-querystring/query"
@@ -29,10 +30,17 @@ const (
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
 )
 
-var bucketURLTemplate = template.Must(
-	template.New("bucketURLFormat").Parse(
-		"{{.Schema}}://{{.BucketName}}.cos.{{.Region}}.myqcloud.com",
-	),
+var (
+	bucketURLTemplate = template.Must(
+		template.New("bucketURLFormat").Parse(
+			"{{.Schema}}://{{.BucketName}}.cos.{{.Region}}.myqcloud.com",
+		),
+	)
+
+	// {<http://>|<https://>}{bucketname-appid}.{cos|cos-internal|cos-website|ci}.{region}.{myqcloud.com/tencentcos.cn}{/}
+	hostSuffix       = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	hostPrefix       = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	invalidBucketErr = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 )
 
 // BaseURL 访问各 API 所需的基础 URL
@@ -192,6 +200,9 @@ func (c *Client) GetCredential() *Credential {
 }
 
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
+	if !checkURL(baseURL) {
+		return nil, invalidBucketErr
+	}
 	uri, err = addURLOptions(uri, optQuery)
 	if err != nil {
 		return
@@ -352,7 +363,7 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 	interval := c.Conf.RetryOpt.Interval
 	for nr < count {
 		resp, err = c.send(ctx, opt)
-		if err != nil {
+		if err != nil && err != invalidBucketErr {
 			if resp != nil && resp.StatusCode <= 499 {
 				dobreak := true
 				for _, v := range c.Conf.RetryOpt.StatusCode {
@@ -437,6 +448,14 @@ func addHeaderOptions(header http.Header, opt interface{}) (http.Header, error) 
 		}
 	}
 	return header, nil
+}
+
+func checkURL(baseURL *url.URL) bool {
+	host := baseURL.String()
+	if hostSuffix.MatchString(host) && !hostPrefix.MatchString(host) {
+		return false
+	}
+	return true
 }
 
 // Owner defines Bucket/Object's owner
