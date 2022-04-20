@@ -53,7 +53,7 @@ func DNSScatterDialContextFunc(ctx context.Context, network string, addr string)
 	if err != nil {
 		return nil, err
 	}
-	dialer := net.Dialer{
+	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 		DualStack: true,
