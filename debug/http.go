@@ -2,10 +2,12 @@ package debug
 
 import (
 	"fmt"
+	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"regexp"
 )
 
 // DebugRequestTransport 会打印请求和响应信息, 方便调试.
@@ -21,6 +23,8 @@ type DebugRequestTransport struct {
 	Transport http.RoundTripper
 }
 
+var internalHost = regexp.MustCompile(`^.*cos-internal\.[a-z-1]+\.tencentcos\.cn$`)
+
 // RoundTrip implements the RoundTripper interface.
 func (t *DebugRequestTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req = cloneRequest(req) // per RoundTrip contract
@@ -34,7 +38,7 @@ func (t *DebugRequestTransport) RoundTrip(req *http.Request) (*http.Response, er
 		fmt.Fprintf(w, "%s\n\n", string(a))
 	}
 
-	resp, err := t.transport().RoundTrip(req)
+	resp, err := t.transport(req).RoundTrip(req)
 	if err != nil {
 		return resp, err
 	}
@@ -48,9 +52,13 @@ func (t *DebugRequestTransport) RoundTrip(req *http.Request) (*http.Response, er
 	return resp, err
 }
 
-func (t *DebugRequestTransport) transport() http.RoundTripper {
+func (t *DebugRequestTransport) transport(req *http.Request) http.RoundTripper {
 	if t.Transport != nil {
 		return t.Transport
+	}
+	// 内部域名默认使用DNS打散
+	if rc := internalHost.MatchString(req.URL.Hostname()); rc {
+		return cos.DNSScatterTransport
 	}
 	return http.DefaultTransport
 }
