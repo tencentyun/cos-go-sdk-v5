@@ -405,7 +405,7 @@ type ObjectDeleteOptions struct {
 func (s *ObjectService) Delete(ctx context.Context, name string, opt ...*ObjectDeleteOptions) (*Response, error) {
 	var optHeader *ObjectDeleteOptions
 	// When use "" string might call the delete bucket interface
-	if len(name) == 0 {
+	if len(name) == 0 || name == "/" {
 		return nil, errors.New("empty object name")
 	}
 	if len(opt) > 0 {
@@ -1457,6 +1457,9 @@ func (s *ObjectService) GetTagging(ctx context.Context, name string, id ...strin
 }
 
 func (s *ObjectService) DeleteTagging(ctx context.Context, name string, id ...string) (*Response, error) {
+	if len(name) == 0 || name == "/" {
+		return nil, errors.New("empty object name")
+	}
 	var u string
 	if len(id) == 1 {
 		u = fmt.Sprintf("/%s?tagging&versionId=%s", encodeURIComponent(name), id[0])

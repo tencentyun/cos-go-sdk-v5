@@ -226,6 +226,9 @@ func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploa
 //
 // https://www.qcloud.com/document/product/436/7740
 func (s *ObjectService) AbortMultipartUpload(ctx context.Context, name, uploadID string) (*Response, error) {
+	if len(name) == 0 || name == "/" {
+		return nil, errors.New("empty object name")
+	}
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
