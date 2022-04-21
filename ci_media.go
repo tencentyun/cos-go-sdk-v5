@@ -79,16 +79,16 @@ type Audio struct {
 
 // TransConfig TODO
 type TransConfig struct {
-	AdjDarMethod          string     `xml:"AdjDarMethod,omitempty"`
-	IsCheckReso           string     `xml:"IsCheckReso,omitempty"`
-	ResoAdjMethod         string     `xml:"ResoAdjMethod,omitempty"`
-	IsCheckVideoBitrate   string     `xml:"IsCheckVideoBitrate,omitempty"`
-	VideoBitrateAdjMethod string     `xml:"VideoBitrateAdjMethod,omitempty"`
-	IsCheckAudioBitrate   string     `xml:"IsCheckAudioBitrate,omitempty"`
-	AudioBitrateAdjMethod string     `xml:"AudioBitrateAdjMethod,omitempty"`
-	DeleteMetadata        string     `xml:"DeleteMetadata,omitempty"`
-	IsHdr2Sdr             string     `xml:"IsHdr2Sdr,omitempty"`
-	HlsEncrypt            HlsEncrypt `xml:"HlsEncrypt,omitempty"`
+	AdjDarMethod          string      `xml:"AdjDarMethod,omitempty"`
+	IsCheckReso           string      `xml:"IsCheckReso,omitempty"`
+	ResoAdjMethod         string      `xml:"ResoAdjMethod,omitempty"`
+	IsCheckVideoBitrate   string      `xml:"IsCheckVideoBitrate,omitempty"`
+	VideoBitrateAdjMethod string      `xml:"VideoBitrateAdjMethod,omitempty"`
+	IsCheckAudioBitrate   string      `xml:"IsCheckAudioBitrate,omitempty"`
+	AudioBitrateAdjMethod string      `xml:"AudioBitrateAdjMethod,omitempty"`
+	DeleteMetadata        string      `xml:"DeleteMetadata,omitempty"`
+	IsHdr2Sdr             string      `xml:"IsHdr2Sdr,omitempty"`
+	HlsEncrypt            *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
 }
 
 // Transcode TODO
@@ -132,9 +132,28 @@ type Watermark struct {
 	Text      *Text  `xml:"Text,omitempty"`
 }
 
+// EffectConfig TODO
+type EffectConfig struct {
+	EnableStartFadein string `xml:"EnableStartFadein,omitempty"`
+	StartFadeinTime   string `xml:"StartFadeinTime,omitempty"`
+	EnableEndFadeout  string `xml:"EnableEndFadeout,omitempty"`
+	EndFadeoutTime    string `xml:"EndFadeoutTime,omitempty"`
+	EnableBgmFade     string `xml:"EnableBgmFade,omitempty"`
+	BgmFadeTime       string `xml:"BgmFadeTime,omitempty"`
+}
+
+// AudioMix TODO
+type AudioMix struct {
+	AudioSource  string        `xml:"AudioSource,omitempty"`
+	MixMode      string        `xml:"MixMode,omitempty"`
+	Replace      string        `xml:"Replace,omitempty"`
+	EffectConfig *EffectConfig `xml:"EffectConfig,omitempty"`
+}
+
 // ConcatFragment TODO
 type ConcatFragment struct {
 	Url       string `xml:"Url,omitempty"`
+	Mode      string `xml:"Mode,omitempty"`
 	StartTime string `xml:"StartTime,omitempty"`
 	EndTime   string `xml:"EndTime,omitempty"`
 }
@@ -146,6 +165,7 @@ type ConcatTemplate struct {
 	Video          *Video           `xml:"Video,omitempty"`
 	Container      *Container       `xml:"Container,omitempty"`
 	Index          string           `xml:"Index,omitempty"`
+	AudioMix       *AudioMix        `xml:"AudioMix,omitempty"`
 }
 
 // SpriteSnapshotConfig TODO
@@ -167,6 +187,11 @@ type Snapshot struct {
 	Count                string                `xml:"Count,omitempty"`
 	Width                string                `xml:"Width,omitempty"`
 	Height               string                `xml:"Height,omitempty"`
+	CIParam              string                `xml:"CIParam,omitempty"`
+	IsCheckCount         bool                  `xml:"IsCheckCount,omitempty"`
+	IsCheckBlack         bool                  `xml:"IsCheckBlack,omitempty"`
+	BlackLevel           string                `xml:"BlackLevel,omitempty"`
+	PixelBlackThreshold  string                `xml:"PixelBlackThreshold,omitempty"`
 	SnapshotOutMode      string                `xml:"SnapshotOutMode,omitempty"`
 	SpriteSnapshotConfig *SpriteSnapshotConfig `xml:"SpriteSnapshotConfig,omitempty"`
 }
@@ -1350,6 +1375,14 @@ func (s *CIService) DeleteMediaTemplate(ctx context.Context, tempalteId string) 
 	return &res, resp, err
 }
 
+// CreateMediaSnapshotTemplateOptions TODO
+type CreateMediaSnapshotTemplateOptions struct {
+	XMLName  xml.Name  `xml:"Request"`
+	Tag      string    `xml:"Tag,omitempty"`
+	Name     string    `xml:"Name,omitempty"`
+	Snapshot *Snapshot `xml:"Snapshot,omitempty"`
+}
+
 // CreateMediaTranscodeTemplateOptions TODO
 type CreateMediaTranscodeTemplateOptions struct {
 	XMLName      xml.Name      `xml:"Request"`
@@ -1362,6 +1395,33 @@ type CreateMediaTranscodeTemplateOptions struct {
 	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
 }
 
+// CreateMediaAnimationTemplateOptions TODO
+type CreateMediaAnimationTemplateOptions struct {
+	XMLName      xml.Name        `xml:"Request"`
+	Tag          string          `xml:"Tag,omitempty"`
+	Name         string          `xml:"Name,omitempty"`
+	Container    *Container      `xml:"Container,omitempty"`
+	Video        *AnimationVideo `xml:"Video,omitempty"`
+	TimeInterval *TimeInterval   `xml:"TimeInterval,omitempty"`
+}
+
+// CreateMediaConcatTemplateOptions TODO
+type CreateMediaConcatTemplateOptions struct {
+	XMLName        xml.Name        `xml:"Request"`
+	Tag            string          `xml:"Tag,omitempty"`
+	Name           string          `xml:"Name,omitempty"`
+	ConcatTemplate *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
+}
+
+// CreateMediaVideoProcessTemplateOptions TODO
+type CreateMediaVideoProcessTemplateOptions struct {
+	XMLName      xml.Name      `xml:"Request"`
+	Tag          string        `xml:"Tag,omitempty"`
+	Name         string        `xml:"Name,omitempty"`
+	ColorEnhance *ColorEnhance `xml:"ColorEnhance,omitempty"`
+	MsSharpen    *MsSharpen    `xml:"MsSharpen,omitempty"`
+}
+
 // CreateMediaTemplateResult TODO
 type CreateMediaTemplateResult struct {
 	XMLName   xml.Name  `xml:"Response"`
@@ -1371,14 +1431,46 @@ type CreateMediaTemplateResult struct {
 
 // Template TODO
 type Template struct {
-	TemplateId   string    `xml:"TemplateId,omitempty"`
-	Tag          string    `xml:"Code,omitempty"`
-	Name         string    `xml:"Name,omitempty"`
-	TransTpl     Transcode `xml:"TransTpl,omitempty"`
-	CreationTime string    `xml:"CreationTime,omitempty"`
-	UpdateTime   string    `xml:"UpdateTime,omitempty"`
-	BucketId     string    `xml:"BucketId,omitempty"`
-	Category     string    `xml:"Category,omitempty"`
+	TemplateId     string          `xml:"TemplateId,omitempty"`
+	Tag            string          `xml:"Code,omitempty"`
+	Name           string          `xml:"Name,omitempty"`
+	TransTpl       *Transcode      `xml:"TransTpl,omitempty"`
+	CreationTime   string          `xml:"CreationTime,omitempty"`
+	UpdateTime     string          `xml:"UpdateTime,omitempty"`
+	BucketId       string          `xml:"BucketId,omitempty"`
+	Category       string          `xml:"Category,omitempty"`
+	Snapshot       *Snapshot       `xml:"Snapshot,omitempty"`
+	Animation      *Animation      `xml:"Animation,omitempty"`
+	ConcatTemplate *ConcatTemplate `xml:"ConcatTemplate,omitempty"`
+	VideoProcess   *VideoProcess   `xml:"VideoProcess,omitempty"`
+}
+
+// CreateMediaSnapshotTemplate 创建截图模板
+func (s *CIService) CreateMediaSnapshotTemplate(ctx context.Context, opt *CreateMediaSnapshotTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateMediaSnapshotTemplate 更新截图模板
+func (s *CIService) UpdateMediaSnapshotTemplate(ctx context.Context, opt *CreateMediaSnapshotTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
 
 // CreateMediaTranscodeTemplate Options 创建转码模板
@@ -1397,6 +1489,90 @@ func (s *CIService) CreateMediaTranscodeTemplate(ctx context.Context, opt *Creat
 
 // UpdateMediaTranscodeTemplate 更新转码模板
 func (s *CIService) UpdateMediaTranscodeTemplate(ctx context.Context, opt *CreateMediaTranscodeTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CreateMediaAnimationTemplate 创建动图模板
+func (s *CIService) CreateMediaAnimationTemplate(ctx context.Context, opt *CreateMediaAnimationTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateMediaAnimationTemplate 创建动图模板
+func (s *CIService) UpdateMediaAnimationTemplate(ctx context.Context, opt *CreateMediaAnimationTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CreateMediaConcatTemplate 创建拼接模板
+func (s *CIService) CreateMediaConcatTemplate(ctx context.Context, opt *CreateMediaConcatTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateMediaConcatTemplate 创建拼接模板
+func (s *CIService) UpdateMediaConcatTemplate(ctx context.Context, opt *CreateMediaConcatTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CreateMediaVideoProcessTemplate 创建视频增强模板
+func (s *CIService) CreateMediaVideoProcessTemplate(ctx context.Context, opt *CreateMediaVideoProcessTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateMediaVideoProcessTemplate 创建视频增强模板
+func (s *CIService) UpdateMediaVideoProcessTemplate(ctx context.Context, opt *CreateMediaVideoProcessTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
 	var res CreateMediaTemplateResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
