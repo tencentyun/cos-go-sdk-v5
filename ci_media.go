@@ -33,9 +33,15 @@ type JobOutput struct {
 	StreamExtract []StreamExtract `xml:"StreamExtract,omitempty"`
 }
 
+// ClipConfig TODO
+type ClipConfig struct {
+	Duration string `xml:"Duration"`
+}
+
 // Container TODO
 type Container struct {
-	Format string `xml:"Format"`
+	Format     string     `xml:"Format"`
+	ClipConfig ClipConfig `xml:"ClipConfig"`
 }
 
 // Video TODO
@@ -1063,9 +1069,10 @@ func (s *CIService) DescribeWorkflowExecutions(ctx context.Context, opt *Describ
 
 // NotifyConfig TODO
 type NotifyConfig struct {
-	URL   string `xml:"Url,omitempty"`
-	Event string `xml:"Event,omitempty"`
-	Type  string `xml:"Type,omitempty"`
+	URL          string `xml:"Url,omitempty"`
+	Event        string `xml:"Event,omitempty"`
+	Type         string `xml:"Type,omitempty"`
+	ResultFormat string `xml:"ResultFormat,omitempty"`
 }
 
 // ExtFilter TODO
@@ -1085,12 +1092,6 @@ type NodeInput struct {
 	ExtFilter    *ExtFilter    `xml:"ExtFilter,omitempty" json:"ExtFilter,omitempty"`
 }
 
-// NodeSegment TODO
-type NodeSegment struct {
-	Format   string `xml:"Format,omitempty"`
-	Duration string `xml:"Duration,omitempty"`
-}
-
 // NodeOutput TODO
 type NodeOutput struct {
 	Region       string `xml:"Region,omitempty"`
@@ -1100,6 +1101,20 @@ type NodeOutput struct {
 	SpriteObject string `xml:"SpriteObject,omitempty"`
 }
 
+// DelogoParam TODO
+type DelogoParam struct {
+	Switch string `xml:"Switch,omitempty"`
+	Dx     string `xml:"Dx,omitempty"`
+	Dy     string `xml:"Dy,omitempty"`
+	Width  string `xml:"Width,omitempty"`
+	Height string `xml:"Height,omitempty"`
+}
+
+// NodeSDRtoHDR TODO
+type NodeSDRtoHDR struct {
+	HdrMode string `xml:"HdrMode,omitempty"`
+}
+
 // NodeSCF TODO
 type NodeSCF struct {
 	Region       string `xml:"Region,omitempty"`
@@ -1107,9 +1122,15 @@ type NodeSCF struct {
 	Namespace    string `xml:"Namespace,omitempty"`
 }
 
-// NodeSDRtoHDR TODO
-type NodeSDRtoHDR struct {
-	HdrMode string `xml:"HdrMode,omitempty"`
+// VideoStreamConfig TODO
+type VideoStreamConfig struct {
+	VideoStreamName string `xml:"VideoStreamName,omitempty"`
+	BandWidth       string `xml:"BandWidth,omitempty"`
+}
+
+// NodeHlsPackInfo TODO
+type NodeHlsPackInfo struct {
+	VideoStreamConfig []VideoStreamConfig `xml:"VideoStreamConfig,omitempty"`
 }
 
 // NodeSmartCover TODO
@@ -1121,16 +1142,34 @@ type NodeSmartCover struct {
 	DeleteDuplicates string `xml:"DeleteDuplicates,omitempty"`
 }
 
+// NodeSegmentConfig TODO
+type NodeSegmentConfig struct {
+	Format   string `xml:"Format,omitempty"`
+	Duration string `xml:"Duration,omitempty"`
+}
+
+// NodeStreamPackConfigInfo TODO
+type NodeStreamPackConfigInfo struct {
+	PackType             string `xml:"PackType,omitempty"`
+	IgnoreFailedStream   bool   `xml:"IgnoreFailedStream,omitempty"`
+	ReserveAllStreamNode string `xml:"ReserveAllStreamNode,omitempty"`
+}
+
 // NodeOperation TODO
 type NodeOperation struct {
-	TemplateId          string          `xml:"TemplateId,omitempty" json:"TemplateId,omitempty"`
-	Segment             *NodeSegment    `xml:"Segment,omitempty" json:"Segment,omitempty" `
-	Output              *NodeOutput     `xml:"Output,omitempty" json:"Output,omitempty"`
-	SCF                 *NodeSCF        `xml:"SCF,omitempty" json:"SCF,omitempty"`
-	SDRtoHDR            *NodeSDRtoHDR   `xml:"SDRtoHDR,omitempty" json:"SDRtoHDR,omitempty"`
-	SmartCover          *NodeSmartCover `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
-	WatermarkTemplateId string          `xml:"WatermarkTemplateId,omitempty" json:"WatermarkTemplateId,omitempty`
-	TranscodeTemplateId string          `xml:"TranscodeTemplateId,omitempty" json:"TranscodeTemplateId,omitempty"`
+	TemplateId           string                    `xml:"TemplateId,omitempty" json:"TemplateId,omitempty"`
+	Output               *NodeOutput               `xml:"Output,omitempty" json:"Output,omitempty"`
+	WatermarkTemplateId  []string                  `xml:"WatermarkTemplateId,omitempty" json:"WatermarkTemplateId,omitempty"`
+	DelogoParam          *DelogoParam              `xml:"DelogoParam,omitempty" json:"DelogoParam,omitempty"`
+	SDRtoHDR             *NodeSDRtoHDR             `xml:"SDRtoHDR,omitempty" json:"SDRtoHDR,omitempty"`
+	SCF                  *NodeSCF                  `xml:"SCF,omitempty" json:"SCF,omitempty"`
+	HlsPackInfo          *NodeHlsPackInfo          `xml:"HlsPackInfo,omitempty" json:"HlsPackInfo,omitempty"`
+	TranscodeTemplateId  string                    `xml:"TranscodeTemplateId,omitempty" json:"TranscodeTemplateId,omitempty"`
+	SmartCover           *NodeSmartCover           `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
+	SegmentConfig        *NodeSegmentConfig        `xml:"SegmentConfig,omitempty" json:"SegmentConfig,omitempty"`
+	DigitalWatermark     *DigitalWatermark         `xml:"DigitalWatermark,omitempty" json:"DigitalWatermark,omitempty"`
+	StreamPackConfigInfo *NodeStreamPackConfigInfo `xml:"StreamPackConfigInfo,omitempty" json:"StreamPackConfigInfo,omitempty"`
+	StreamPackInfo       *NodeHlsPackInfo          `xml:"StreamPackInfo,omitempty" json:"StreamPackInfo,omitempty"`
 }
 
 // Node TODO
@@ -1777,4 +1816,11 @@ func (s *CIService) UpdateMediaWatermarkTemplate(ctx context.Context, opt *Creat
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+// MediaWorkflow TODO
+type MediaWorkflow struct {
+	Name     string    `xml:"Name,omitempty"`
+	State    string    `xml:"State,omitempty"`
+	Topology *Topology `xml:"Topology,omitempty"`
 }
