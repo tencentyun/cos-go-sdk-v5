@@ -1523,7 +1523,7 @@ type Template struct {
 	Tag             string           `xml:"Code,omitempty"`
 	Name            string           `xml:"Name,omitempty"`
 	TransTpl        *Transcode       `xml:"TransTpl,omitempty"`
-	CreationTime    string           `xml:"CreationTime,omitempty"`
+	CreateTime      string           `xml:"CreateTime,omitempty"`
 	UpdateTime      string           `xml:"UpdateTime,omitempty"`
 	BucketId        string           `xml:"BucketId,omitempty"`
 	Category        string           `xml:"Category,omitempty"`
@@ -1820,7 +1820,149 @@ func (s *CIService) UpdateMediaWatermarkTemplate(ctx context.Context, opt *Creat
 
 // MediaWorkflow TODO
 type MediaWorkflow struct {
-	Name     string    `xml:"Name,omitempty"`
-	State    string    `xml:"State,omitempty"`
-	Topology *Topology `xml:"Topology,omitempty"`
+	Name       string    `xml:"Name,omitempty"`
+	WorkflowId string    `xml:"WorkflowId,omitempty"`
+	State      string    `xml:"State,omitempty"`
+	Topology   *Topology `xml:"Topology,omitempty"`
+	CreateTime string    `xml:"CreateTime,omitempty"`
+	UpdateTime string    `xml:"UpdateTime,omitempty"`
+	BucketId   string    `xml:"BucketId,omitempty"`
+}
+
+// MarshalXML TODO
+func (m *CreateMediaWorkflowOptions) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	fmt.Println(123)
+	return nil
+}
+
+// UnmarshalXML TODO
+func (m *CreateMediaWorkflowOptions) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var v struct {
+		XMLName      xml.Name //`xml:"Topology"`
+		Dependencies struct {
+			Inner []byte `xml:",innerxml"`
+		} `xml:"Dependencies"`
+		Nodes struct {
+			Inner []byte `xml:",innerxml"`
+		} `xml:"Nodes"`
+	}
+	err := d.DecodeElement(&v, &start)
+	if err != nil {
+		return err
+	}
+
+	myMap := make(map[string]interface{})
+
+	// ... do the mxj magic here ... -
+
+	temp := v.Nodes.Inner
+
+	prefix := "<Nodes>"
+	postfix := "</Nodes>"
+	str := prefix + string(temp) + postfix
+	fmt.Println(str)
+	fmt.Println(123)
+	myMxjMap, _ := mxj.NewMapXml([]byte(str))
+	myMap, _ = myMxjMap["Nodes"].(map[string]interface{})
+	nodesMap := make(map[string]Node)
+
+	for k, v := range myMap {
+		var node Node
+		mapstructure.Decode(v, &node)
+		nodesMap[k] = node
+	}
+
+	// fill myMap
+	m.MediaWorkflow.Topology.Nodes = nodesMap
+
+	deps := make(map[string]interface{})
+
+	tep := "<Dependencies>" + string(v.Dependencies.Inner) + "</Dependencies>"
+	tepMxjMap, _ := mxj.NewMapXml([]byte(tep))
+	deps, _ = tepMxjMap["Dependencies"].(map[string]interface{})
+	depsString := make(map[string]string)
+	for k, v := range deps {
+		depsString[k] = v.(string)
+	}
+	m.MediaWorkflow.Topology.Dependencies = depsString
+	return nil
+}
+
+// CreateMediaWorkflowOptions TODO
+type CreateMediaWorkflowOptions struct {
+	XMLName       xml.Name       `xml:"Request"`
+	MediaWorkflow *MediaWorkflow `xml:"MediaWorkflow,omitempty"`
+}
+
+// CreateMediaWorkflowResult TODO
+type CreateMediaWorkflowResult struct {
+	XMLName       xml.Name       `xml:"Response"`
+	RequestId     string         `xml:"RequestId,omitempty"`
+	MediaWorkflow *MediaWorkflow `xml:"MediaWorkflow,omitempty"`
+}
+
+// CreateMediaWorkflow 创建工作流
+func (s *CIService) CreateMediaWorkflow(ctx context.Context, opt *CreateMediaWorkflowOptions) (*CreateMediaWorkflowResult, *Response, error) {
+	var res CreateMediaWorkflowResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/workflow",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeMediaWorkflowOptions TODO
+type DescribeMediaWorkflowOptions struct {
+	Ids        string `url:"ids,omitempty"`
+	Name       string `url:"name,omitempty"`
+	PageNumber int    `url:"pageNumber,omitempty"`
+	PageSize   int    `url:"pageSize,omitempty"`
+}
+
+// DescribeMediaWorkflowResult TODO
+type DescribeMediaWorkflowResult struct {
+	XMLName           xml.Name        `xml:"Response"`
+	MediaWorkflowList []MediaWorkflow `xml:"MediaWorkflowList,omitempty"`
+	RequestId         string          `xml:"RequestId,omitempty"`
+	TotalCount        int             `xml:"TotalCount,omitempty"`
+	PageNumber        int             `xml:"PageNumber,omitempty"`
+	PageSize          int             `xml:"PageSize,omitempty"`
+	NonExistIDs       []string        `xml:"NonExistIDs,omitempty"`
+}
+
+// DescribeMediaWorkflow 搜索工作流
+func (s *CIService) DescribeMediaWorkflow(ctx context.Context, opt *DescribeMediaWorkflowOptions) (*DescribeMediaWorkflowResult, *Response, error) {
+	var res DescribeMediaWorkflowResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/Workflow",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DeleteMediaWorkflowResult TODO
+type DeleteMediaWorkflowResult struct {
+	RequestId  string `xml:"RequestId,omitempty"`
+	WorkflowId string `xml:"WorkflowId,omitempty"`
+}
+
+// DeleteMediaWorkflow TODO
+func (s *CIService) DeleteMediaWorkflow(ctx context.Context, workflowId string) (*DeleteMediaWorkflowResult, *Response, error) {
+	var res DeleteMediaWorkflowResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/Workflow/" + workflowId,
+		method:  http.MethodDelete,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
