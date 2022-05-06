@@ -504,6 +504,8 @@ type MediaProcessJobDetail struct {
 	Progress     string                    `xml:"Progress,omitempty"`
 	State        string                    `xml:"State,omitempty"`
 	CreationTime string                    `xml:"CreationTime,omitempty"`
+	StartTime    string                    `xml:"StartTime,omitempty"`
+	EndTime      string                    `xml:"EndTime,omitempty"`
 	QueueId      string                    `xml:"QueueId,omitempty"`
 	Input        *JobInput                 `xml:"Input,omitempty"`
 	Operation    *MediaProcessJobOperation `xml:"Operation,omitempty"`
@@ -2023,4 +2025,143 @@ func (s *CIService) DeleteMediaWorkflow(ctx context.Context, workflowId string) 
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+// InventoryTriggerJobInput TODO
+type InventoryTriggerJobInput struct {
+	Manifest string `xml:"Manifest,omitempty"`
+	UrlFile  string `xml:"UrlFile,omitempty"`
+	Prefix   string `xml:"Prefix,omitempty"`
+	Object   string `xml:"Object,omitempty"`
+}
+
+// InventoryTriggerJobOperationTimeInterval TODO
+type InventoryTriggerJobOperationTimeInterval struct {
+	Start string `xml:"Start,omitempty"`
+	End   string `xml:"End,omitempty"`
+}
+
+// InventoryTriggerJobOperation TODO
+type InventoryTriggerJobOperation struct {
+	WorkflowIds  string                                   `xml:"WorkflowIds,omitempty"`
+	TimeInterval InventoryTriggerJobOperationTimeInterval `xml:"TimeInterval,omitempty"`
+}
+
+// InventoryTriggerJob TODO
+type InventoryTriggerJob struct {
+	Name      string                        `xml:"Name,omitempty"`
+	Input     *InventoryTriggerJobInput     `xml:"Input,omitempty"`
+	Operation *InventoryTriggerJobOperation `xml:"Operation,omitempty"`
+}
+
+// CreateInventoryTriggerJobOptions TODO
+type CreateInventoryTriggerJobOptions struct {
+	XMLName   xml.Name                      `xml:"Request"`
+	Name      string                        `xml:"Name,omitempty"`
+	Input     *InventoryTriggerJobInput     `xml:"Input,omitempty"`
+	Operation *InventoryTriggerJobOperation `xml:"Operation,omitempty"`
+}
+
+// InventoryTriggerJobDetail TODO
+type InventoryTriggerJobDetail struct {
+	Code         string                        `xml:"Code,omitempty"`
+	Message      string                        `xml:"Message,omitempty"`
+	JobId        string                        `xml:"JobId,omitempty"`
+	Tag          string                        `xml:"Tag,omitempty"`
+	Progress     string                        `xml:"Progress,omitempty"`
+	State        string                        `xml:"State,omitempty"`
+	CreationTime string                        `xml:"CreationTime,omitempty"`
+	StartTime    string                        `xml:"StartTime,omitempty"`
+	EndTime      string                        `xml:"EndTime,omitempty"`
+	QueueId      string                        `xml:"QueueId,omitempty"`
+	Input        *InventoryTriggerJobInput     `xml:"Input,omitempty"`
+	Operation    *InventoryTriggerJobOperation `xml:"Operation,omitempty"`
+}
+
+// CreateInventoryTriggerJobResult TODO
+type CreateInventoryTriggerJobResult struct {
+	XMLName    xml.Name                   `xml:"Response"`
+	RequestId  string                     `xml:"RequestId,omitempty"`
+	JobsDetail *InventoryTriggerJobDetail `xml:"JobsDetail,omitempty"`
+}
+
+// CreateInventoryTriggerJob TODO
+func (s *CIService) CreateInventoryTriggerJob(ctx context.Context, opt *CreateInventoryTriggerJobOptions) (*CreateInventoryTriggerJobResult, *Response, error) {
+	var res CreateInventoryTriggerJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/inventorytriggerjob",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeInventoryTriggerJobResult TODO
+type DescribeInventoryTriggerJobResult struct {
+	XMLName       xml.Name                   `xml:"Response"`
+	RequestId     string                     `xml:"RequestId,omitempty"`
+	JobsDetail    *InventoryTriggerJobDetail `xml:"JobsDetail,omitempty"`
+	NonExistJobId string                     `xml:"NonExistJobId,omitempty"`
+}
+
+// DescribeInventoryTriggerJob 查询指定存量触发工作流的任务
+func (s *CIService) DescribeInventoryTriggerJob(ctx context.Context, jobId string) (*DescribeInventoryTriggerJobResult, *Response, error) {
+	var res DescribeInventoryTriggerJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/inventorytriggerjob/" + jobId,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeInventoryTriggerJobsOptions TODO
+type DescribeInventoryTriggerJobsOptions struct {
+	NextToken         string `url:"nextToken,omitempty"`
+	Size              string `url:"size,omitempty"`
+	OrderByTime       string `url:"orderByTime,omitempty"`
+	States            string `url:"states,omitempty"`
+	StartCreationTime string `url:"states,omitempty"`
+	EndCreationTime   string `url:"endCreationTime,omitempty"`
+	WorkflowId        string `url:"workflowId,omitempty"`
+	JobId             string `url:"jobId,omitempty"`
+	Name              string `url:"name,omitempty"`
+}
+
+// DescribeInventoryTriggerJobsResult TODO
+type DescribeInventoryTriggerJobsResult struct {
+	XMLName    xml.Name                   `xml:"Response"`
+	RequestId  string                     `xml:"RequestId,omitempty"`
+	JobsDetail *InventoryTriggerJobDetail `xml:"JobsDetail,omitempty"`
+	NextToken  string                     `xml:"NextToken,omitempty"`
+}
+
+// DescribeInventoryTriggerJobs 查询存量触发工作流的任务
+func (s *CIService) DescribeInventoryTriggerJobs(ctx context.Context, opt *DescribeInventoryTriggerJobsOptions) (*DescribeInventoryTriggerJobsResult, *Response, error) {
+	var res DescribeInventoryTriggerJobsResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/inventorytriggerjob",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CancelInventoryTriggerJob TODO
+func (s *CIService) CancelInventoryTriggerJob(ctx context.Context, jobId string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/inventorytriggerjob/" + jobId,
+		method:  http.MethodPut,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
 }
