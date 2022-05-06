@@ -1831,8 +1831,52 @@ type MediaWorkflow struct {
 
 // MarshalXML TODO
 func (m *CreateMediaWorkflowOptions) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	fmt.Println(123)
-	return nil
+	if m == nil {
+		return nil
+	}
+	type xmlMapEntry struct {
+		XMLName   xml.Name
+		Type      string      `xml:"Type"`
+		Input     interface{} `xml:",innerxml"`
+		Operation interface{} `xml:",innerxml"`
+	}
+	tokens := []xml.Token{}
+	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "Request"}})
+	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "MediaWorkflow"}})
+	t := xml.StartElement{Name: xml.Name{Local: "Name"}}
+	tokens = append(tokens, t, xml.CharData(m.MediaWorkflow.Name), xml.EndElement{Name: t.Name})
+	t = xml.StartElement{Name: xml.Name{Local: "State"}}
+	tokens = append(tokens, t, xml.CharData(m.MediaWorkflow.State), xml.EndElement{Name: t.Name})
+	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "Topology"}})
+	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "Dependencies"}})
+	for key, value := range m.MediaWorkflow.Topology.Dependencies {
+		t := xml.StartElement{Name: xml.Name{Local: key}}
+		tokens = append(tokens, t, xml.CharData(value), xml.EndElement{Name: t.Name})
+	}
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Dependencies"}})
+	// Nodes
+	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "Nodes"}})
+	for _, t := range tokens {
+		err := e.EncodeToken(t)
+		if err != nil {
+			return err
+		}
+	}
+	tokens = tokens[:0]
+	for k, v := range m.MediaWorkflow.Topology.Nodes {
+		e.Encode(xmlMapEntry{XMLName: xml.Name{Local: k}, Type: v.Type, Input: v.Input, Operation: v.Operation})
+	}
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Nodes"}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Topology"}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "MediaWorkflow"}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Request"}})
+	for _, t := range tokens {
+		err := e.EncodeToken(t)
+		if err != nil {
+			return err
+		}
+	}
+	return e.Flush()
 }
 
 // UnmarshalXML TODO
@@ -1915,6 +1959,20 @@ func (s *CIService) CreateMediaWorkflow(ctx context.Context, opt *CreateMediaWor
 	return &res, resp, err
 }
 
+// UpdateMediaWorkflow TODO
+func (s *CIService) UpdateMediaWorkflow(ctx context.Context, opt *CreateMediaWorkflowOptions, workflowId string) (*CreateMediaWorkflowResult, *Response, error) {
+	var res CreateMediaWorkflowResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/workflow/" + workflowId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // DescribeMediaWorkflowOptions TODO
 type DescribeMediaWorkflowOptions struct {
 	Ids        string `url:"ids,omitempty"`
@@ -1954,7 +2012,7 @@ type DeleteMediaWorkflowResult struct {
 	WorkflowId string `xml:"WorkflowId,omitempty"`
 }
 
-// DeleteMediaWorkflow TODO
+// DeleteMediaWorkflow 删除工作流
 func (s *CIService) DeleteMediaWorkflow(ctx context.Context, workflowId string) (*DeleteMediaWorkflowResult, *Response, error) {
 	var res DeleteMediaWorkflowResult
 	sendOpt := sendOptions{
