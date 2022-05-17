@@ -187,6 +187,41 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 	return req.URL, nil
 }
 
+func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt *PresignedURLOptions, signHost ...bool) string {
+	// 兼容 name 以 / 开头的情况
+	if strings.HasPrefix(name, "/") {
+		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	} else {
+		name = encodeURIComponent(name, []byte{'/'})
+	}
+
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + name,
+		method:    httpMethod,
+		optQuery:  opt,
+		optHeader: opt,
+	}
+	if opt != nil && opt.Query != nil {
+		qs := opt.Query.Encode()
+		if qs != "" {
+			sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+		}
+	}
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	if err != nil {
+		return ""
+	}
+
+	authTime := NewAuthTime(expired)
+	signedHost := true
+	if len(signHost) > 0 {
+		signedHost = signHost[0]
+	}
+	authorization := newAuthorization(ak, sk, req, authTime, signedHost)
+	return authorization
+}
+
 // ObjectPutHeaderOptions the options of header of the put object
 type ObjectPutHeaderOptions struct {
 	CacheControl       string `header:"Cache-Control,omitempty" url:"-"`
