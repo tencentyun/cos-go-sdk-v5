@@ -152,8 +152,8 @@ func InvokeSmartCoverJob() {
 
 // InvokeSnapshotJob TODO
 func InvokeSnapshotJob() {
-	u, _ := url.Parse("https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-bj-1253960454.ci.ap-beijing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-beijing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-beijing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -187,7 +187,7 @@ func InvokeSnapshotJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-beijing",
 				Object: "output/abc-${Number}.jpg",
-				Bucket: "wwj-bj-1253960454",
+				Bucket: "test-123456789",
 			},
 			Snapshot: &cos.Snapshot{
 				Mode:  "Interval",
@@ -209,8 +209,8 @@ func InvokeSnapshotJob() {
 
 // InvokeConcatJob TODO
 func InvokeConcatJob() {
-	u, _ := url.Parse("https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-bj-1253960454.ci.ap-beijing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-beijing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-beijing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -237,12 +237,12 @@ func InvokeConcatJob() {
 	// CreateMediaJobs
 	concatFragment := make([]cos.ConcatFragment, 0)
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url:       "https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
+		Url:       "https://test-123456789.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
 		StartTime: "0",
 		EndTime:   "10",
 	})
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url:       "https://wwj-bj-1253960454.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
+		Url:       "https://test-123456789.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
 		StartTime: "20",
 		EndTime:   "30",
 	})
@@ -252,7 +252,7 @@ func InvokeConcatJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-beijing",
 				Object: "output/go_117374C.mp4",
-				Bucket: "wwj-bj-1253960454",
+				Bucket: "test-123456789",
 			},
 			ConcatTemplate: &cos.ConcatTemplate{
 				Container: &cos.Container{
@@ -281,8 +281,8 @@ func InvokeConcatJob() {
 
 // InvokeTranscodeJob TODO
 func InvokeTranscodeJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -316,7 +316,7 @@ func InvokeTranscodeJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/go_117374C.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			Transcode: &cos.Transcode{
 				Container: &cos.Container{
@@ -348,8 +348,8 @@ func InvokeTranscodeJob() {
 
 // InvokeMultiJobs TODO
 func InvokeMultiJobs() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -384,7 +384,7 @@ func InvokeMultiJobs() {
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
 					Object: "output/go_${Number}.mp4",
-					Bucket: "wwj-cq-1253960454",
+					Bucket: "test-123456789",
 				},
 				Snapshot: &cos.Snapshot{
 					Mode:  "Interval",
@@ -397,7 +397,7 @@ func InvokeMultiJobs() {
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
 					Object: "output/go_117374C.mp4",
-					Bucket: "wwj-cq-1253960454",
+					Bucket: "test-123456789",
 				},
 				Transcode: &cos.Transcode{
 					Container: &cos.Container{
@@ -420,7 +420,7 @@ func InvokeMultiJobs() {
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
 					Object: "output/go_117374C.gif",
-					Bucket: "wwj-cq-1253960454",
+					Bucket: "test-123456789",
 				},
 				Animation: &cos.Animation{
 					Container: &cos.Container{
@@ -448,7 +448,7 @@ func InvokeMultiJobs() {
 
 // JobNotifyCallback TODO
 func JobNotifyCallback() {
-	taskBody := "<Response><JobsDetail><Code>Success</Code><CreationTime>2022-02-09T11:25:43+0800</CreationTime><EndTime>2022-02-09T11:25:47+0800</EndTime><Input><BucketId>wwj-cq-1253960454</BucketId><Object>input/117374C.mp4</Object><Region>ap-chongqing</Region></Input><JobId>jf6717076895711ecafdd594be6cca70c</JobId><Message/><Operation><MediaInfo><Format><Bitrate>215.817000</Bitrate><Duration>96.931000</Duration><FormatLongName>QuickTime / MOV</FormatLongName><FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName><NumProgram>0</NumProgram><NumStream>1</NumStream><Size>2614921</Size><StartTime>0.000000</StartTime></Format><Stream><Audio/><Subtitle/><Video><AvgFps>29.970030</AvgFps><Bitrate>212.875000</Bitrate><CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName><CodecName>h264</CodecName><CodecTag>0x31637661</CodecTag><CodecTagString>avc1</CodecTagString><CodecTimeBase>1/30000</CodecTimeBase><Dar>16:9</Dar><Duration>96.930167</Duration><Fps>29.970030</Fps><HasBFrame>2</HasBFrame><Height>400</Height><Index>0</Index><Language>und</Language><Level>30</Level><NumFrames>2905</NumFrames><PixFormat>yuv420p</PixFormat><Profile>High</Profile><RefFrames>1</RefFrames><Rotation>0.000000</Rotation><Sar>640:639</Sar><StartTime>0.000000</StartTime><Timebase>1/30000</Timebase><Width>710</Width></Video></Stream></MediaInfo><MediaResult><OutputFile><Bucket>wwj-cq-1253960454</Bucket><Md5Info><Md5>38f0b40c78562f819421137541043f09</Md5><ObjectName>output/go_117374C.mp4</ObjectName></Md5Info><ObjectName>output/go_117374C.mp4</ObjectName><ObjectPrefix/><Region>ap-chongqing</Region><SpriteOutputFile><Bucket/><Md5Info/><ObjectName/><ObjectPrefix/><Region/></SpriteOutputFile></OutputFile></MediaResult><Output><Bucket>wwj-cq-1253960454</Bucket><Object>output/go_117374C.mp4</Object><Region>ap-chongqing</Region></Output><Transcode><Audio><Bitrate/><Channels/><Codec>AAC</Codec><KeepTwoTracks>false</KeepTwoTracks><Profile/><Remove>false</Remove><SampleFormat/><Samplerate>44100</Samplerate><SwitchTrack>false</SwitchTrack></Audio><Container><Format>mp4</Format></Container><TimeInterval><Duration/><Start>10</Start></TimeInterval><TransConfig><AdjDarMethod/><AudioBitrateAdjMethod/><DeleteMetadata>false</DeleteMetadata><IsCheckAudioBitrate>false</IsCheckAudioBitrate><IsCheckReso>false</IsCheckReso><IsCheckVideoBitrate>false</IsCheckVideoBitrate><IsHdr2Sdr>false</IsHdr2Sdr><IsStreamCopy>false</IsStreamCopy><ResoAdjMethod/><VideoBitrateAdjMethod/></TransConfig><Video><AnimateFramesPerSecond/><AnimateOnlyKeepKeyFrame>false</AnimateOnlyKeepKeyFrame><AnimateTimeIntervalOfFrame/><Bitrate/><Bufsize/><Codec>H.264</Codec><Crf>25</Crf><Crop/><Fps/><Gop/><Height/><Interlaced>false</Interlaced><LongShortMode>false</LongShortMode><Maxrate/><Pad/><Pixfmt/><Preset>medium</Preset><Profile>high</Profile><Quality/><Remove>false</Remove><ScanMode/><SliceTime>5</SliceTime><Width/></Video></Transcode></Operation><Progress>100</Progress><QueueId>paaf4fce5521a40888a3034a5de80f6ca</QueueId><StartTime>2022-02-09T11:25:43+0800</StartTime><State>Success</State><Tag>Transcode</Tag></JobsDetail></Response>"
+	taskBody := "<Response><JobsDetail><Code>Success</Code><CreationTime>2022-02-09T11:25:43+0800</CreationTime><EndTime>2022-02-09T11:25:47+0800</EndTime><Input><BucketId>test-123456789</BucketId><Object>input/117374C.mp4</Object><Region>ap-chongqing</Region></Input><JobId>jf6717076895711ecafdd594be6cca70c</JobId><Message/><Operation><MediaInfo><Format><Bitrate>215.817000</Bitrate><Duration>96.931000</Duration><FormatLongName>QuickTime / MOV</FormatLongName><FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName><NumProgram>0</NumProgram><NumStream>1</NumStream><Size>2614921</Size><StartTime>0.000000</StartTime></Format><Stream><Audio/><Subtitle/><Video><AvgFps>29.970030</AvgFps><Bitrate>212.875000</Bitrate><CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName><CodecName>h264</CodecName><CodecTag>0x31637661</CodecTag><CodecTagString>avc1</CodecTagString><CodecTimeBase>1/30000</CodecTimeBase><Dar>16:9</Dar><Duration>96.930167</Duration><Fps>29.970030</Fps><HasBFrame>2</HasBFrame><Height>400</Height><Index>0</Index><Language>und</Language><Level>30</Level><NumFrames>2905</NumFrames><PixFormat>yuv420p</PixFormat><Profile>High</Profile><RefFrames>1</RefFrames><Rotation>0.000000</Rotation><Sar>640:639</Sar><StartTime>0.000000</StartTime><Timebase>1/30000</Timebase><Width>710</Width></Video></Stream></MediaInfo><MediaResult><OutputFile><Bucket>test-123456789</Bucket><Md5Info><Md5>38f0b40c78562f819421137541043f09</Md5><ObjectName>output/go_117374C.mp4</ObjectName></Md5Info><ObjectName>output/go_117374C.mp4</ObjectName><ObjectPrefix/><Region>ap-chongqing</Region><SpriteOutputFile><Bucket/><Md5Info/><ObjectName/><ObjectPrefix/><Region/></SpriteOutputFile></OutputFile></MediaResult><Output><Bucket>test-123456789</Bucket><Object>output/go_117374C.mp4</Object><Region>ap-chongqing</Region></Output><Transcode><Audio><Bitrate/><Channels/><Codec>AAC</Codec><KeepTwoTracks>false</KeepTwoTracks><Profile/><Remove>false</Remove><SampleFormat/><Samplerate>44100</Samplerate><SwitchTrack>false</SwitchTrack></Audio><Container><Format>mp4</Format></Container><TimeInterval><Duration/><Start>10</Start></TimeInterval><TransConfig><AdjDarMethod/><AudioBitrateAdjMethod/><DeleteMetadata>false</DeleteMetadata><IsCheckAudioBitrate>false</IsCheckAudioBitrate><IsCheckReso>false</IsCheckReso><IsCheckVideoBitrate>false</IsCheckVideoBitrate><IsHdr2Sdr>false</IsHdr2Sdr><IsStreamCopy>false</IsStreamCopy><ResoAdjMethod/><VideoBitrateAdjMethod/></TransConfig><Video><AnimateFramesPerSecond/><AnimateOnlyKeepKeyFrame>false</AnimateOnlyKeepKeyFrame><AnimateTimeIntervalOfFrame/><Bitrate/><Bufsize/><Codec>H.264</Codec><Crf>25</Crf><Crop/><Fps/><Gop/><Height/><Interlaced>false</Interlaced><LongShortMode>false</LongShortMode><Maxrate/><Pad/><Pixfmt/><Preset>medium</Preset><Profile>high</Profile><Quality/><Remove>false</Remove><ScanMode/><SliceTime>5</SliceTime><Width/></Video></Transcode></Operation><Progress>100</Progress><QueueId>paaf4fce5521a40888a3034a5de80f6ca</QueueId><StartTime>2022-02-09T11:25:43+0800</StartTime><State>Success</State><Tag>Transcode</Tag></JobsDetail></Response>"
 	var body cos.MediaProcessJobsNotifyBody
 	err := xml.Unmarshal([]byte(taskBody), &body)
 	if err != nil {
@@ -474,8 +474,8 @@ func WorkflowExecutionNotifyCallback() {
 
 // InvokeSpriteSnapshotJob TODO
 func InvokeSpriteSnapshotJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -509,7 +509,7 @@ func InvokeSpriteSnapshotJob() {
 			Output: &cos.JobOutput{
 				Region:       "ap-chongqing",
 				Object:       "output/abc-${Number}.jpg",
-				Bucket:       "wwj-cq-1253960454",
+				Bucket:       "test-123456789",
 				SpriteObject: "output/sprite-${Number}.jpg",
 			},
 			Snapshot: &cos.Snapshot{
@@ -541,8 +541,8 @@ func InvokeSpriteSnapshotJob() {
 
 // InvokeSegmentJob TODO
 func InvokeSegmentJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -576,7 +576,7 @@ func InvokeSegmentJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/m3u8/a",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			Segment: &cos.Segment{
 				Format:   "hls",
@@ -601,8 +601,8 @@ func InvokeSegmentJob() {
 
 // DescribeMultiMediaJob TODO
 func DescribeMultiMediaJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -636,7 +636,7 @@ func DescribeMultiMediaJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/abc-${Number}.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			Segment: &cos.Segment{
 				Format:   "mp4",
@@ -662,8 +662,8 @@ func DescribeMultiMediaJob() {
 
 // GetPrivateM3U8 TODO
 func GetPrivateM3U8() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -688,8 +688,8 @@ func GetPrivateM3U8() {
 
 // InvokeVideoMontageJob TODO
 func InvokeVideoMontageJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -723,7 +723,7 @@ func InvokeVideoMontageJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/go_117374C.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			VideoMontage: &cos.VideoMontage{
 				Container: &cos.Container{
@@ -751,8 +751,8 @@ func InvokeVideoMontageJob() {
 
 // InvokeVoiceSeparateJob TODO
 func InvokeVoiceSeparateJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -786,7 +786,7 @@ func InvokeVoiceSeparateJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/go_example.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			VoiceSeparate: &cos.VoiceSeparate{
 				AudioMode: "AudioAndBackground",
@@ -809,8 +809,8 @@ func InvokeVoiceSeparateJob() {
 
 // InvokeVideoProcessJob TODO
 func InvokeVideoProcessJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -844,7 +844,7 @@ func InvokeVideoProcessJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/vp_example.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			Transcode: &cos.Transcode{
 				Container: &cos.Container{
@@ -880,8 +880,8 @@ func InvokeVideoProcessJob() {
 
 // InvokeSDRtoHDRJob TODO
 func InvokeSDRtoHDRJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -915,7 +915,7 @@ func InvokeSDRtoHDRJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/sdrtohdr_linkv.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			Transcode: &cos.Transcode{
 				Container: &cos.Container{
@@ -946,8 +946,8 @@ func InvokeSDRtoHDRJob() {
 
 // InvokeSuperResolutionJob TODO
 func InvokeSuperResolutionJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -981,7 +981,7 @@ func InvokeSuperResolutionJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/sp-100986-2999.mp4",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			Transcode: &cos.Transcode{
 				Container: &cos.Container{
@@ -1013,8 +1013,8 @@ func InvokeSuperResolutionJob() {
 
 // TriggerWorkflow TODO
 func TriggerWorkflow() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1040,8 +1040,8 @@ func TriggerWorkflow() {
 
 // DescribeWorkflowExecutions TODO
 func DescribeWorkflowExecutions() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1066,8 +1066,8 @@ func DescribeWorkflowExecutions() {
 
 // DescribeMultiWorkflowExecution TODO
 func DescribeMultiWorkflowExecution() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1091,8 +1091,8 @@ func DescribeMultiWorkflowExecution() {
 
 // InvokeASRJob TODO
 func InvokeASRJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1117,7 +1117,7 @@ func InvokeASRJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "music.txt",
-				Bucket: "wwj-cq-1253960454",
+				Bucket: "test-123456789",
 			},
 			SpeechRecognition: &cos.SpeechRecognition{
 				ChannelNum:      "1",
@@ -1136,8 +1136,8 @@ func InvokeASRJob() {
 
 // DescribeASRJob TODO
 func DescribeASRJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1185,8 +1185,8 @@ func DescribeJob() {
 
 // GenerateMediaInfo TODO
 func GenerateMediaInfo() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1214,8 +1214,8 @@ func GenerateMediaInfo() {
 
 // InvokeMediaInfoJob TODO
 func InvokeMediaInfoJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1265,8 +1265,8 @@ func InvokeMediaInfoJob() {
 
 // InvokeStreamExtractJob TODO
 func InvokeStreamExtractJob() {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://wwj-cq-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1306,7 +1306,7 @@ func InvokeStreamExtractJob() {
 		Operation: &cos.MediaProcessJobOperation{
 			Output: &cos.JobOutput{
 				Region:        "ap-chongqing",
-				Bucket:        "wwj-cq-1253960454",
+				Bucket:        "test-123456789",
 				StreamExtract: streamEtract,
 			},
 		},
@@ -1330,8 +1330,8 @@ func InvokeStreamExtractJob() {
 // InvokePicProcessJob TODO
 func InvokePicProcessJob() {
 	// todo 需要替换为自己的域名
-	u, _ := url.Parse("https://testpic-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://testpic-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://testpic-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://testpic-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1373,7 +1373,7 @@ func InvokePicProcessJob() {
 			// todo 需要替换为自己的Output信息
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "testpic-1253960454",
+				Bucket: "testpic-123456789",
 				Object: "test.jpg",
 			},
 		},
