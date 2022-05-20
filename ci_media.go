@@ -1906,8 +1906,6 @@ func (m *CreateMediaWorkflowOptions) UnmarshalXML(d *xml.Decoder, start xml.Star
 	prefix := "<Nodes>"
 	postfix := "</Nodes>"
 	str := prefix + string(temp) + postfix
-	fmt.Println(str)
-	fmt.Println(123)
 	myMxjMap, _ := mxj.NewMapXml([]byte(str))
 	myMap, _ = myMxjMap["Nodes"].(map[string]interface{})
 	nodesMap := make(map[string]Node)

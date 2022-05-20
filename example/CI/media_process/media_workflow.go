@@ -35,8 +35,8 @@ func log_status(err error) {
 
 // DescribeWorkflow 查询工作流
 func DescribeWorkflow() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -63,8 +63,8 @@ func DescribeWorkflow() {
 
 // DeleteWorkflow 删除工作流
 func DeleteWorkflow() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -86,8 +86,8 @@ func DeleteWorkflow() {
 
 // CreateWorkflow 创建工作流
 func CreateWorkflow() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -114,9 +114,9 @@ func CreateWorkflow() {
 				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"Transcode_1581665960537": cos.Node{Type: "Transcode", Operation: &cos.NodeOperation{TemplateId: "t01e57db1c2d154d2fb57aa5de9313a897",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "trans1.mp4"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "trans1.mp4"}}},
 					"Snapshot_1581665960536": cos.Node{Type: "Snapshot", Operation: &cos.NodeOperation{TemplateId: "t07740e32081b44ad7a0aea03adcffd54a",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "snapshot-${number}.jpg"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "snapshot-${number}.jpg"}}},
 				},
 			},
 		},
@@ -138,8 +138,8 @@ func CreateWorkflow() {
 
 // UpdateWorkflow TODO
 func UpdateWorkflow() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -166,9 +166,9 @@ func UpdateWorkflow() {
 				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"Transcode_1581665960537": cos.Node{Type: "Transcode", Operation: &cos.NodeOperation{TemplateId: "t01e57db1c2d154d2fb57aa5de9313a897",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "trans1.mp4"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "trans1.mp4"}}},
 					"Snapshot_1581665960536": cos.Node{Type: "Snapshot", Operation: &cos.NodeOperation{TemplateId: "t07740e32081b44ad7a0aea03adcffd54a",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "snapshot-${number}.jpg"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "snapshot-${number}.jpg"}}},
 				},
 			},
 		},
@@ -188,8 +188,8 @@ func UpdateWorkflow() {
 
 // CreateStreamWorkflow 创建自适应码流工作流
 func CreateStreamWorkflow() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -221,12 +221,12 @@ func CreateStreamWorkflow() {
 				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"StreamPackConfig_1581665960532": cos.Node{Type: "StreamPackConfig", Operation: &cos.NodeOperation{
-						Output:               &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "${InputPath}/${InputName}._${RunId}.${ext}"},
+						Output:               &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${InputPath}/${InputName}._${RunId}.${ext}"},
 						StreamPackConfigInfo: &cos.NodeStreamPackConfigInfo{PackType: "HLS", IgnoreFailedStream: true}}},
 					"VideoStream_1581665960536": cos.Node{Type: "VideoStream", Operation: &cos.NodeOperation{TemplateId: "t03e862f296fba4152a1dd186b4ad5f64b",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "${RunId}_Substream_1/video.m3u8"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${RunId}_Substream_1/video.m3u8"}}},
 					"VideoStream_1581665960537": cos.Node{Type: "VideoStream", Operation: &cos.NodeOperation{TemplateId: "t09f9da59ed3c44ecd8ea1778e5ce5669c",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "${RunId}_Substream_1/video.m3u8"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${RunId}_Substream_1/video.m3u8"}}},
 					"StreamPack_1581665960538": cos.Node{Type: "StreamPack", Operation: &cos.NodeOperation{StreamPackInfo: hpi}},
 				},
 			},
@@ -249,8 +249,8 @@ func CreateStreamWorkflow() {
 
 // UpdatStreamWorkflow 更新自适应码流工作流
 func UpdatStreamWorkflow() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -282,12 +282,12 @@ func UpdatStreamWorkflow() {
 				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"StreamPackConfig_1581665960532": cos.Node{Type: "StreamPackConfig", Operation: &cos.NodeOperation{
-						Output:               &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "${InputPath}/${InputName}._${RunId}.${ext}"},
+						Output:               &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${InputPath}/${InputName}._${RunId}.${ext}"},
 						StreamPackConfigInfo: &cos.NodeStreamPackConfigInfo{PackType: "HLS", IgnoreFailedStream: true}}},
 					"VideoStream_1581665960536": cos.Node{Type: "VideoStream", Operation: &cos.NodeOperation{TemplateId: "t03e862f296fba4152a1dd186b4ad5f64b",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "${RunId}_Substream_1/video.m3u8"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${RunId}_Substream_1/video.m3u8"}}},
 					"VideoStream_1581665960537": cos.Node{Type: "VideoStream", Operation: &cos.NodeOperation{TemplateId: "t09f9da59ed3c44ecd8ea1778e5ce5669c",
-						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "lilang-1253960454", Object: "${RunId}_Substream_1/video.m3u8"}}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${RunId}_Substream_1/video.m3u8"}}},
 					"StreamPack_1581665960538": cos.Node{Type: "StreamPack", Operation: &cos.NodeOperation{StreamPackInfo: hpi}},
 				},
 			},

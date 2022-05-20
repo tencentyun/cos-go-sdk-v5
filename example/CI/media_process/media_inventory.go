@@ -35,8 +35,8 @@ func log_status(err error) {
 
 // DescribeInventoryTriggerJob TODO
 func DescribeInventoryTriggerJob() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -59,8 +59,8 @@ func DescribeInventoryTriggerJob() {
 
 // DescribeInventoryTriggerJobs TODO
 func DescribeInventoryTriggerJobs() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -85,8 +85,8 @@ func DescribeInventoryTriggerJobs() {
 
 // CreateInventoryTriggerJob TODO
 func CreateInventoryTriggerJob() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -105,7 +105,7 @@ func CreateInventoryTriggerJob() {
 	opt := &cos.CreateInventoryTriggerJobOptions{
 		Name: "trigger-" + strconv.Itoa(rand.Intn(100)),
 		Input: &cos.InventoryTriggerJobInput{
-			Manifest: "https://lilang-1253960454.cos.ap-chongqing.myqcloud.com/cos_bucket_inventory/1253960454/lilang/menu_instant_20220506171340/20220506/manifest.json",
+			Manifest: "https://test-123456789.cos.ap-chongqing.myqcloud.com/cos_bucket_inventory/123456789/test/menu_instant_20220506171340/20220506/manifest.json",
 		},
 		Operation: &cos.InventoryTriggerJobOperation{
 			WorkflowIds: "web6ac56c1ef54dbfa44d7f4103203be9",
@@ -122,8 +122,8 @@ func CreateInventoryTriggerJob() {
 
 // CancelInventoryTriggerJobs TODO
 func CancelInventoryTriggerJobs() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
