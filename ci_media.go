@@ -473,6 +473,7 @@ type MediaProcessJobOperation struct {
 	DigitalWatermark        *DigitalWatermark        `xml:"DigitalWatermark,omitempty"`
 	ExtractDigitalWatermark *ExtractDigitalWatermark `xml:"ExtractDigitalWatermark,omitempty"`
 	VideoTag                *VideoTag                `xml:"VideoTag,omitempty"`
+	UserData                string                   `xml:"UserData,omitempty"`
 }
 
 // CreatePicJobsOptions TODO

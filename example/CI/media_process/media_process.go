@@ -333,6 +333,7 @@ func InvokeTranscodeJob() {
 					Duration: "",
 				},
 			},
+			UserData: "hello world",
 		},
 		QueueId: "paaf4fce5521a40888a3034a5de80f6ca",
 	}
@@ -1559,7 +1560,7 @@ func main() {
 	// InvokeSnapshotJob()
 	// InvokeSmartCoverJob()
 	// InvokeConcatJob()
-	// InvokeTranscodeJob()
+	InvokeTranscodeJob()
 	// InvokeMultiJobs()
 	// JobNotifyCallback()
 	// WorkflowExecutionNotifyCallback()
@@ -1584,5 +1585,5 @@ func main() {
 	// InvokePicProcessJob()
 	// InvokeDigitalWatermarkJob()
 	// InvokeExtractDigitalWatermarkJob()
-	InvokeVideoTagJob()
+	// InvokeVideoTagJob()
 }
