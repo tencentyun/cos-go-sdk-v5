@@ -539,35 +539,9 @@ type CreateMultiMediaJobsResult struct {
 
 // MediaProcessJobsNotifyBody TODO
 type MediaProcessJobsNotifyBody struct {
-	XMLName    xml.Name `xml:"Response"`
-	EventName  string   `xml:"EventName"`
-	JobsDetail struct {
-		Code         string `xml:"Code"`
-		CreationTime string `xml:"CreationTime"`
-		EndTime      string `xml:"EndTime"`
-		Input        struct {
-			BucketId string `xml:"BucketId"`
-			Object   string `xml:"Object"`
-			Region   string `xml:"Region"`
-		} `xml:"Input"`
-		JobId     string `xml:"JobId"`
-		Message   string `xml:"Message"`
-		Operation struct {
-			MediaInfo   *MediaInfo   `xml:"MediaInfo"`
-			MediaResult *MediaResult `xml:"MediaResult"`
-			Output      struct {
-				Bucket string `xml:"Bucket"`
-				Object string `xml:"Object"`
-				Region string `xml:"Region"`
-			} `xml:"Output"`
-			TemplateId   string `xml:"TemplateId"`
-			TemplateName string `xml:"TemplateName"`
-		} `xml:"Operation"`
-		QueueId   string `xml:"QueueId"`
-		StartTime string `xml:"StartTime"`
-		State     string `xml:"State"`
-		Tag       string `xml:"Tag"`
-	} `xml:"JobsDetail"`
+	XMLName    xml.Name               `xml:"Response"`
+	EventName  string                 `xml:"EventName"`
+	JobsDetail *MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
 }
 
 // WorkflowExecutionNotifyBody TODO
