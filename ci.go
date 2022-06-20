@@ -858,6 +858,38 @@ func (s *CIService) GetWebpageAuditingJob(ctx context.Context, jobid string) (*G
 	return &res, resp, err
 }
 
+// ReportBadcaseOptions
+type ReportBadcaseOptions struct {
+	XMLName        xml.Name `xml:"Request"`
+	ContentType    int      `xml:",omitempty"`
+	Text           string   `xml:",omitempty"`
+	Url            string   `xml:",omitempty"`
+	Label          string   `xml:",omitempty"`
+	SuggestedLabel string   `xml:",omitempty"`
+	JobId          string   `xml:",omitempty"`
+	ModerationTime string   `xml:",omitempty"`
+}
+
+// ReportBadcaseResult
+type ReportBadcaseResult struct {
+	XMLName   xml.Name `xml:"Response"`
+	RequestId string   `xml:",omitempty"`
+}
+
+// 提交Badcase
+func (s *CIService) ReportBadcase(ctx context.Context, opt *ReportBadcaseOptions) (*ReportBadcaseResult, *Response, error) {
+	var res ReportBadcaseResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/report/badcase",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // PutVirusDetectJobOptions is the option of PutVirusDetectJob
 type PutVirusDetectJobOptions struct {
 	XMLName     xml.Name            `xml:"Request"`
