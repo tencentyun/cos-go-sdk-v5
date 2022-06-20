@@ -121,6 +121,7 @@ type ImageRecognitionResult struct {
 	Label             string           `xml:"Label,omitempty"`
 	Result            int              `xml:"Result,omitempty"`
 	Score             int              `xml:"Score,omitempty"`
+	Category          string           `xml:"Category,omitempty"`
 	SubLabel          string           `xml:"SubLabel,omitempty"`
 	PornInfo          *RecognitionInfo `xml:"PornInfo,omitempty"`
 	TerroristInfo     *RecognitionInfo `xml:"TerroristInfo,omitempty"`
@@ -140,6 +141,7 @@ type RecognitionInfo struct {
 	Score         int            `xml:"Score,omitempty"`
 	Label         string         `xml:"Label,omitempty"`
 	Count         int            `xml:"Count,omitempty"`
+	Category      string         `xml:"Category,omitempty"`
 	SubLabel      string         `xml:"SubLabel,omitempty"`
 	Keywords      []string       `xml:"Keywords,omitempty"`
 	OcrResults    []OcrResult    `xml:"OcrResults,omitempty"`
@@ -218,7 +220,7 @@ type BatchImageAuditingOptions struct {
 type ImageAuditingResult struct {
 	Code              string           `xml:",omitempty"`
 	Message           string           `xml:",omitempty"`
-	JobId             string           `xml:"JobId,omitempty"`
+	JobId             string           `xml:",omitempty"`
 	DataId            string           `xml:",omitempty"`
 	Object            string           `xml:",omitempty"`
 	Url               string           `xml:",omitempty"`
@@ -226,6 +228,7 @@ type ImageAuditingResult struct {
 	Label             string           `xml:",omitempty"`
 	Result            int              `xml:",omitempty"`
 	Score             int              `xml:",omitempty"`
+	Category          string           `xml:",omitempty"`
 	SubLabel          string           `xml:",omitempty"`
 	PornInfo          *RecognitionInfo `xml:",omitempty"`
 	TerrorismInfo     *RecognitionInfo `xml:",omitempty"`
