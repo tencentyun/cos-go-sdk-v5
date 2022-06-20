@@ -110,6 +110,7 @@ type ImageRecognitionOptions struct {
 	MaxFrames        int    `url:"max-frames,omitempty"`
 	BizType          string `url:"biz-type,omitempty"`
 	LargeImageDetect int    `url:"large-image-detect,omitempty"`
+	DataId           string `url:"dataid,omitempty"`
 }
 
 // ImageRecognitionResult is the result of ImageRecognition/ImageAuditing
@@ -128,6 +129,7 @@ type ImageRecognitionResult struct {
 	TeenagerInfo      *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
 	TerrorismInfo     *RecognitionInfo `xml:"TerrorismInfo,omitempty"`
 	CompressionResult int              `xml:"CompressionResult,omitempty"`
+	DataId            string           `xml:"DataId,omitempty"`
 }
 
 // RecognitionInfo is the result of auditing scene
