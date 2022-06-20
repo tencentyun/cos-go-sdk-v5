@@ -111,6 +111,8 @@ type ImageRecognitionOptions struct {
 	BizType          string `url:"biz-type,omitempty"`
 	LargeImageDetect int    `url:"large-image-detect,omitempty"`
 	DataId           string `url:"dataid,omitempty"`
+	Async            int    `url:"async,omitempty"`
+	Callback         string `url:"callback,omitempty"`
 }
 
 // ImageRecognitionResult is the result of ImageRecognition/ImageAuditing
@@ -207,6 +209,8 @@ type ImageAuditingInputOptions struct {
 type ImageAuditingJobConf struct {
 	DetectType string `xml:",omitempty"`
 	BizType    string `xml:",omitempty"`
+	Async      int    `url:",omitempty"`
+	Callback   string `url:",omitempty"`
 }
 
 // BatchImageAuditingOptions is the option of BatchImageAuditing
