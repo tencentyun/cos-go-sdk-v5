@@ -288,6 +288,7 @@ type PutVideoAuditingJobOptions struct {
 	InputDataId   string                `xml:"Input>DataId,omitempty"`
 	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
 	Conf          *VideoAuditingJobConf `xml:"Conf"`
+	Type          string                `xml:"Type,omitempty"`
 }
 
 // VideoAuditingJobConf is the config of PutVideoAuditingJobOptions
@@ -296,6 +297,7 @@ type VideoAuditingJobConf struct {
 	Snapshot        *PutVideoAuditingJobSnapshot `xml:",omitempty"`
 	Callback        string                       `xml:",omitempty"`
 	CallbackVersion string                       `xml:",omitempty"`
+	CallbackType    int                          `xml:",omitempty"`
 	BizType         string                       `xml:",omitempty"`
 	DetectContent   int                          `xml:",omitempty"`
 }
@@ -362,6 +364,7 @@ type AuditingJobDetail struct {
 	Snapshot      []GetVideoAuditingJobSnapshot `xml:",omitempty"`
 	AudioSection  []AudioSectionResult          `xml:",omitempty"`
 	UserInfo      *UserExtraInfo                `xml:",omitempty"`
+	Type          string                        `xml:",omitempty"`
 }
 
 // GetVideoAuditingJobSnapshot is the snapshot result of AuditingJobDetail
@@ -399,6 +402,19 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 		baseURL: s.client.BaseURL.CIURL,
 		uri:     "/video/auditing/" + jobid,
 		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// 视频审核-取消直播流审核任务
+func (s *CIService) PostVideoAuditingCancelJob(ctx context.Context, jobid string) (*PutVideoAuditingJobResult, *Response, error) {
+	var res PutVideoAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/video/cancel_auditing" + jobid,
+		method:  http.MethodPost,
 		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
