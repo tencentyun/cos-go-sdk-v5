@@ -568,13 +568,21 @@ type TextAuditingJobDetail struct {
 	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 }
 
+// TextLibResult
+type TextLibResult struct {
+	LibType  int32    `xml:"LibType,omitempty"`
+	LibName  string   `xml:"LibName,omitempty"`
+	Keywords []string `xml:"Keywords,omitempty"`
+}
+
 // TextRecognitionInfo
 type TextRecognitionInfo struct {
-	Code     int    `xml:",omitempty"`
-	HitFlag  int    `xml:",omitempty"`
-	Score    int    `xml:",omitempty"`
-	Count    int    `xml:",omitempty"`
-	Keywords string `xml:",omitempty"`
+	Code       int             `xml:",omitempty"`
+	HitFlag    int             `xml:",omitempty"`
+	Score      int             `xml:",omitempty"`
+	Count      int             `xml:",omitempty"`
+	Keywords   string          `xml:",omitempty"`
+	LibResults []TextLibResult `xml:",omitempty"`
 }
 
 // TextSectionResult is the section result of TextAuditingJobDetail
@@ -705,8 +713,9 @@ type ObjectResult struct {
 
 // LibResult
 type LibResult struct {
-	ImageId string `xml:"ImageId"`
-	Score   uint32 `xml:"Score"`
+	ImageId string `xml:"ImageId,omitempty"`
+	Score   uint32 `xml:"Score,omitempty"`
+	TextLibResult
 }
 
 // Location
