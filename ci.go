@@ -177,14 +177,26 @@ func (s *CIService) ImageAuditing(ctx context.Context, name string, opt *ImageRe
 	return &res, resp, err
 }
 
+// UserExtraInfo is user defined information
+type UserExtraInfo struct {
+	TokenId  string `xml:",omitempty"`
+	Nickname string `xml:",omitempty"`
+	DeviceId string `xml:",omitempty"`
+	AppId    string `xml:",omitempty"`
+	Room     string `xml:",omitempty"`
+	IP       string `xml:",omitempty"`
+	Type     string `xml:",omitempty"`
+}
+
 // ImageAuditingInputOptions is the option of BatchImageAuditingOptions
 type ImageAuditingInputOptions struct {
-	DataId           string `xml:",omitempty"`
-	Object           string `xml:",omitempty"`
-	Url              string `xml:",omitempty"`
-	Interval         int    `xml:",omitempty"`
-	MaxFrames        int    `xml:",omitempty"`
-	LargeImageDetect int    `xml:",omitempty"`
+	DataId           string         `xml:",omitempty"`
+	Object           string         `xml:",omitempty"`
+	Url              string         `xml:",omitempty"`
+	Interval         int            `xml:",omitempty"`
+	MaxFrames        int            `xml:",omitempty"`
+	LargeImageDetect int            `xml:",omitempty"`
+	UserInfo         *UserExtraInfo `xml:",omitempty"`
 }
 
 // ImageAuditingJobConf is the config of BatchImageAuditingOptions
@@ -219,6 +231,7 @@ type ImageAuditingResult struct {
 	AdsInfo           *RecognitionInfo `xml:",omitempty"`
 	TeenagerInfo      *RecognitionInfo `xml:",omitempty"`
 	CompressionResult int              `xml:",omitempty"`
+	UserInfo          *UserExtraInfo   `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
@@ -264,11 +277,12 @@ func (s *CIService) GetImageAuditingJob(ctx context.Context, jobid string) (*Get
 
 // PutVideoAuditingJobOptions is the option of PutVideoAuditingJob
 type PutVideoAuditingJobOptions struct {
-	XMLName     xml.Name              `xml:"Request"`
-	InputObject string                `xml:"Input>Object,omitempty"`
-	InputUrl    string                `xml:"Input>Url,omitempty"`
-	InputDataId string                `xml:"Input>DataId,omitempty"`
-	Conf        *VideoAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name              `xml:"Request"`
+	InputObject   string                `xml:"Input>Object,omitempty"`
+	InputUrl      string                `xml:"Input>Url,omitempty"`
+	InputDataId   string                `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
+	Conf          *VideoAuditingJobConf `xml:"Conf"`
 }
 
 // VideoAuditingJobConf is the config of PutVideoAuditingJobOptions
@@ -342,6 +356,7 @@ type AuditingJobDetail struct {
 	TeenagerInfo  *RecognitionInfo              `xml:",omitempty"`
 	Snapshot      []GetVideoAuditingJobSnapshot `xml:",omitempty"`
 	AudioSection  []AudioSectionResult          `xml:",omitempty"`
+	UserInfo      *UserExtraInfo                `xml:",omitempty"`
 }
 
 // GetVideoAuditingJobSnapshot is the snapshot result of AuditingJobDetail
@@ -387,11 +402,12 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 
 // PutAudioAuditingJobOptions is the option of PutAudioAuditingJob
 type PutAudioAuditingJobOptions struct {
-	XMLName     xml.Name              `xml:"Request"`
-	InputObject string                `xml:"Input>Object,omitempty"`
-	InputUrl    string                `xml:"Input>Url,omitempty"`
-	InputDataId string                `xml:"Input>DataId,omitempty"`
-	Conf        *AudioAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name              `xml:"Request"`
+	InputObject   string                `xml:"Input>Object,omitempty"`
+	InputUrl      string                `xml:"Input>Url,omitempty"`
+	InputDataId   string                `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
+	Conf          *AudioAuditingJobConf `xml:"Conf"`
 }
 
 // AudioAuditingJobConf is the config of PutAudioAuditingJobOptions
@@ -444,6 +460,7 @@ type AudioAuditingJobDetail struct {
 	PoliticsInfo  *RecognitionInfo     `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo     `xml:",omitempty"`
 	Section       []AudioSectionResult `xml:",omitempty"`
+	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 }
 
 // 音频审核-查询任务 https://cloud.tencent.com/document/product/460/53396
@@ -461,12 +478,13 @@ func (s *CIService) GetAudioAuditingJob(ctx context.Context, jobid string) (*Get
 
 // PutTextAuditingJobOptions is the option of PutTextAuditingJob
 type PutTextAuditingJobOptions struct {
-	XMLName      xml.Name             `xml:"Request"`
-	InputObject  string               `xml:"Input>Object,omitempty"`
-	InputUrl     string               `xml:"Input>Url,omitempty"`
-	InputContent string               `xml:"Input>Content,omitempty"`
-	InputDataId  string               `xml:"Input>DataId,omitempty"`
-	Conf         *TextAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name             `xml:"Request"`
+	InputObject   string               `xml:"Input>Object,omitempty"`
+	InputUrl      string               `xml:"Input>Url,omitempty"`
+	InputContent  string               `xml:"Input>Content,omitempty"`
+	InputDataId   string               `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo       `xml:"Input>UserInfo,omitempty"`
+	Conf          *TextAuditingJobConf `xml:"Conf"`
 }
 
 // TextAuditingJobConf is the config of PutAudioAuditingJobOptions
@@ -522,6 +540,7 @@ type TextAuditingJobDetail struct {
 	IllegalInfo   *TextRecognitionInfo `xml:",omitempty"`
 	AbuseInfo     *TextRecognitionInfo `xml:",omitempty"`
 	Section       []TextSectionResult  `xml:",omitempty"`
+	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 }
 
 // TextRecognitionInfo
@@ -561,12 +580,13 @@ func (s *CIService) GetTextAuditingJob(ctx context.Context, jobid string) (*GetT
 
 // PutDocumentAuditingJobOptions is the option of PutDocumentAuditingJob
 type PutDocumentAuditingJobOptions struct {
-	XMLName     xml.Name                 `xml:"Request"`
-	InputObject string                   `xml:"Input>Object,omitempty"`
-	InputUrl    string                   `xml:"Input>Url,omitempty"`
-	InputType   string                   `xml:"Input>Type,omitempty"`
-	InputDataId string                   `xml:"Input>DataId,omitempty"`
-	Conf        *DocumentAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name                 `xml:"Request"`
+	InputObject   string                   `xml:"Input>Object,omitempty"`
+	InputUrl      string                   `xml:"Input>Url,omitempty"`
+	InputType     string                   `xml:"Input>Type,omitempty"`
+	InputDataId   string                   `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo           `xml:"Input>UserInfo,omitempty"`
+	Conf          *DocumentAuditingJobConf `xml:"Conf"`
 }
 
 // DocumentAuditingJobConf is the config of PutDocumentAuditingJobOptions
@@ -615,6 +635,7 @@ type DocumentAuditingJobDetail struct {
 	Suggestion   int                      `xml:",omitempty"`
 	Labels       *DocumentResultInfo      `xml:",omitempty"`
 	PageSegment  *DocumentPageSegmentInfo `xml:",omitempty"`
+	UserInfo     *UserExtraInfo           `xml:",omitempty"`
 }
 
 // DocumentResultInfo
@@ -687,10 +708,11 @@ func (s *CIService) GetDocumentAuditingJob(ctx context.Context, jobid string) (*
 
 // PutWebpageAuditingJobOptions is the option of PutWebpageAuditingJob
 type PutWebpageAuditingJobOptions struct {
-	XMLName     xml.Name                `xml:"Request"`
-	InputUrl    string                  `xml:"Input>Url,omitempty"`
-	InputDataId string                  `xml:"Input>DataId,omitempty"`
-	Conf        *WebpageAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name                `xml:"Request"`
+	InputUrl      string                  `xml:"Input>Url,omitempty"`
+	InputDataId   string                  `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo          `xml:"Input>UserInfo,omitempty"`
+	Conf          *WebpageAuditingJobConf `xml:"Conf"`
 }
 
 // WebpageAuditingJobConf is the config of PutWebpageAuditingJobOptions
@@ -738,6 +760,7 @@ type WebpageAuditingJobDetail struct {
 	TextResults   *WebpageTextResults  `xml:",omitempty"`
 	HighlightHtml string               `xml:",omitempty"`
 	DataId        string               `xml:",omitempty"`
+	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 }
 
 // WebpageResultInfo
