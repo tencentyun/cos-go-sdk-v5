@@ -118,7 +118,7 @@ func TestNewClient(t *testing.T) {
 	if got, want := c.BaseURL.ServiceURL.String(), defaultServiceBaseURL; got != want {
 		t.Errorf("NewClient BaseURL is %v, want %v", got, want)
 	}
-	if got, want := c.UserAgent, userAgent; got != want {
+	if got, want := c.UserAgent, UserAgent; got != want {
 		t.Errorf("NewClient UserAgent is %v, want %v", got, want)
 	}
 }
