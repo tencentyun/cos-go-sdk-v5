@@ -209,8 +209,8 @@ type ImageAuditingInputOptions struct {
 type ImageAuditingJobConf struct {
 	DetectType string `xml:",omitempty"`
 	BizType    string `xml:",omitempty"`
-	Async      int    `url:",omitempty"`
-	Callback   string `url:",omitempty"`
+	Async      int    `xml:",omitempty"`
+	Callback   string `xml:",omitempty"`
 }
 
 // BatchImageAuditingOptions is the option of BatchImageAuditing
