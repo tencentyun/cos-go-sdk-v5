@@ -110,6 +110,9 @@ type ImageRecognitionOptions struct {
 	MaxFrames        int    `url:"max-frames,omitempty"`
 	BizType          string `url:"biz-type,omitempty"`
 	LargeImageDetect int    `url:"large-image-detect,omitempty"`
+	DataId           string `url:"dataid,omitempty"`
+	Async            int    `url:"async,omitempty"`
+	Callback         string `url:"callback,omitempty"`
 }
 
 // ImageRecognitionResult is the result of ImageRecognition/ImageAuditing
@@ -120,6 +123,7 @@ type ImageRecognitionResult struct {
 	Label             string           `xml:"Label,omitempty"`
 	Result            int              `xml:"Result,omitempty"`
 	Score             int              `xml:"Score,omitempty"`
+	Category          string           `xml:"Category,omitempty"`
 	SubLabel          string           `xml:"SubLabel,omitempty"`
 	PornInfo          *RecognitionInfo `xml:"PornInfo,omitempty"`
 	TerroristInfo     *RecognitionInfo `xml:"TerroristInfo,omitempty"`
@@ -128,6 +132,7 @@ type ImageRecognitionResult struct {
 	TeenagerInfo      *RecognitionInfo `xml:"TeenagerInfo,omitempty"`
 	TerrorismInfo     *RecognitionInfo `xml:"TerrorismInfo,omitempty"`
 	CompressionResult int              `xml:"CompressionResult,omitempty"`
+	DataId            string           `xml:"DataId,omitempty"`
 }
 
 // RecognitionInfo is the result of auditing scene
@@ -138,6 +143,7 @@ type RecognitionInfo struct {
 	Score         int            `xml:"Score,omitempty"`
 	Label         string         `xml:"Label,omitempty"`
 	Count         int            `xml:"Count,omitempty"`
+	Category      string         `xml:"Category,omitempty"`
 	SubLabel      string         `xml:"SubLabel,omitempty"`
 	Keywords      []string       `xml:"Keywords,omitempty"`
 	OcrResults    []OcrResult    `xml:"OcrResults,omitempty"`
@@ -177,20 +183,34 @@ func (s *CIService) ImageAuditing(ctx context.Context, name string, opt *ImageRe
 	return &res, resp, err
 }
 
+// UserExtraInfo is user defined information
+type UserExtraInfo struct {
+	TokenId  string `xml:",omitempty"`
+	Nickname string `xml:",omitempty"`
+	DeviceId string `xml:",omitempty"`
+	AppId    string `xml:",omitempty"`
+	Room     string `xml:",omitempty"`
+	IP       string `xml:",omitempty"`
+	Type     string `xml:",omitempty"`
+}
+
 // ImageAuditingInputOptions is the option of BatchImageAuditingOptions
 type ImageAuditingInputOptions struct {
-	DataId           string `xml:",omitempty"`
-	Object           string `xml:",omitempty"`
-	Url              string `xml:",omitempty"`
-	Interval         int    `xml:",omitempty"`
-	MaxFrames        int    `xml:",omitempty"`
-	LargeImageDetect int    `xml:",omitempty"`
+	DataId           string         `xml:",omitempty"`
+	Object           string         `xml:",omitempty"`
+	Url              string         `xml:",omitempty"`
+	Interval         int            `xml:",omitempty"`
+	MaxFrames        int            `xml:",omitempty"`
+	LargeImageDetect int            `xml:",omitempty"`
+	UserInfo         *UserExtraInfo `xml:",omitempty"`
 }
 
 // ImageAuditingJobConf is the config of BatchImageAuditingOptions
 type ImageAuditingJobConf struct {
 	DetectType string `xml:",omitempty"`
 	BizType    string `xml:",omitempty"`
+	Async      int    `url:",omitempty"`
+	Callback   string `url:",omitempty"`
 }
 
 // BatchImageAuditingOptions is the option of BatchImageAuditing
@@ -204,7 +224,7 @@ type BatchImageAuditingOptions struct {
 type ImageAuditingResult struct {
 	Code              string           `xml:",omitempty"`
 	Message           string           `xml:",omitempty"`
-	JobId             string           `xml:"JobId,omitempty"`
+	JobId             string           `xml:",omitempty"`
 	DataId            string           `xml:",omitempty"`
 	Object            string           `xml:",omitempty"`
 	Url               string           `xml:",omitempty"`
@@ -212,6 +232,7 @@ type ImageAuditingResult struct {
 	Label             string           `xml:",omitempty"`
 	Result            int              `xml:",omitempty"`
 	Score             int              `xml:",omitempty"`
+	Category          string           `xml:",omitempty"`
 	SubLabel          string           `xml:",omitempty"`
 	PornInfo          *RecognitionInfo `xml:",omitempty"`
 	TerrorismInfo     *RecognitionInfo `xml:",omitempty"`
@@ -219,6 +240,7 @@ type ImageAuditingResult struct {
 	AdsInfo           *RecognitionInfo `xml:",omitempty"`
 	TeenagerInfo      *RecognitionInfo `xml:",omitempty"`
 	CompressionResult int              `xml:",omitempty"`
+	UserInfo          *UserExtraInfo   `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
@@ -264,11 +286,13 @@ func (s *CIService) GetImageAuditingJob(ctx context.Context, jobid string) (*Get
 
 // PutVideoAuditingJobOptions is the option of PutVideoAuditingJob
 type PutVideoAuditingJobOptions struct {
-	XMLName     xml.Name              `xml:"Request"`
-	InputObject string                `xml:"Input>Object,omitempty"`
-	InputUrl    string                `xml:"Input>Url,omitempty"`
-	InputDataId string                `xml:"Input>DataId,omitempty"`
-	Conf        *VideoAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name              `xml:"Request"`
+	InputObject   string                `xml:"Input>Object,omitempty"`
+	InputUrl      string                `xml:"Input>Url,omitempty"`
+	InputDataId   string                `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
+	Conf          *VideoAuditingJobConf `xml:"Conf"`
+	Type          string                `xml:"Type,omitempty"`
 }
 
 // VideoAuditingJobConf is the config of PutVideoAuditingJobOptions
@@ -277,6 +301,7 @@ type VideoAuditingJobConf struct {
 	Snapshot        *PutVideoAuditingJobSnapshot `xml:",omitempty"`
 	Callback        string                       `xml:",omitempty"`
 	CallbackVersion string                       `xml:",omitempty"`
+	CallbackType    int                          `xml:",omitempty"`
 	BizType         string                       `xml:",omitempty"`
 	DetectContent   int                          `xml:",omitempty"`
 }
@@ -342,6 +367,8 @@ type AuditingJobDetail struct {
 	TeenagerInfo  *RecognitionInfo              `xml:",omitempty"`
 	Snapshot      []GetVideoAuditingJobSnapshot `xml:",omitempty"`
 	AudioSection  []AudioSectionResult          `xml:",omitempty"`
+	UserInfo      *UserExtraInfo                `xml:",omitempty"`
+	Type          string                        `xml:",omitempty"`
 }
 
 // GetVideoAuditingJobSnapshot is the snapshot result of AuditingJobDetail
@@ -385,13 +412,27 @@ func (s *CIService) GetVideoAuditingJob(ctx context.Context, jobid string) (*Get
 	return &res, resp, err
 }
 
+// 视频审核-取消直播流审核任务
+func (s *CIService) PostVideoAuditingCancelJob(ctx context.Context, jobid string) (*PutVideoAuditingJobResult, *Response, error) {
+	var res PutVideoAuditingJobResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/video/cancel_auditing" + jobid,
+		method:  http.MethodPost,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // PutAudioAuditingJobOptions is the option of PutAudioAuditingJob
 type PutAudioAuditingJobOptions struct {
-	XMLName     xml.Name              `xml:"Request"`
-	InputObject string                `xml:"Input>Object,omitempty"`
-	InputUrl    string                `xml:"Input>Url,omitempty"`
-	InputDataId string                `xml:"Input>DataId,omitempty"`
-	Conf        *AudioAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name              `xml:"Request"`
+	InputObject   string                `xml:"Input>Object,omitempty"`
+	InputUrl      string                `xml:"Input>Url,omitempty"`
+	InputDataId   string                `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
+	Conf          *AudioAuditingJobConf `xml:"Conf"`
 }
 
 // AudioAuditingJobConf is the config of PutAudioAuditingJobOptions
@@ -444,6 +485,7 @@ type AudioAuditingJobDetail struct {
 	PoliticsInfo  *RecognitionInfo     `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo     `xml:",omitempty"`
 	Section       []AudioSectionResult `xml:",omitempty"`
+	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 }
 
 // 音频审核-查询任务 https://cloud.tencent.com/document/product/460/53396
@@ -461,12 +503,13 @@ func (s *CIService) GetAudioAuditingJob(ctx context.Context, jobid string) (*Get
 
 // PutTextAuditingJobOptions is the option of PutTextAuditingJob
 type PutTextAuditingJobOptions struct {
-	XMLName      xml.Name             `xml:"Request"`
-	InputObject  string               `xml:"Input>Object,omitempty"`
-	InputUrl     string               `xml:"Input>Url,omitempty"`
-	InputContent string               `xml:"Input>Content,omitempty"`
-	InputDataId  string               `xml:"Input>DataId,omitempty"`
-	Conf         *TextAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name             `xml:"Request"`
+	InputObject   string               `xml:"Input>Object,omitempty"`
+	InputUrl      string               `xml:"Input>Url,omitempty"`
+	InputContent  string               `xml:"Input>Content,omitempty"`
+	InputDataId   string               `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo       `xml:"Input>UserInfo,omitempty"`
+	Conf          *TextAuditingJobConf `xml:"Conf"`
 }
 
 // TextAuditingJobConf is the config of PutAudioAuditingJobOptions
@@ -522,15 +565,24 @@ type TextAuditingJobDetail struct {
 	IllegalInfo   *TextRecognitionInfo `xml:",omitempty"`
 	AbuseInfo     *TextRecognitionInfo `xml:",omitempty"`
 	Section       []TextSectionResult  `xml:",omitempty"`
+	UserInfo      *UserExtraInfo       `xml:",omitempty"`
+}
+
+// TextLibResult
+type TextLibResult struct {
+	LibType  int32    `xml:"LibType,omitempty"`
+	LibName  string   `xml:"LibName,omitempty"`
+	Keywords []string `xml:"Keywords,omitempty"`
 }
 
 // TextRecognitionInfo
 type TextRecognitionInfo struct {
-	Code     int    `xml:",omitempty"`
-	HitFlag  int    `xml:",omitempty"`
-	Score    int    `xml:",omitempty"`
-	Count    int    `xml:",omitempty"`
-	Keywords string `xml:",omitempty"`
+	Code       int             `xml:",omitempty"`
+	HitFlag    int             `xml:",omitempty"`
+	Score      int             `xml:",omitempty"`
+	Count      int             `xml:",omitempty"`
+	Keywords   string          `xml:",omitempty"`
+	LibResults []TextLibResult `xml:",omitempty"`
 }
 
 // TextSectionResult is the section result of TextAuditingJobDetail
@@ -561,12 +613,13 @@ func (s *CIService) GetTextAuditingJob(ctx context.Context, jobid string) (*GetT
 
 // PutDocumentAuditingJobOptions is the option of PutDocumentAuditingJob
 type PutDocumentAuditingJobOptions struct {
-	XMLName     xml.Name                 `xml:"Request"`
-	InputObject string                   `xml:"Input>Object,omitempty"`
-	InputUrl    string                   `xml:"Input>Url,omitempty"`
-	InputType   string                   `xml:"Input>Type,omitempty"`
-	InputDataId string                   `xml:"Input>DataId,omitempty"`
-	Conf        *DocumentAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name                 `xml:"Request"`
+	InputObject   string                   `xml:"Input>Object,omitempty"`
+	InputUrl      string                   `xml:"Input>Url,omitempty"`
+	InputType     string                   `xml:"Input>Type,omitempty"`
+	InputDataId   string                   `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo           `xml:"Input>UserInfo,omitempty"`
+	Conf          *DocumentAuditingJobConf `xml:"Conf"`
 }
 
 // DocumentAuditingJobConf is the config of PutDocumentAuditingJobOptions
@@ -615,6 +668,7 @@ type DocumentAuditingJobDetail struct {
 	Suggestion   int                      `xml:",omitempty"`
 	Labels       *DocumentResultInfo      `xml:",omitempty"`
 	PageSegment  *DocumentPageSegmentInfo `xml:",omitempty"`
+	UserInfo     *UserExtraInfo           `xml:",omitempty"`
 }
 
 // DocumentResultInfo
@@ -659,8 +713,9 @@ type ObjectResult struct {
 
 // LibResult
 type LibResult struct {
-	ImageId string `xml:"ImageId"`
-	Score   uint32 `xml:"Score"`
+	ImageId string `xml:"ImageId,omitempty"`
+	Score   uint32 `xml:"Score,omitempty"`
+	TextLibResult
 }
 
 // Location
@@ -687,10 +742,11 @@ func (s *CIService) GetDocumentAuditingJob(ctx context.Context, jobid string) (*
 
 // PutWebpageAuditingJobOptions is the option of PutWebpageAuditingJob
 type PutWebpageAuditingJobOptions struct {
-	XMLName     xml.Name                `xml:"Request"`
-	InputUrl    string                  `xml:"Input>Url,omitempty"`
-	InputDataId string                  `xml:"Input>DataId,omitempty"`
-	Conf        *WebpageAuditingJobConf `xml:"Conf"`
+	XMLName       xml.Name                `xml:"Request"`
+	InputUrl      string                  `xml:"Input>Url,omitempty"`
+	InputDataId   string                  `xml:"Input>DataId,omitempty"`
+	InputUserInfo *UserExtraInfo          `xml:"Input>UserInfo,omitempty"`
+	Conf          *WebpageAuditingJobConf `xml:"Conf"`
 }
 
 // WebpageAuditingJobConf is the config of PutWebpageAuditingJobOptions
@@ -738,6 +794,7 @@ type WebpageAuditingJobDetail struct {
 	TextResults   *WebpageTextResults  `xml:",omitempty"`
 	HighlightHtml string               `xml:",omitempty"`
 	DataId        string               `xml:",omitempty"`
+	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 }
 
 // WebpageResultInfo
@@ -795,6 +852,38 @@ func (s *CIService) GetWebpageAuditingJob(ctx context.Context, jobid string) (*G
 		baseURL: s.client.BaseURL.CIURL,
 		uri:     "/webpage/auditing/" + jobid,
 		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// ReportBadcaseOptions
+type ReportBadcaseOptions struct {
+	XMLName        xml.Name `xml:"Request"`
+	ContentType    int      `xml:",omitempty"`
+	Text           string   `xml:",omitempty"`
+	Url            string   `xml:",omitempty"`
+	Label          string   `xml:",omitempty"`
+	SuggestedLabel string   `xml:",omitempty"`
+	JobId          string   `xml:",omitempty"`
+	ModerationTime string   `xml:",omitempty"`
+}
+
+// ReportBadcaseResult
+type ReportBadcaseResult struct {
+	XMLName   xml.Name `xml:"Response"`
+	RequestId string   `xml:",omitempty"`
+}
+
+// 提交Badcase
+func (s *CIService) ReportBadcase(ctx context.Context, opt *ReportBadcaseOptions) (*ReportBadcaseResult, *Response, error) {
+	var res ReportBadcaseResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/report/badcase",
+		method:  http.MethodPost,
+		body:    opt,
 		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
