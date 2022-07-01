@@ -24,8 +24,8 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.35"
-	userAgent             = "cos-go-sdk-v5/" + Version
+	Version               = "0.7.36"
+	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
 )
@@ -141,7 +141,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 
 	c := &Client{
 		client:    httpClient,
-		UserAgent: userAgent,
+		UserAgent: UserAgent,
 		BaseURL:   baseURL,
 		Conf: &Config{
 			EnableCRC:        true,
@@ -244,7 +244,7 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	if contentMD5 != "" {
 		req.Header["Content-MD5"] = []string{contentMD5}
 	}
-	if v := req.Header.Get("User-Agent"); v == "" || !strings.HasPrefix(v, userAgent) {
+	if v := req.Header.Get("User-Agent"); v == "" || !strings.HasPrefix(v, UserAgent) {
 		if c.UserAgent != "" {
 			req.Header.Set("User-Agent", c.UserAgent)
 		}
