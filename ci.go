@@ -985,9 +985,15 @@ func (s *CIService) Put(ctx context.Context, name string, r io.Reader, uopt *Obj
 	}
 	if err == nil {
 		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
-		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+		// if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+		// 	opt.ContentLength = totalBytes
+		// }
+		// lilang : 2022-07-04
+		// 图片cgi不设置content-length的话，读不到body。图片处理cgi暂时不支持chunked，后面会修复。
+		if opt != nil && opt.ContentLength == 0 {
 			opt.ContentLength = totalBytes
 		}
+
 	}
 	reader := TeeReader(r, nil, totalBytes, nil)
 	if s.client.Conf.EnableCRC {
