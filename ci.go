@@ -1199,3 +1199,221 @@ func (s *CIService) DeleteGuetzli(ctx context.Context) (*Response, error) {
 	resp, err := s.client.send(ctx, sendOpt)
 	return resp, err
 }
+
+type AddStyleOptions struct {
+	XMLName   xml.Name `xml:"AddStyle"`
+	StyleName string   `xml:"StyleName,omitempty"`
+	StyleBody string   `xml:"StyleBody,omitempty"`
+}
+
+type GetStyleOptions struct {
+	XMLName   xml.Name `xml:"GetStyle"`
+	StyleName string   `xml:"StyleName,omitempty"`
+}
+
+type GetStyleResult struct {
+	XMLName   xml.Name    `xml:"StyleList"`
+	StyleRule []StyleRule `xml:"StyleRule,omitempty"`
+}
+
+type StyleRule struct {
+	StyleName string `xml:"StyleName,omitempty"`
+	StyleBody string `xml:"StyleBody,omitempty"`
+}
+
+type DeleteStyleOptions struct {
+	XMLName   xml.Name `xml:"DeleteStyle"`
+	StyleName string   `xml:"StyleName,omitempty"`
+}
+
+func (s *CIService) AddStyle(ctx context.Context, opt *AddStyleOptions) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodPut,
+		uri:     "/?style",
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+func (s *CIService) GetStyle(ctx context.Context, opt *GetStyleOptions) (*GetStyleResult, *Response, error) {
+	var res GetStyleResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodGet,
+		uri:     "/?style",
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) DeleteStyle(ctx context.Context, opt *DeleteStyleOptions) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodDelete,
+		uri:     "/?style",
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+
+// ImageQualityResult TODO
+type ImageQualityResult struct {
+	XMLName        xml.Name `xml:"Response"`
+	LongImage      bool     `xml:"LongImage,omitempty"`
+	BlackAndWhite  bool     `xml:"BlackAndWhite,omitempty"`
+	SmallImage     bool     `xml:"SmallImage,omitempty"`
+	BigImage       bool     `xml:"BigImage,omitempty"`
+	PureImage      bool     `xml:"PureImage,omitempty"`
+	ClarityScore   int      `xml:"ClarityScore,omitempty"`
+	AestheticScore int      `xml:"AestheticScore,omitempty"`
+	RequestId      string   `xml:"RequestId,omitempty"`
+}
+
+// ImageQuality 图片质量评估
+func (s *CIService) ImageQuality(ctx context.Context, obj string) (*ImageQualityResult, *Response, error) {
+	var res ImageQualityResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/" + encodeURIComponent(obj) + "?ci-process=AssessQuality",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+// OcrRecognitionOptions TODO
+type OcrRecognitionOptions struct {
+	Type              string `url:"type,omitempty"`
+	LanguageType      string `url:"language-type,omitempty"`
+	Ispdf             bool   `url:"ispdf,omitempty"`
+	PdfPageNumber     int    `url:"pdf-pagenumber,omitempty"`
+	Isword            bool   `url:"isword,omitempty"`
+	EnableWordPolygon bool   `url:"enable-word-polygon,omitempty"`
+}
+
+// OcrRecognitionResult TODO
+type OcrRecognitionResult struct {
+	XMLName        xml.Name         `xml:"Response"`
+	TextDetections []TextDetections `xml:"TextDetections,omitempty"`
+	Language       string           `xml:"Language,omitempty"`
+	Angel          float64          `xml:"Angel,omitempty"`
+	PdfPageSize    int              `xml:"PdfPageSize,omitempty"`
+	RequestId      string           `xml:"RequestId,omitempty"`
+}
+
+// TextDetections TODO
+type TextDetections struct {
+	DetectedText string        `xml:"DetectedText,omitempty"`
+	Confidence   int           `xml:"Confidence,omitempty"`
+	Polygon      []Polygon     `xml:"Polygon,omitempty"`
+	ItemPolygon  []ItemPolygon `xml:"ItemPolygon,omitempty"`
+	Words        []Words       `xml:"Words,omitempty"`
+	WordPolygon  []WordPolygon `xml:"WordPolygon,omitempty"`
+}
+
+// Polygon TODO
+type Polygon struct {
+	X int `xml:"X,omitempty"`
+	Y int `xml:"Y,omitempty"`
+}
+
+// ItemPolygon TODO
+type ItemPolygon struct {
+	X      int `xml:"X,omitempty"`
+	Y      int `xml:"Y,omitempty"`
+	Width  int `xml:"Width,omitempty"`
+	Height int `xml:"Height,omitempty"`
+}
+
+// Words TODO
+type Words struct {
+	Confidence     int            `xml:"Confidence,omitempty"`
+	Character      string         `xml:"Character,omitempty"`
+	WordCoordPoint WordCoordPoint `xml:"WordCoordPoint,omitempty"`
+}
+
+// WordCoordPoint TODO
+type WordCoordPoint struct {
+	WordCoordinate []Polygon `xml:"WordCoordinate,omitempty"`
+}
+
+// WordPolygon TODO
+type WordPolygon struct {
+	LeftTop     Polygon `xml:"LeftTop,omitempty"`
+	RightTop    Polygon `xml:"RightTop,omitempty"`
+	RightBottom Polygon `xml:"RightBottom,omitempty"`
+	LeftBottom  Polygon `xml:"LeftBottom,omitempty"`
+}
+
+// OcrRecognition OCR通用文字识别
+func (s *CIService) OcrRecognition(ctx context.Context, obj string, opt *OcrRecognitionOptions) (*OcrRecognitionResult, *Response, error) {
+	var res OcrRecognitionResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=OCR",
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+// DetectCarResult TODO
+type DetectCarResult struct {
+	XMLName   xml.Name  `xml:"Response"`
+	RequestId string    `xml:"RequestId,omitempty"`
+	CarTags   []CarTags `xml:"CarTags,omitempty"`
+}
+
+// CarTags TODO
+type CarTags struct {
+	Serial       string         `xml:"Serial,omitempty"`
+	Brand        string         `xml:"Brand,omitempty"`
+	Type         string         `xml:"Type,omitempty"`
+	Color        string         `xml:"Color,omitempty"`
+	Confidence   int            `xml:"Confidence,omitempty"`
+	Year         int            `xml:"Year,omitempty"`
+	CarLocation  []CarLocation  `xml:"CarLocation,omitempty"`
+	PlateContent []PlateContent `xml:"PlateContent,omitempty"`
+}
+
+// CarLocation TODO
+type CarLocation struct {
+	X int `xml:"X,omitempty"`
+	Y int `xml:"Y,omitempty"`
+}
+
+// PlateContent TODO
+type PlateContent struct {
+	Plate         string        `xml:"Plate,omitempty"`
+	Color         string        `xml:"Color,omitempty"`
+	Type          string        `xml:"Type,omitempty"`
+	PlateLocation PlateLocation `xml:"PlateLocation,omitempty"`
+}
+
+// PlateLocation TODO
+type PlateLocation struct {
+	X int `xml:"X,omitempty"`
+	Y int `xml:"Y,omitempty"`
+}
+
+// DetectCar 车辆车牌检测
+func (s *CIService) DetectCar(ctx context.Context, obj string) (*DetectCarResult, *Response, error) {
+	var res DetectCarResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/" + encodeURIComponent(obj) + "?ci-process=DetectCar",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}

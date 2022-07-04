@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -32,9 +31,8 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
-	cu, _ := url.Parse("http://test-1259654469.pic.ap-guangzhou.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -48,21 +46,8 @@ func main() {
 			},
 		},
 	})
-
-	_, err := c.CI.PutGuetzli(context.Background())
+	obj := "pic/car.png"
+	res, _, err := c.CI.DetectCar(context.Background(), obj)
 	log_status(err)
-	res, _, err := c.CI.GetGuetzli(context.Background())
-	log_status(err)
-	if res != nil && res.GuetzliStatus != "on" {
-		fmt.Printf("Error Status: %v\n", res.GuetzliStatus)
-	}
-	time.Sleep(time.Second * 3)
-	_, err = c.CI.DeleteGuetzli(context.Background())
-	log_status(err)
-	res, _, err = c.CI.GetGuetzli(context.Background())
-	log_status(err)
-	if res != nil && res.GuetzliStatus != "off" {
-		fmt.Printf("Error Status: %v\n", res.GuetzliStatus)
-	}
-
+	fmt.Printf("%+v\n", res)
 }

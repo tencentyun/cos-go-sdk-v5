@@ -31,7 +31,7 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -46,44 +46,14 @@ func main() {
 			},
 		},
 	})
-
-	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
-			XOptionHeader: &http.Header{},
-		},
+	obj := "pic/ocr.png"
+	opt := &cos.OcrRecognitionOptions{
+		Type:              "general",
+		LanguageType:      "zh",
+		Isword:            true,
+		EnableWordPolygon: true,
 	}
-	pic := &cos.PicOperations{
-		IsPicInfo: 1,
-		Rules: []cos.PicOperationsRules{
-			{
-				FileId: "format.jpg",
-				Rule:   "QRcode/cover/1",
-			},
-		},
-	}
-	opt.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
-	name := "test.jpg"
-	local_filename := "./QRcode.jpg"
-	res, _, err := c.CI.PutFromFile(context.Background(), name, local_filename, opt)
+	res, _, err := c.CI.OcrRecognition(context.Background(), obj, opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
-	fmt.Printf("%+v\n", res.OriginalInfo)
-	fmt.Printf("%+v\n", res.ProcessResults)
-
-	res2, _, err := c.CI.GetQRcode(context.Background(), name, 0, nil)
-	log_status(err)
-	fmt.Printf("%+v\n", res2)
-
-	gopt := &cos.GenerateQRcodeOptions{
-		QRcodeContent: fmt.Sprintf("<%v>", res2.QRcodeInfo.CodeUrl),
-		Mode:          0,
-		Width:         200,
-	}
-	res3, _, err := c.CI.GenerateQRcode(context.Background(), gopt)
-	log_status(err)
-	fmt.Printf("%+v\n", res3)
-
-	_, _, err = c.CI.GenerateQRcodeToFile(context.Background(), "./downQRcode.jpg", gopt)
-	log_status(err)
 }

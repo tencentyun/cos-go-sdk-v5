@@ -31,7 +31,7 @@ func log_status(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -42,32 +42,12 @@ func main() {
 				// Notice when put a large file and set need the request body, might happend out of memory error.
 				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
-
-	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
-			XOptionHeader: &http.Header{},
-		},
-	}
-	pic := &cos.PicOperations{
-		IsPicInfo: 1,
-		Rules: []cos.PicOperationsRules{
-			{
-				FileId: "format.jpg",
-				Rule:   "imageView2/format/png",
-			},
-		},
-	}
-	opt.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
-	name := "test.jpg"
-	local_filename := "./test.jpg"
-	res, _, err := c.CI.PutFromFile(context.Background(), name, local_filename, opt)
+	obj := "pic/deer.jpg"
+	res, _, err := c.CI.ImageQuality(context.Background(), obj)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
-	fmt.Printf("%+v\n", res.OriginalInfo)
-	fmt.Printf("%+v\n", res.ProcessResults)
 }
