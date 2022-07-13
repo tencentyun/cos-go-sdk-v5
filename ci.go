@@ -1261,7 +1261,6 @@ func (s *CIService) DeleteStyle(ctx context.Context, opt *DeleteStyleOptions) (*
 	return resp, err
 }
 
-
 // ImageQualityResult TODO
 type ImageQualityResult struct {
 	XMLName        xml.Name `xml:"Response"`
@@ -1413,6 +1412,171 @@ func (s *CIService) DetectCar(ctx context.Context, obj string) (*DetectCarResult
 		uri:     "/" + encodeURIComponent(obj) + "?ci-process=DetectCar",
 		method:  http.MethodGet,
 		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type CIServiceResult struct {
+	XMLName  xml.Name `xml:"CIStatus"`
+	CIStatus string   `xml:",chardata"`
+}
+
+func (s *CIService) OpenCIService(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodPut,
+		uri:     "/",
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+func (s *CIService) GetCIService(ctx context.Context) (*CIServiceResult, *Response, error) {
+	var res CIServiceResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodGet,
+		uri:     "/",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) CloseCIService(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodPut,
+		uri:     "/?unbind",
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+type HotLinkOptions struct {
+	XMLName xml.Name `xml:"Hotlink"`
+	Url     []string `xml:"Url,omitempty"`
+	Type    string   `xml:"Type,omitempty"`
+}
+
+type HotLinkResult struct {
+	XMLName xml.Name `xml:"Hotlink"`
+	Status  string   `xml:"Status,omitempty"`
+	Type    string   `xml:"Type,omitempty"`
+	Url     []string `xml:"Url,omitempty"`
+}
+
+func (s *CIService) SetHotLink(ctx context.Context, opt *HotLinkOptions) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodPut,
+		uri:     "/?hotlink",
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+func (s *CIService) GetHotLink(ctx context.Context) (*HotLinkResult, *Response, error) {
+	var res HotLinkResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodGet,
+		uri:     "/?hotlink",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type OriginProtectResult struct {
+	XMLName             xml.Name `xml:"OriginProtectStatus"`
+	OriginProtectStatus string   `xml:",chardata"`
+}
+
+func (s *CIService) OpenOriginProtect(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodPut,
+		uri:     "/?origin-protect",
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+func (s *CIService) GetOriginProtect(ctx context.Context) (*OriginProtectResult, *Response, error) {
+	var res OriginProtectResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodGet,
+		uri:     "/?origin-protect",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) CloseOriginProtect(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodDelete,
+		uri:     "/?origin-protect",
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+type PicTagResult struct {
+	XMLName xml.Name `xml:"RecognitionResult"`
+	Labels  []PicTag `xml:"Labels,omitempty"`
+}
+
+type PicTag struct {
+	Confidence int    `xml:"Confidence,omitempty"`
+	Name       string `xml:"Name,omitempty"`
+}
+
+func (s *CIService) PicTag(ctx context.Context, obj string) (*PicTagResult, *Response, error) {
+	var res PicTagResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		method:  http.MethodGet,
+		uri:     "/" + encodeURIComponent(obj) + "?ci-process=detect-label",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type DetectFaceOptions struct {
+	MaxFaceNum int `url:"max-face-num,omitempty"`
+}
+
+type DetectFaceResult struct {
+	XMLName          xml.Name    `xml:"Response"`
+	ImageWidth       int         `xml:"ImageWidth,omitempty"`
+	ImageHeight      int         `xml:"ImageHeight,omitempty"`
+	FaceModelVersion string      `xml:"FaceModelVersion,omitempty"`
+	RequestId        string      `xml:"RequestId,omitempty"`
+	FaceInfos        []FaceInfos `xml:"FaceInfos,omitempty"`
+}
+
+type FaceInfos struct {
+	X      int `xml:"X,omitempty"`
+	Y      int `xml:"Y,omitempty"`
+	Width  int `xml:"Width,omitempty"`
+	Height int `xml:"Height,omitempty"`
+}
+
+func (s *CIService) DetectFace(ctx context.Context, obj string, opt *DetectFaceOptions) (*DetectFaceResult, *Response, error) {
+	var res DetectFaceResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=detect-face",
+		optQuery: opt,
+		result:   &res,
 	}
 	resp, err := s.client.send(ctx, sendOpt)
 	return &res, resp, err
