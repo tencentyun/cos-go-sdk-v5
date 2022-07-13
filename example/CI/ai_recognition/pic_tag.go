@@ -31,7 +31,7 @@ func log_status(err error) {
 }
 
 func picTag() {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{

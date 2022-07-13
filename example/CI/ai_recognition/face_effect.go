@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,15 +45,53 @@ func main() {
 				// Notice when put a large file and set need the request body, might happend out of memory error.
 				RequestBody:    false,
 				ResponseHeader: true,
-				ResponseBody:   true,
+				ResponseBody:   false,
 			},
 		},
 	})
-	obj := "pic/face.jpeg"
-	opt := &cos.DetectFaceOptions{
-		MaxFaceNum: 2,
+	obj := "pic/self.jpeg"
+	opt := &cos.FaceEffectOptions{
+		Type:      "face-segmentation",
+		Whitening: 50,
 	}
-	res, _, err := c.CI.DetectFace(context.Background(), obj, opt)
+	res, _, err := c.CI.FaceEffect(context.Background(), obj, opt)
 	log_status(err)
-	fmt.Printf("%+v\n", res)
+
+	if len(res.ResultImage) > 0 {
+		d, err := base64.StdEncoding.DecodeString(res.ResultImage)
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fd, err := os.OpenFile("result_image.jpg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				r := bytes.NewReader(d)
+				_, err = io.Copy(fd, r)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				fd.Close()
+			}
+		}
+	}
+
+	if len(res.ResultMask) > 0 {
+		d, err := base64.StdEncoding.DecodeString(res.ResultMask)
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fd, err := os.OpenFile("result_mask.jpg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				r := bytes.NewReader(d)
+				_, err = io.Copy(fd, r)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				fd.Close()
+			}
+		}
+	}
 }

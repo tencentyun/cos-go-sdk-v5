@@ -1562,6 +1562,8 @@ type DetectFaceResult struct {
 	FaceInfos        []FaceInfos `xml:"FaceInfos,omitempty"`
 }
 
+
+// FaceInfos TODO
 type FaceInfos struct {
 	X      int `xml:"X,omitempty"`
 	Y      int `xml:"Y,omitempty"`
@@ -1569,12 +1571,45 @@ type FaceInfos struct {
 	Height int `xml:"Height,omitempty"`
 }
 
+// DetectFace TODO
 func (s *CIService) DetectFace(ctx context.Context, obj string, opt *DetectFaceOptions) (*DetectFaceResult, *Response, error) {
 	var res DetectFaceResult
 	sendOpt := &sendOptions{
 		baseURL:  s.client.BaseURL.BucketURL,
 		method:   http.MethodGet,
-		uri:      "/" + encodeURIComponent(obj) + "?ci-process=detect-face",
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=DetectFace",
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+// FaceEffectOptions TODO
+type FaceEffectOptions struct {
+	Type         string `url:"type,omitempty"`
+	Whitening    int    `url:"whitening,omitempty"`
+	Smoothing    int    `url:"smoothing,omitempty"`
+	FaceLifting  int    `url:"faceLifting,omitempty"`
+	EyeEnlarging int    `url:"eyeEnlarging,omitempty"`
+	Gender       int    `url:"gender,omitempty"`
+	Age          int    `url:"age,omitempty"`
+}
+
+// FaceEffectResult TODO
+type FaceEffectResult struct {
+	XMLName     xml.Name `xml:"Response"`
+	ResultImage string   `xml:"ResultImage,omitempty"`
+	ResultMask  string   `xml:"ResultMask,omitempty"`
+}
+
+// FaceEffect TODO
+func (s *CIService) FaceEffect(ctx context.Context, obj string, opt *FaceEffectOptions) (*FaceEffectResult, *Response, error) {
+	var res FaceEffectResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=face-effect",
 		optQuery: opt,
 		result:   &res,
 	}

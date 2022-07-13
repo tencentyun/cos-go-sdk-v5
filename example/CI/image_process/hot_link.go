@@ -31,7 +31,7 @@ func log_status(err error) {
 }
 
 func setHotLink() {
-	u, _ := url.Parse("https://lilang-1253960454.pic.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.pic.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -57,7 +57,7 @@ func setHotLink() {
 }
 
 func getHotLink() {
-	u, _ := url.Parse("https://lilang-1253960454.pic.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.pic.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -79,7 +79,7 @@ func getHotLink() {
 }
 
 func deleteHotLink() {
-	u, _ := url.Parse("https://lilang-1253960454.pic.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.pic.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{

@@ -31,7 +31,7 @@ func log_status(err error) {
 }
 
 func openCIService() {
-	u, _ := url.Parse("https://lilang-1253960454.pic.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.pic.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -52,7 +52,7 @@ func openCIService() {
 }
 
 func getCIService() {
-	u, _ := url.Parse("https://lilang-1253960454.pic.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.pic.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -74,7 +74,7 @@ func getCIService() {
 }
 
 func closeCIService() {
-	u, _ := url.Parse("https://lilang-1253960454.pic.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.pic.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{CIURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
