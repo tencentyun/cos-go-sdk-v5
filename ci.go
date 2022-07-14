@@ -11,6 +11,7 @@ import (
 	"hash/crc64"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 )
@@ -1261,7 +1262,6 @@ func (s *CIService) DeleteStyle(ctx context.Context, opt *DeleteStyleOptions) (*
 	return resp, err
 }
 
-// ImageQualityResult TODO
 type ImageQualityResult struct {
 	XMLName        xml.Name `xml:"Response"`
 	LongImage      bool     `xml:"LongImage,omitempty"`
@@ -1287,7 +1287,6 @@ func (s *CIService) ImageQuality(ctx context.Context, obj string) (*ImageQuality
 	return &res, resp, err
 }
 
-// OcrRecognitionOptions TODO
 type OcrRecognitionOptions struct {
 	Type              string `url:"type,omitempty"`
 	LanguageType      string `url:"language-type,omitempty"`
@@ -1297,7 +1296,6 @@ type OcrRecognitionOptions struct {
 	EnableWordPolygon bool   `url:"enable-word-polygon,omitempty"`
 }
 
-// OcrRecognitionResult TODO
 type OcrRecognitionResult struct {
 	XMLName        xml.Name         `xml:"Response"`
 	TextDetections []TextDetections `xml:"TextDetections,omitempty"`
@@ -1307,7 +1305,6 @@ type OcrRecognitionResult struct {
 	RequestId      string           `xml:"RequestId,omitempty"`
 }
 
-// TextDetections TODO
 type TextDetections struct {
 	DetectedText string        `xml:"DetectedText,omitempty"`
 	Confidence   int           `xml:"Confidence,omitempty"`
@@ -1317,7 +1314,6 @@ type TextDetections struct {
 	WordPolygon  []WordPolygon `xml:"WordPolygon,omitempty"`
 }
 
-// Polygon TODO
 type Polygon struct {
 	X int `xml:"X,omitempty"`
 	Y int `xml:"Y,omitempty"`
@@ -1331,24 +1327,21 @@ type ItemPolygon struct {
 	Height int `xml:"Height,omitempty"`
 }
 
-// Words TODO
 type Words struct {
-	Confidence     int            `xml:"Confidence,omitempty"`
-	Character      string         `xml:"Character,omitempty"`
-	WordCoordPoint WordCoordPoint `xml:"WordCoordPoint,omitempty"`
+	Confidence     int             `xml:"Confidence,omitempty"`
+	Character      string          `xml:"Character,omitempty"`
+	WordCoordPoint *WordCoordPoint `xml:"WordCoordPoint,omitempty"`
 }
 
-// WordCoordPoint TODO
 type WordCoordPoint struct {
 	WordCoordinate []Polygon `xml:"WordCoordinate,omitempty"`
 }
 
-// WordPolygon TODO
 type WordPolygon struct {
-	LeftTop     Polygon `xml:"LeftTop,omitempty"`
-	RightTop    Polygon `xml:"RightTop,omitempty"`
-	RightBottom Polygon `xml:"RightBottom,omitempty"`
-	LeftBottom  Polygon `xml:"LeftBottom,omitempty"`
+	LeftTop     *Polygon `xml:"LeftTop,omitempty"`
+	RightTop    *Polygon `xml:"RightTop,omitempty"`
+	RightBottom *Polygon `xml:"RightBottom,omitempty"`
+	LeftBottom  *Polygon `xml:"LeftBottom,omitempty"`
 }
 
 // OcrRecognition OCR通用文字识别
@@ -1365,14 +1358,12 @@ func (s *CIService) OcrRecognition(ctx context.Context, obj string, opt *OcrReco
 	return &res, resp, err
 }
 
-// DetectCarResult TODO
 type DetectCarResult struct {
 	XMLName   xml.Name  `xml:"Response"`
 	RequestId string    `xml:"RequestId,omitempty"`
 	CarTags   []CarTags `xml:"CarTags,omitempty"`
 }
 
-// CarTags TODO
 type CarTags struct {
 	Serial       string         `xml:"Serial,omitempty"`
 	Brand        string         `xml:"Brand,omitempty"`
@@ -1384,21 +1375,18 @@ type CarTags struct {
 	PlateContent []PlateContent `xml:"PlateContent,omitempty"`
 }
 
-// CarLocation TODO
 type CarLocation struct {
 	X int `xml:"X,omitempty"`
 	Y int `xml:"Y,omitempty"`
 }
 
-// PlateContent TODO
 type PlateContent struct {
-	Plate         string        `xml:"Plate,omitempty"`
-	Color         string        `xml:"Color,omitempty"`
-	Type          string        `xml:"Type,omitempty"`
-	PlateLocation PlateLocation `xml:"PlateLocation,omitempty"`
+	Plate         string         `xml:"Plate,omitempty"`
+	Color         string         `xml:"Color,omitempty"`
+	Type          string         `xml:"Type,omitempty"`
+	PlateLocation *PlateLocation `xml:"PlateLocation,omitempty"`
 }
 
-// PlateLocation TODO
 type PlateLocation struct {
 	X int `xml:"X,omitempty"`
 	Y int `xml:"Y,omitempty"`
@@ -1562,8 +1550,6 @@ type DetectFaceResult struct {
 	FaceInfos        []FaceInfos `xml:"FaceInfos,omitempty"`
 }
 
-
-// FaceInfos TODO
 type FaceInfos struct {
 	X      int `xml:"X,omitempty"`
 	Y      int `xml:"Y,omitempty"`
@@ -1571,7 +1557,6 @@ type FaceInfos struct {
 	Height int `xml:"Height,omitempty"`
 }
 
-// DetectFace TODO
 func (s *CIService) DetectFace(ctx context.Context, obj string, opt *DetectFaceOptions) (*DetectFaceResult, *Response, error) {
 	var res DetectFaceResult
 	sendOpt := &sendOptions{
@@ -1585,7 +1570,6 @@ func (s *CIService) DetectFace(ctx context.Context, obj string, opt *DetectFaceO
 	return &res, resp, err
 }
 
-// FaceEffectOptions TODO
 type FaceEffectOptions struct {
 	Type         string `url:"type,omitempty"`
 	Whitening    int    `url:"whitening,omitempty"`
@@ -1596,14 +1580,12 @@ type FaceEffectOptions struct {
 	Age          int    `url:"age,omitempty"`
 }
 
-// FaceEffectResult TODO
 type FaceEffectResult struct {
 	XMLName     xml.Name `xml:"Response"`
 	ResultImage string   `xml:"ResultImage,omitempty"`
 	ResultMask  string   `xml:"ResultMask,omitempty"`
 }
 
-// FaceEffect TODO
 func (s *CIService) FaceEffect(ctx context.Context, obj string, opt *FaceEffectOptions) (*FaceEffectResult, *Response, error) {
 	var res FaceEffectResult
 	sendOpt := &sendOptions{
@@ -1614,5 +1596,239 @@ func (s *CIService) FaceEffect(ctx context.Context, obj string, opt *FaceEffectO
 		result:   &res,
 	}
 	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type IdCardOCROptions struct {
+	CardSide string                  `url:"CardSide,omitempty"`
+	Config   *IdCardOCROptionsConfig `url:"Config,omitempty"`
+}
+
+type IdCardOCROptionsConfig struct {
+	CropIdCard      bool `json:"CropIdCard,omitempty"`
+	CropPortrait    bool `json:"CropPortrait,omitempty"`
+	CopyWarn        bool `json:"CopyWarn,omitempty"`
+	BorderCheckWarn bool `json:"BorderCheckWarn,omitempty"`
+	ReshootWarn     bool `json:"ReshootWarn,omitempty"`
+	DetectPsWarn    bool `json:"DetectPsWarn,omitempty"`
+	TempIdWarn      bool `json:"TempIdWarn,omitempty"`
+	InvalidDateWarn bool `json:"InvalidDateWarn,omitempty"`
+	Quality         bool `json:"Quality,omitempty"`
+	MultiCardDetect bool `json:"MultiCardDetect,omitempty"`
+}
+
+func (c *IdCardOCROptionsConfig) EncodeValues(key string, v *url.Values) error {
+	config, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	v.Add("Config", string(config))
+
+	return nil
+}
+
+type IdCardOCRResult struct {
+	XMLName      xml.Name            `xml:"Response"`
+	IdInfo       *IdCardInfo         `xml:"IdInfo,omitempty"`
+	AdvancedInfo *IdCardAdvancedInfo `xml:"AdvancedInfo,omitempty"`
+}
+
+type IdCardInfo struct {
+	Name      string `xml:"Name,omitempty"`
+	Sex       string `xml:"Sex,omitempty"`
+	Nation    string `xml:"Nation,omitempty"`
+	Birth     string `xml:"Birth,omitempty"`
+	Address   string `xml:"Address,omitempty"`
+	IdNum     string `xml:"IdNum,omitempty"`
+	Authority string `xml:"Authority,omitempty"`
+	ValidDate string `xml:"ValidDate,omitempty"`
+}
+
+type IdCardAdvancedInfo struct {
+	IdCard          string   `xml:"IdCard,omitempty"`
+	Portrait        string   `xml:"Portrait,omitempty"`
+	Quality         string   `xml:"Quality,omitempty"`
+	BorderCodeValue string   `xml:"BorderCodeValue,omitempty"`
+	WarnInfos       []string `xml:"WarnInfos,omitempty"`
+}
+
+func (s *CIService) IdCardOCRWhenCloud(ctx context.Context, obj string, query *IdCardOCROptions) (*IdCardOCRResult, *Response, error) {
+	var res IdCardOCRResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=IDCardOCR",
+		optQuery: query,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) IdCardOCRWhenUpload(ctx context.Context, obj, filePath string, query *IdCardOCROptions, header *ObjectPutOptions) (*IdCardOCRResult, *Response, error) {
+	fd, err := os.Open(filePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer fd.Close()
+
+	if err := CheckReaderLen(fd); err != nil {
+		return nil, nil, err
+	}
+	opt := CloneObjectPutOptions(header)
+	totalBytes, err := GetReaderLen(fd)
+	if err != nil && opt != nil && opt.Listener != nil {
+		if opt.ContentLength == 0 {
+			return nil, nil, err
+		}
+		totalBytes = opt.ContentLength
+	}
+	if err == nil {
+		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
+		// if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+		// 	opt.ContentLength = totalBytes
+		// }
+		// lilang : 2022-07-04
+		// 图片cgi不设置content-length的话，读不到body。图片处理cgi暂时不支持chunked，后面会修复。
+		if opt != nil && opt.ContentLength == 0 {
+			opt.ContentLength = totalBytes
+		}
+
+	}
+	reader := TeeReader(fd, nil, totalBytes, nil)
+	if s.client.Conf.EnableCRC {
+		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	}
+	if opt != nil && opt.Listener != nil {
+		reader.listener = opt.Listener
+	}
+
+	var res IdCardOCRResult
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(obj) + "?ci-process=IDCardOCR",
+		method:    http.MethodPut,
+		optQuery:  query,
+		body:      reader,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+
+	return &res, resp, err
+}
+
+type GetLiveCodeResult struct {
+	XMLName  xml.Name `xml:"Response"`
+	LiveCode string   `xml:"LiveCode,omitempty"`
+}
+
+func (s *CIService) GetLiveCode(ctx context.Context) (*GetLiveCodeResult, *Response, error) {
+	var res GetLiveCodeResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		method:  http.MethodGet,
+		uri:     "/?ci-process=GetLiveCode",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type GetActionSequenceResult struct {
+	XMLName        xml.Name `xml:"Response"`
+	ActionSequence string   `xml:"ActionSequence,omitempty"`
+}
+
+func (s *CIService) GetActionSequence(ctx context.Context) (*GetActionSequenceResult, *Response, error) {
+	var res GetActionSequenceResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		method:  http.MethodGet,
+		uri:     "/?ci-process=GetActionSequence",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type LivenessRecognitionOptions struct {
+	IdCard       string `url:"IdCard,omitempty"`
+	Name         string `url:"Name,omitempty"`
+	LivenessType string `url:"LivenessType,omitempty"`
+	ValidateData string `url:"ValidateData,omitempty"`
+	BestFrameNum int    `url:"BestFrameNum,omitempty"`
+}
+
+type LivenessRecognitionResult struct {
+	XMLName         xml.Name `xml:"Response"`
+	BestFrameBase64 string   `xml:"BestFrameBase64,omitempty"`
+	Sim             float64  `xml:"Sim,omitempty"`
+	BestFrameList   []string `xml:"BestFrameList,omitempty"`
+}
+
+func (s *CIService) LivenessRecognitionWhenCloud(ctx context.Context, obj string, query *LivenessRecognitionOptions) (*LivenessRecognitionResult, *Response, error) {
+	var res LivenessRecognitionResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=LivenessRecognition",
+		optQuery: query,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) LivenessRecognitionWhenUpload(ctx context.Context, obj, filePath string, query *LivenessRecognitionOptions, header *ObjectPutOptions) (*LivenessRecognitionResult, *Response, error) {
+	fd, err := os.Open(filePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer fd.Close()
+
+	if err := CheckReaderLen(fd); err != nil {
+		return nil, nil, err
+	}
+	opt := CloneObjectPutOptions(header)
+	totalBytes, err := GetReaderLen(fd)
+	if err != nil && opt != nil && opt.Listener != nil {
+		if opt.ContentLength == 0 {
+			return nil, nil, err
+		}
+		totalBytes = opt.ContentLength
+	}
+	if err == nil {
+		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
+		// if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
+		// 	opt.ContentLength = totalBytes
+		// }
+		// lilang : 2022-07-04
+		// 图片cgi不设置content-length的话，读不到body。图片处理cgi暂时不支持chunked，后面会修复。
+		if opt != nil && opt.ContentLength == 0 {
+			opt.ContentLength = totalBytes
+		}
+
+	}
+	reader := TeeReader(fd, nil, totalBytes, nil)
+	if s.client.Conf.EnableCRC {
+		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	}
+	if opt != nil && opt.Listener != nil {
+		reader.listener = opt.Listener
+	}
+
+	var res LivenessRecognitionResult
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(obj) + "?ci-process=LivenessRecognition",
+		method:    http.MethodPut,
+		optQuery:  query,
+		body:      reader,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+
 	return &res, resp, err
 }
