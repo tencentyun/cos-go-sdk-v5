@@ -1445,8 +1445,9 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 }
 
 type ObjectPutTaggingOptions struct {
-	XMLName xml.Name           `xml:"Tagging"`
-	TagSet  []ObjectTaggingTag `xml:"TagSet>Tag,omitempty"`
+	XMLName       xml.Name           `xml:"Tagging" header:"-"`
+	TagSet        []ObjectTaggingTag `xml:"TagSet>Tag,omitempty" header:"-"`
+	XOptionHeader *http.Header       `header:"-,omitempty" url:"-" xml:"-"`
 }
 type ObjectTaggingTag BucketTaggingTag
 type ObjectGetTaggingResult ObjectPutTaggingOptions
@@ -1461,53 +1462,70 @@ func (s *ObjectService) PutTagging(ctx context.Context, name string, opt *Object
 		return nil, errors.New("wrong params")
 	}
 	sendOpt := &sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     u,
-		method:  http.MethodPut,
-		body:    opt,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodPut,
+		body:      opt,
+		optHeader: opt,
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
 }
 
-func (s *ObjectService) GetTagging(ctx context.Context, name string, id ...string) (*ObjectGetTaggingResult, *Response, error) {
-	var u string
-	if len(id) == 1 {
-		u = fmt.Sprintf("/%s?tagging&versionId=%s", encodeURIComponent(name), id[0])
-	} else if len(id) == 0 {
-		u = fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
-	} else {
+type ObjectGetTaggingOptions struct {
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
+func (s *ObjectService) GetTagging(ctx context.Context, name string, opt ...interface{}) (*ObjectGetTaggingResult, *Response, error) {
+	var optHeader *ObjectGetTaggingOptions
+	u := fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
+	if len(opt) > 2 {
 		return nil, nil, errors.New("wrong params")
+	}
+	for _, val := range opt {
+		if v, ok := val.(string); ok {
+			u = fmt.Sprintf("%s&versionId=%s", u, v)
+		}
+		if v, ok := val.(*ObjectGetTaggingOptions); ok {
+			optHeader = v
+		}
 	}
 
 	var res ObjectGetTaggingResult
 	sendOpt := &sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     u,
-		method:  http.MethodGet,
-		result:  &res,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodGet,
+		optHeader: optHeader,
+		result:    &res,
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }
 
-func (s *ObjectService) DeleteTagging(ctx context.Context, name string, id ...string) (*Response, error) {
+func (s *ObjectService) DeleteTagging(ctx context.Context, name string, opt ...interface{}) (*Response, error) {
 	if len(name) == 0 || name == "/" {
 		return nil, errors.New("empty object name")
 	}
-	var u string
-	if len(id) == 1 {
-		u = fmt.Sprintf("/%s?tagging&versionId=%s", encodeURIComponent(name), id[0])
-	} else if len(id) == 0 {
-		u = fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
-	} else {
+	var optHeader *ObjectGetTaggingOptions
+	u := fmt.Sprintf("/%s?tagging", encodeURIComponent(name))
+	if len(opt) > 2 {
 		return nil, errors.New("wrong params")
+	}
+	for _, val := range opt {
+		if v, ok := val.(string); ok {
+			u = fmt.Sprintf("%s&versionId=%s", u, v)
+		}
+		if v, ok := val.(*ObjectGetTaggingOptions); ok {
+			optHeader = v
+		}
 	}
 
 	sendOpt := &sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     u,
-		method:  http.MethodDelete,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodDelete,
+		optHeader: optHeader,
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
