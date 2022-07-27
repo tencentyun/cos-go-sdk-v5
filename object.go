@@ -1183,9 +1183,9 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 
 	if resp != nil && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
-		icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
+		icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)
 		if icoscrc != localcrc {
-			return v, resp, fmt.Errorf("verification failed, want:%v, return:%v", localcrc, icoscrc)
+			return v, resp, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma: %v, err:%v", localcrc, icoscrc, scoscrc, err)
 		}
 	}
 	return v, resp, err
