@@ -307,9 +307,9 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 		if c.Conf.EnableCRC && reader.writer != nil && !reader.disableCheckSum {
 			localcrc := reader.Crc64()
 			scoscrc := response.Header.Get("x-cos-hash-crc64ecma")
-			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
+			icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)
 			if icoscrc != localcrc {
-				return response, fmt.Errorf("verification failed, want:%v, return:%v", localcrc, icoscrc)
+				return response, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma:%v, err:%v", localcrc, icoscrc, scoscrc, err)
 			}
 		}
 	}
