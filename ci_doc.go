@@ -2,8 +2,10 @@ package cos
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"net/http"
+	"net/url"
 )
 
 type DocProcessJobInput struct {
@@ -271,6 +273,72 @@ type DocPreviewOptions struct {
 
 // 同步请求接口 https://cloud.tencent.com/document/product/436/54058
 func (s *CIService) DocPreview(ctx context.Context, name string, opt *DocPreviewOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=doc-preview",
+		optQuery:         opt,
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+type DocPreviewHTMLOptions struct {
+	DstType        string      `url:"dstType,omitempty"`
+	SrcType        string      `url:"srcType,omitempty"`
+	Sign           string      `url:"sign,omitempty"`
+	Copyable       string      `url:"copyable,omitempty"`
+	HtmlParams     *HtmlParams `url:"htmlParams,omitempty"`
+	Htmlwaterword  string      `url:"htmlwaterword,omitempty"`
+	Htmlfillstyle  string      `url:"htmlfillstyle,omitempty"`
+	Htmlfront      string      `url:"htmlfront,omitempty"`
+	Htmlrotate     string      `url:"htmlrotate,omitempty"`
+	Htmlhorizontal string      `url:"htmlhorizontal,omitempty"`
+	Htmlvertical   string      `url:"htmlvertical,omitempty"`
+}
+
+func (c *HtmlParams) EncodeValues(key string, v *url.Values) error {
+	config, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	v.Add("htmlParams", string(config))
+	return nil
+}
+
+type HtmlParams struct {
+	CommonOptions *HtmlCommonParams `json:"commonOptions,omitempty"`
+	WordOptions   *HtmlWordParams   `json:"wordOptions,omitempty"`
+	PdfOptions    *HtmlPdfParams    `json:"pdfOptions,omitempty"`
+	PptOptions    *HtmlPptParams    `json:"pptOptions,omitempty"`
+}
+
+type HtmlCommonParams struct {
+	IsShowTopArea           bool `json:"isShowTopArea"`
+	IsShowHeader            bool `json:"isShowHeader"`
+	IsBrowserViewFullscreen bool `json:"isBrowserViewFullscreen"`
+	IsIframeViewFullscreen  bool `json:"isIframeViewFullscreen"`
+}
+
+type HtmlWordParams struct {
+	IsShowDocMap          bool `json:"isShowDocMap"`
+	IsBestScale           bool `json:"isBestScale"`
+	IsShowBottomStatusBar bool `json:"isShowBottomStatusBar"`
+}
+
+type HtmlPdfParams struct {
+	IsShowComment         bool `json:"isShowComment"`
+	IsInSafeMode          bool `json:"isInSafeMode"`
+	IsShowBottomStatusBar bool `json:"isShowBottomStatusBar"`
+}
+
+type HtmlPptParams struct {
+	IsShowBottomStatusBar bool `json:"isShowBottomStatusBar"`
+}
+
+// 文档转html https://cloud.tencent.com/document/product/460/52518
+func (s *CIService) DocPreviewHTML(ctx context.Context, name string, opt *DocPreviewHTMLOptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,
 		uri:              "/" + encodeURIComponent(name) + "?ci-process=doc-preview",
