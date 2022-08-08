@@ -1832,3 +1832,15 @@ func (s *CIService) LivenessRecognitionWhenUpload(ctx context.Context, obj, file
 
 	return &res, resp, err
 }
+
+// GoodsMatting 商品抠图
+func (s *CIService) GoodsMatting(ctx context.Context, key string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(key) + "?ci-process=GoodsMatting",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
