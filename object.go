@@ -416,9 +416,9 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
-	if err == nil && resp.StatusCode == 200 {
-		if res.ETag == "" {
-			return &res, resp, errors.New("response 200 OK, but body contains an error")
+	if resp != nil && resp.StatusCode == 200 {
+		if err != nil {
+			return &res, resp, fmt.Errorf("response 200 OK, but body contains an error, RequestId: %v, Error: %v", resp.Header.Get("X-Cos-Request-Id"), err)
 		}
 	}
 	return &res, resp, err
