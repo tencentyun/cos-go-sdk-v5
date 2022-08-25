@@ -1,6 +1,7 @@
 package cos
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
 	"errors"
@@ -271,20 +272,31 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 	opt.XCosCopySource = sourceURL
 	u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
 	var res CopyPartResult
+	var bs bytes.Buffer
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       u,
 		method:    http.MethodPut,
 		optHeader: opt,
-		result:    &res,
+		result:    &bs,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
-	// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
-	if resp != nil && resp.StatusCode == 200 {
-		if err != nil {
-			return &res, resp, fmt.Errorf("response 200 OK, but body contains an error, RequestId: %v, Error: %v", resp.Header.Get("X-Cos-Request-Id"), err)
+
+	if err == nil { // 请求正常
+		err = xml.Unmarshal(bs.Bytes(), &res) // body 正常返回
+		if err == io.EOF {
+			err = nil
+		}
+		// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
+		if resp != nil && resp.StatusCode == 200 {
+			if err != nil {
+				resErr := &ErrorResponse{Response: resp.Response}
+				xml.Unmarshal(bs.Bytes(), resErr)
+				return &res, resp, resErr
+			}
 		}
 	}
+
 	return &res, resp, err
 }
 
