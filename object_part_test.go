@@ -427,11 +427,15 @@ func TestObjectService_CopyPart(t *testing.T) {
 			"partNumber": "1",
 		}
 		testFormValues(t, r, vs)
+		fmt.Printf("==============\n")
+		fmt.Fprint(w, `<Error>
+		            <Code>string</Code>
+					            <Message>string</Message>
+								            <Resource>string</Resource>
+											            <RequestId>string</RequestId>
+														            <TraceId>string</TraceId>
 
-		fmt.Fprint(w, `<CopyPartResult>
-   <ETag>&quot;ba82b57cfdfda8bd17ad4e5879ebb4fe&quot;</ETag>
-   <LastModified>2017-09-04T04:45:45</LastModified>
-</CopyPartResult>`)
+</Error>`)
 	})
 
 	r, _, err := client.Object.CopyPart(context.Background(),
