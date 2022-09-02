@@ -386,7 +386,7 @@ func copyworker(ctx context.Context, s *ObjectService, jobs <-chan *CopyJobs, re
 					results <- &copyres
 					break
 				}
-				if resp != nil && resp.StatusCode < 499 {
+				if resp != nil && resp.StatusCode < 499 && resp.StatusCode != 200 {
 					results <- &copyres
 					break
 				}
