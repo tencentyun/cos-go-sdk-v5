@@ -316,7 +316,7 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 
 	if result != nil {
 		if w, ok := result.(io.Writer); ok {
-			_, err = io.Copy(w, resp.Body)
+			io.Copy(w, resp.Body)
 		} else {
 			err = xml.NewDecoder(resp.Body).Decode(result)
 			if err == io.EOF {

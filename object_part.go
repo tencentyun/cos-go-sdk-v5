@@ -280,7 +280,7 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 		optHeader: opt,
 		result:    &bs,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 
 	if err == nil { // 请求正常
 		err = xml.Unmarshal(bs.Bytes(), &res) // body 正常返回
