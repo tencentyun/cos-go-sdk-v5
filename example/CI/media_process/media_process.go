@@ -1555,12 +1555,50 @@ func InvokeVideoTagJob() {
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
+// InvokeMediaInfoJob TODO
+func PostSnapshot() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// PostSnapshotOptions
+	PostSnapshotOpt := &cos.PostSnapshotOptions{
+		Input: &cos.JobInput{
+			Object: "example.mp4",
+		},
+		Time:   "1",
+		Width:  128,
+		Height: 128,
+		Format: "png",
+		Output: &cos.JobOutput{
+			Region: "ap-chongqing",
+			Bucket: "test-1234567890",
+			Object: "example.mp4.png",
+		},
+	}
+	PostSnapshotRes, _, err := c.CI.PostSnapshot(context.Background(), PostSnapshotOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", PostSnapshotRes)
+}
+
 func main() {
 	// InvokeAnimationJob()
 	// InvokeSnapshotJob()
 	// InvokeSmartCoverJob()
 	// InvokeConcatJob()
-	InvokeTranscodeJob()
+	// InvokeTranscodeJob()
 	// InvokeMultiJobs()
 	// JobNotifyCallback()
 	// WorkflowExecutionNotifyCallback()
@@ -1586,4 +1624,5 @@ func main() {
 	// InvokeDigitalWatermarkJob()
 	// InvokeExtractDigitalWatermarkJob()
 	// InvokeVideoTagJob()
+	PostSnapshot()
 }
