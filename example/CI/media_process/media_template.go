@@ -1201,6 +1201,397 @@ func UpdateWatermarkTemplate() {
 	fmt.Printf("%+v\n", DescribeTemplateRes)
 }
 
+// CreateTranscodeProTemplate TODO
+func CreateTranscodeProTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateMediaTranscodeProTemplateOptions{
+		Tag:  "TranscodePro",
+		Name: "TranscodePro-" + strconv.Itoa(rand.Intn(100)),
+		Container: &cos.Container{
+			Format: "mxf",
+		},
+		Video: &cos.TranscodeProVideo{
+			Codec:      "xavc",
+			Profile:    "XAVC-HD_intra_420_10bit_class50",
+			Width:      "1440",
+			Height:     "1080",
+			Interlaced: "false",
+			Fps:        "30000/1001",
+		},
+		Audio: &cos.TranscodeProAudio{
+			Codec: "pcm_s24le",
+		},
+		TimeInterval: &cos.TimeInterval{
+			Start:    "0",
+			Duration: "",
+		},
+	}
+	createTplRes, _, err := c.CI.CreateMediaTranscodeProTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateWatermarkTemplate TODO
+func UpdateTranscodeProTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateMediaTranscodeProTemplateOptions{
+		Tag:  "TranscodePro",
+		Name: "TranscodePro-" + strconv.Itoa(rand.Intn(100)),
+		Container: &cos.Container{
+			Format: "mxf",
+		},
+		Video: &cos.TranscodeProVideo{
+			Codec:      "xavc",
+			Profile:    "XAVC-HD_intra_420_10bit_class50",
+			Width:      "1440",
+			Height:     "1080",
+			Interlaced: "false",
+			Fps:        "24000/1001",
+		},
+		Audio: &cos.TranscodeProAudio{
+			Codec: "pcm_s24le",
+		},
+		TimeInterval: &cos.TimeInterval{
+			Start:    "0",
+			Duration: "",
+		},
+	}
+	templateId := "t11837976491864248885b037453466e49"
+	updateTplRes, _, err := c.CI.UpdateMediaTranscodeProTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
+// CreateTtsTemplate TODO
+func CreateTtsTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateMediaTtsTemplateOptions{
+		Tag:       "Tts",
+		Name:      "Tts-" + strconv.Itoa(rand.Intn(100)),
+		Mode:      "Sync",
+		Codec:     "mp3",
+		VoiceType: "aixiaonan",
+		Volume:    "5",
+		Speed:     "150",
+	}
+	createTplRes, _, err := c.CI.CreateMediaTtsTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateTtsTemplate TODO
+func UpdateTtsTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateMediaTtsTemplateOptions{
+		Tag:       "Tts",
+		Name:      "Tts-" + strconv.Itoa(rand.Intn(100)),
+		Mode:      "Sync",
+		Codec:     "mp3",
+		VoiceType: "aixiaonan",
+		Volume:    "5",
+		Speed:     "150",
+	}
+	templateId := "t174f96537bae547c785042ecdbb228e6e"
+	updateTplRes, _, err := c.CI.UpdateMediaTtsTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
+// CreateSmartCoverTemplate TODO
+func CreateSmartCoverTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateMediaSmartCoverTemplateOptions{
+		Tag:  "SmartCover",
+		Name: "SmartCover-" + strconv.Itoa(rand.Intn(100)),
+		SmartCover: &cos.NodeSmartCover{
+			Format:           "jpg",
+			Width:            "1280",
+			Height:           "960",
+			Count:            "10",
+			DeleteDuplicates: "true",
+		},
+	}
+	createTplRes, _, err := c.CI.CreateMediaSmartCoverTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateSmartCoverTemplate TODO
+func UpdateSmartCoverTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateMediaSmartCoverTemplateOptions{
+		Tag:  "SmartCover",
+		Name: "SmartCover-" + strconv.Itoa(rand.Intn(100)),
+		SmartCover: &cos.NodeSmartCover{
+			Format:           "jpg",
+			Width:            "1280",
+			Height:           "960",
+			Count:            "5",
+			DeleteDuplicates: "true",
+		},
+	}
+	templateId := "t17fcea6bf45f44fa1a76f3b11b1f4523f"
+	updateTplRes, _, err := c.CI.UpdateMediaSmartCoverTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
+// CreateSpeechRecognitionTemplate TODO
+func CreateSpeechRecognitionTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateMediaSpeechRecognitionTemplateOptions{
+		Tag:  "SpeechRecognition",
+		Name: "SpeechRecognition-" + strconv.Itoa(rand.Intn(100)),
+		SpeechRecognition: &cos.SpeechRecognition{
+			ChannelNum:         "1",
+			EngineModelType:    "16k_zh",
+			ResTextFormat:      "1",
+			FilterDirty:        "0",
+			FilterModal:        "1",
+			ConvertNumMode:     "0",
+			SpeakerDiarization: "1",
+			SpeakerNumber:      "0",
+			FilterPunc:         "0",
+			OutputFileType:     "txt",
+		},
+	}
+	createTplRes, _, err := c.CI.CreateMediaSpeechRecognitionTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateSpeechRecognitionTemplate TODO
+func UpdateSpeechRecognitionTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateMediaSpeechRecognitionTemplateOptions{
+		Tag:  "SpeechRecognition",
+		Name: "SpeechRecognition-" + strconv.Itoa(rand.Intn(100)),
+		SpeechRecognition: &cos.SpeechRecognition{
+			EngineModelType:    "16k_zh",
+			ResTextFormat:      "1",
+			FilterDirty:        "0",
+			FilterModal:        "1",
+			ConvertNumMode:     "0",
+			SpeakerDiarization: "1",
+			SpeakerNumber:      "0",
+			FilterPunc:         "0",
+			OutputFileType:     "txt",
+		},
+	}
+	templateId := "t1a883a072103f440fa7b9b54b744a2fbf"
+	updateTplRes, _, err := c.CI.UpdateMediaSpeechRecognitionTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
 func main() {
 	// DescribeTemplate()
 	// DeleteTemplate()
@@ -1226,4 +1617,12 @@ func main() {
 	// UpdatePicProcessTemplate()
 	// CreateWatermarkTemplate()
 	// UpdateWatermarkTemplate()
+	// CreateTranscodeProTemplate()
+	// UpdateTranscodeProTemplate()
+	// CreateTtsTemplate()
+	// UpdateTtsTemplate()
+	// CreateSmartCoverTemplate()
+	// UpdateSmartCoverTemplate()
+	// CreateSpeechRecognitionTemplate()
+	// UpdateSpeechRecognitionTemplate()
 }
