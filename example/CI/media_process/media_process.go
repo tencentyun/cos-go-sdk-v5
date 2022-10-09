@@ -100,8 +100,8 @@ func InvokeAnimationJob() {
 
 // InvokeSmartCoverJob TODO
 func InvokeSmartCoverJob() {
-	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -129,13 +129,20 @@ func InvokeSmartCoverJob() {
 	createJobOpt := &cos.CreateMediaJobsOptions{
 		Tag: "SmartCover",
 		Input: &cos.JobInput{
-			Object: "input/test.mp4",
+			Object: "input/dog.mp4",
 		},
 		Operation: &cos.MediaProcessJobOperation{
+			SmartCover: &cos.NodeSmartCover{
+				Format:           "jpg",
+				Height:           "1280",
+				Width:            "720",
+				Count:            "2",
+				DeleteDuplicates: "true",
+			},
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/mc-${number}.jpg",
-				Bucket: "test-1234567890",
+				Bucket: "test-123456789",
 			},
 		},
 		QueueId: DescribeQueueRes.QueueList[0].QueueId,
@@ -1160,8 +1167,8 @@ func DescribeASRJob() {
 
 // DescribeJob TODO
 func DescribeJob() {
-	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1177,11 +1184,37 @@ func DescribeJob() {
 		},
 	})
 	// DescribeMediaJobs
-	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "j650f9ffebef411ecbd2081a7c7059a5d")
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), "a1e4825762f3f11edafa8d13569009b8c")
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
-	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaInfo)
-	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail.Operation.MediaResult)
+}
+
+// DescribeJobs TODO
+func DescribeJobs() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	opt := &cos.DescribeMediaJobsOptions{
+		QueueId: "pa27b2bd96bef43b6baba820175485532",
+		Tag:     "Transcode",
+	}
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJobs(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
 // GenerateMediaInfo TODO
@@ -1507,8 +1540,8 @@ func InvokeExtractDigitalWatermarkJob() {
 
 // InvokeVideoTagJob TODO
 func InvokeVideoTagJob() {
-	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -1536,7 +1569,7 @@ func InvokeVideoTagJob() {
 	createJobOpt := &cos.CreateMediaJobsOptions{
 		Tag: "VideoTag",
 		Input: &cos.JobInput{
-			Object: "input/test.mp4",
+			Object: "input/dog.mp4",
 		},
 		Operation: &cos.MediaProcessJobOperation{
 			VideoTag: &cos.VideoTag{
@@ -1551,6 +1584,294 @@ func InvokeVideoTagJob() {
 
 	// DescribeMediaJobs
 	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeNoiseReductionJob TODO
+func InvokeNoiseReductionJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "NoiseReduction",
+		Input: &cos.JobInput{
+			Object: "input/zhanghuimei_wen.mp3",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-123456789",
+				Object: "output/out.mp3",
+			},
+			UserData: "This is my NoiseReduction job",
+			JobLevel: 1,
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeQualityEstimateJob TODO
+func InvokeQualityEstimateJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "QualityEstimate",
+		Input: &cos.JobInput{
+			Object: "input/dog.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			UserData: "This is my QualityEstimate job",
+			JobLevel: 1,
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeTtsJob TODO
+func InvokeTtsJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeMediaProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "Tts",
+		Operation: &cos.MediaProcessJobOperation{
+			TtsTpl: &cos.TtsTpl{
+				Mode:      "Sync",
+				Codec:     "mp3",
+				VoiceType: "aixiaonan",
+				Volume:    "5",
+				Speed:     "150",
+			},
+			TtsConfig: &cos.TtsConfig{
+				Input:     "床前明月光，疑是地上霜",
+				InputType: "Text",
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-123456789",
+				Object: "output/out.mp3",
+			},
+			UserData: "This is my Tts job",
+			JobLevel: 1,
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeTranslationJob TODO
+func InvokeTranslationJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	// 注意这里是AI
+	DescribeQueueRes, _, err := c.CI.DescribeAIProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateAIJobsOptions{
+		Tag: "Translation",
+		Input: &cos.JobInput{
+			Object:    "input/translate-en.txt",
+			Lang:      "en",
+			Type:      "txt",
+			BasicType: "",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Translation: &cos.Translation{
+				Lang: "zh",
+				Type: "txt",
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-123456789",
+				Object: "output/out.txt",
+			},
+			UserData: "This is my Translation job",
+			JobLevel: 1,
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	// 注意这里是AI
+	createJobRes, _, err := c.CI.CreateAIJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeAIJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeWordsGeneralizeJob TODO
+func InvokeWordsGeneralizeJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// DescribeMediaProcessQueues
+	DescribeQueueOpt := &cos.DescribeMediaProcessQueuesOptions{
+		QueueIds:   "",
+		PageNumber: 1,
+		PageSize:   2,
+	}
+	// 注意这里是AI
+	DescribeQueueRes, _, err := c.CI.DescribeAIProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateAIJobsOptions{
+		Tag: "WordsGeneralize",
+		Input: &cos.JobInput{
+			Object: "input/WordsGeneralize.txt",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			WordsGeneralize: &cos.WordsGeneralize{
+				NerMethod: "DL",
+				SegMethod: "MIX",
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-123456789",
+				Object: "output/out.txt",
+			},
+			UserData: "This is my WordsGeneralize job",
+			JobLevel: 1,
+		},
+		QueueId: DescribeQueueRes.QueueList[0].QueueId,
+	}
+	// 注意这里是AI
+	createJobRes, _, err := c.CI.CreateAIJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeAIJob(context.Background(), createJobRes.JobsDetail.JobId)
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
@@ -1617,6 +1938,7 @@ func main() {
 	// InvokeASRJob()
 	// DescribeASRJob()
 	// DescribeJob()
+	DescribeJobs()
 	// GenerateMediaInfo()
 	// InvokeMediaInfoJob()
 	// InvokeStreamExtractJob()
@@ -1624,5 +1946,11 @@ func main() {
 	// InvokeDigitalWatermarkJob()
 	// InvokeExtractDigitalWatermarkJob()
 	// InvokeVideoTagJob()
+
+	// InvokeNoiseReductionJob()
+	// InvokeQualityEstimateJob()
+	// InvokeTtsJob()
+	// InvokeTranslationJob()
+	// InvokeWordsGeneralizeJob()
 	PostSnapshot()
 }
