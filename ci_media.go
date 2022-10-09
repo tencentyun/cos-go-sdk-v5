@@ -227,10 +227,11 @@ type AudioMix struct {
 
 // ConcatFragment TODO
 type ConcatFragment struct {
-	Url       string `xml:"Url,omitempty"`
-	Mode      string `xml:"Mode,omitempty"`
-	StartTime string `xml:"StartTime,omitempty"`
-	EndTime   string `xml:"EndTime,omitempty"`
+	Url           string `xml:"Url,omitempty"`
+	Mode          string `xml:"Mode,omitempty"`
+	StartTime     string `xml:"StartTime,omitempty"`
+	EndTime       string `xml:"EndTime,omitempty"`
+	FragmentIndex string `xml:"FragmentIndex,omitempty"`
 }
 
 // ConcatTemplate TODO
