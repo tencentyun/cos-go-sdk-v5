@@ -237,14 +237,16 @@ func InvokeConcatJob() {
 	// CreateMediaJobs
 	concatFragment := make([]cos.ConcatFragment, 0)
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url:       "https://test-123456789.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
-		StartTime: "0",
-		EndTime:   "10",
+		Url:           "https://test-123456789.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
+		StartTime:     "0",
+		EndTime:       "10",
+		FragmentIndex: "0",
 	})
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url:       "https://test-123456789.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
-		StartTime: "20",
-		EndTime:   "30",
+		Url:           "https://test-123456789.cos.ap-beijing.myqcloud.com/input/117374C.mp4",
+		StartTime:     "20",
+		EndTime:       "30",
+		FragmentIndex: "1",
 	})
 	createJobOpt := &cos.CreateMediaJobsOptions{
 		Tag: "Concat",
@@ -259,10 +261,10 @@ func InvokeConcatJob() {
 					Format: "mp4",
 				},
 				Video: &cos.Video{
-					Codec: "H.265",
+					Codec: "H.264",
 				},
 				Audio: &cos.Audio{
-					//Codec: "AAC",
+					Codec: "AAC",
 				},
 				ConcatFragment: concatFragment,
 			},
