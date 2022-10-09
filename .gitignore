@@ -30,3 +30,4 @@ cover.out
 covprofile
 coverage.html
 example/CI/media_process/media_process
+.vscode

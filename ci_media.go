@@ -1267,6 +1267,39 @@ func (s *CIService) GetSnapshot(ctx context.Context, name string, opt *GetSnapsh
 	return resp, err
 }
 
+type PostSnapshotOptions struct {
+	XMLName xml.Name   `xml:"Request"`
+	Input   *JobInput  `xml:"Input,omitempty"`
+	Time    string     `xml:"Time,omitempty"`
+	Width   int        `xml:"Width,omitempty"`
+	Height  int        `xml:"Height,omitempty"`
+	Mode    string     `xml:"Mode,omitempty"`
+	Rotate  string     `xml:"Rotate,omitempty"`
+	Format  string     `xml:"Format,omitempty"`
+	Output  *JobOutput `xml:"Output,omitempty"`
+}
+
+type PostSnapshotResult struct {
+	XMLName xml.Name   `xml:"Response"`
+	Output  *JobOutput `xml:"Output, omitempty"`
+}
+
+// PostSnapshot
+// https://cloud.tencent.com/document/product/460/73407
+// upload snapshot image to cos
+func (s *CIService) PostSnapshot(ctx context.Context, opt *PostSnapshotOptions) (*PostSnapshotResult, *Response, error) {
+	var res PostSnapshotResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/snapshot",
+		body:    opt,
+		method:  http.MethodPost,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // GetPrivateM3U8Options TODO
 type GetPrivateM3U8Options struct {
 	Expires int `url:"expires"`
