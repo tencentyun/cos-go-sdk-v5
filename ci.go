@@ -116,10 +116,24 @@ type ImageRecognitionOptions struct {
 	Callback         string `url:"callback,omitempty"`
 }
 
+type UserListInfo struct {
+	ListResults []UserListResults `xml:",omitempty"`
+}
+
+//UserListResults 命中账号黑白名单信息
+type UserListResults struct {
+	ListType *int   `xml:",omitempty"`
+	ListName string `xml:",omitempty"`
+	Entity   string `xml:",omitempty"`
+}
+
 // ImageRecognitionResult is the result of ImageRecognition/ImageAuditing
 type ImageRecognitionResult struct {
 	XMLName           xml.Name         `xml:"RecognitionResult"`
 	JobId             string           `xml:"JobId,omitempty"`
+	State             string           `xml:"State,omitempty"`
+	Object            string           `xml:"Object,omitempty"`
+	Url               string           `xml:"Url,omitempty"`
 	Text              string           `xml:"Text,omitempty"`
 	Label             string           `xml:"Label,omitempty"`
 	Result            int              `xml:"Result,omitempty"`
@@ -138,18 +152,20 @@ type ImageRecognitionResult struct {
 
 // RecognitionInfo is the result of auditing scene
 type RecognitionInfo struct {
-	Code          int            `xml:"Code,omitempty"`
-	Msg           string         `xml:"Msg,omitempty"`
-	HitFlag       int            `xml:"HitFlag,omitempty"`
-	Score         int            `xml:"Score,omitempty"`
-	Label         string         `xml:"Label,omitempty"`
-	Count         int            `xml:"Count,omitempty"`
-	Category      string         `xml:"Category,omitempty"`
-	SubLabel      string         `xml:"SubLabel,omitempty"`
-	Keywords      []string       `xml:"Keywords,omitempty"`
-	OcrResults    []OcrResult    `xml:"OcrResults,omitempty"`
-	ObjectResults []ObjectResult `xml:"ObjectResults,omitempty"`
-	LibResults    []LibResult    `xml:"LibResults,omitempty"`
+	Code               int              `xml:"Code,omitempty"`
+	Msg                string           `xml:"Msg,omitempty"`
+	HitFlag            int              `xml:"HitFlag,omitempty"`
+	Score              int              `xml:"Score,omitempty"`
+	Label              string           `xml:"Label,omitempty"`
+	Count              int              `xml:"Count,omitempty"`
+	Category           string           `xml:"Category,omitempty"`
+	SubLabel           string           `xml:"SubLabel,omitempty"`
+	Keywords           []string         `xml:"Keywords,omitempty"`
+	OcrResults         []OcrResult      `xml:"OcrResults,omitempty"`
+	ObjectResults      []ObjectResult   `xml:"ObjectResults,omitempty"`
+	LibResults         []LibResult      `xml:"LibResults,omitempty"`
+	SpeakerResults     []LanguageResult `xml:"SpeakerResults,omitempty"`
+	RecognitionResults []LanguageResult `xml:"RecognitionResults,omitempty"`
 }
 
 // 图片审核 https://cloud.tencent.com/document/product/460/37318
@@ -186,13 +202,17 @@ func (s *CIService) ImageAuditing(ctx context.Context, name string, opt *ImageRe
 
 // UserExtraInfo is user defined information
 type UserExtraInfo struct {
-	TokenId  string `xml:",omitempty"`
-	Nickname string `xml:",omitempty"`
-	DeviceId string `xml:",omitempty"`
-	AppId    string `xml:",omitempty"`
-	Room     string `xml:",omitempty"`
-	IP       string `xml:",omitempty"`
-	Type     string `xml:",omitempty"`
+	TokenId        string `xml:",omitempty"`
+	Nickname       string `xml:",omitempty"`
+	DeviceId       string `xml:",omitempty"`
+	AppId          string `xml:",omitempty"`
+	Room           string `xml:",omitempty"`
+	IP             string `xml:",omitempty"`
+	Type           string `xml:",omitempty"`
+	ReceiveTokenId string `xml:",omitempty"`
+	Gender         string `xml:",omitempty"`
+	Level          string `xml:",omitempty"`
+	Role           string `xml:",omitempty"`
 }
 
 // ImageAuditingInputOptions is the option of BatchImageAuditingOptions
@@ -200,6 +220,7 @@ type ImageAuditingInputOptions struct {
 	DataId           string         `xml:",omitempty"`
 	Object           string         `xml:",omitempty"`
 	Url              string         `xml:",omitempty"`
+	Content          string         `xml:",omitempty"`
 	Interval         int            `xml:",omitempty"`
 	MaxFrames        int            `xml:",omitempty"`
 	LargeImageDetect int            `xml:",omitempty"`
@@ -226,6 +247,7 @@ type ImageAuditingResult struct {
 	Code              string           `xml:",omitempty"`
 	Message           string           `xml:",omitempty"`
 	JobId             string           `xml:",omitempty"`
+	State             string           `xml:",omitempty"`
 	DataId            string           `xml:",omitempty"`
 	Object            string           `xml:",omitempty"`
 	Url               string           `xml:",omitempty"`
@@ -242,6 +264,7 @@ type ImageAuditingResult struct {
 	TeenagerInfo      *RecognitionInfo `xml:",omitempty"`
 	CompressionResult int              `xml:",omitempty"`
 	UserInfo          *UserExtraInfo   `xml:",omitempty"`
+	ListInfo          *UserListInfo    `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
@@ -370,6 +393,7 @@ type AuditingJobDetail struct {
 	AudioSection  []AudioSectionResult          `xml:",omitempty"`
 	UserInfo      *UserExtraInfo                `xml:",omitempty"`
 	Type          string                        `xml:",omitempty"`
+	ListInfo      *UserListInfo                 `xml:",omitempty"`
 }
 
 // GetVideoAuditingJobSnapshot is the snapshot result of AuditingJobDetail
@@ -388,16 +412,18 @@ type GetVideoAuditingJobSnapshot struct {
 
 // AudioSectionResult is the audio section result of AuditingJobDetail/AudioAuditingJobDetail
 type AudioSectionResult struct {
-	Url           string           `xml:",omitempty"`
-	Text          string           `xml:",omitempty"`
-	OffsetTime    int              `xml:",omitempty"`
-	Duration      int              `xml:",omitempty"`
-	Label         string           `xml:",omitempty"`
-	Result        int              `xml:",omitempty"`
-	PornInfo      *RecognitionInfo `xml:",omitempty"`
-	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
-	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
-	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	Url             string           `xml:",omitempty"`
+	Text            string           `xml:",omitempty"`
+	OffsetTime      int              `xml:",omitempty"`
+	Duration        int              `xml:",omitempty"`
+	Label           string           `xml:",omitempty"`
+	Result          int              `xml:",omitempty"`
+	PornInfo        *RecognitionInfo `xml:",omitempty"`
+	TerrorismInfo   *RecognitionInfo `xml:",omitempty"`
+	PoliticsInfo    *RecognitionInfo `xml:",omitempty"`
+	AdsInfo         *RecognitionInfo `xml:",omitempty"`
+	TeenagerInfo    *RecognitionInfo `xml:",omitempty"`
+	LanguageResults []LanguageResult `xml:",omitempty"`
 }
 
 // 视频审核-查询任务 https://cloud.tencent.com/document/product/460/46926
@@ -441,6 +467,7 @@ type AudioAuditingJobConf struct {
 	DetectType      string `xml:",omitempty"`
 	Callback        string `xml:",omitempty"`
 	CallbackVersion string `xml:",omitempty"`
+	CallbackType    int    `xml:",omitempty"`
 	BizType         string `xml:",omitempty"`
 }
 
@@ -470,23 +497,34 @@ type GetAudioAuditingJobResult struct {
 
 // AudioAuditingJobDetail is the detail of GetAudioAuditingJobResult
 type AudioAuditingJobDetail struct {
-	Code          string               `xml:",omitempty"`
-	Message       string               `xml:",omitempty"`
-	JobId         string               `xml:",omitempty"`
-	State         string               `xml:",omitempty"`
-	CreationTime  string               `xml:",omitempty"`
-	Object        string               `xml:",omitempty"`
-	Url           string               `xml:",omitempty"`
-	DataId        string               `xml:",omitempty"`
-	AudioText     string               `xml:",omitempty"`
-	Label         string               `xml:",omitempty"`
-	Result        int                  `xml:",omitempty"`
-	PornInfo      *RecognitionInfo     `xml:",omitempty"`
-	TerrorismInfo *RecognitionInfo     `xml:",omitempty"`
-	PoliticsInfo  *RecognitionInfo     `xml:",omitempty"`
-	AdsInfo       *RecognitionInfo     `xml:",omitempty"`
-	Section       []AudioSectionResult `xml:",omitempty"`
-	UserInfo      *UserExtraInfo       `xml:",omitempty"`
+	Code            string               `xml:",omitempty"`
+	Message         string               `xml:",omitempty"`
+	JobId           string               `xml:",omitempty"`
+	State           string               `xml:",omitempty"`
+	CreationTime    string               `xml:",omitempty"`
+	Object          string               `xml:",omitempty"`
+	Url             string               `xml:",omitempty"`
+	DataId          string               `xml:",omitempty"`
+	AudioText       string               `xml:",omitempty"`
+	Label           string               `xml:",omitempty"`
+	Result          int                  `xml:",omitempty"`
+	PornInfo        *RecognitionInfo     `xml:",omitempty"`
+	TerrorismInfo   *RecognitionInfo     `xml:",omitempty"`
+	PoliticsInfo    *RecognitionInfo     `xml:",omitempty"`
+	AdsInfo         *RecognitionInfo     `xml:",omitempty"`
+	TeenagerInfo    *RecognitionInfo     `xml:",omitempty"`
+	LanguageResults []LanguageResult     `xml:",omitempty"`
+	Section         []AudioSectionResult `xml:",omitempty"`
+	UserInfo        *UserExtraInfo       `xml:",omitempty"`
+	ListInfo        *UserListInfo        `xml:",omitempty"`
+}
+
+// LanguageResult 语种识别结果
+type LanguageResult struct {
+	Label     string `xml:"Label"`
+	Score     uint32 `xml:"Score"`
+	StartTime *int64 `xml:"StartTime,omitempty"`
+	EndTime   *int64 `xml:"EndTime,omitempty"`
 }
 
 // 音频审核-查询任务 https://cloud.tencent.com/document/product/460/53396
@@ -519,6 +557,7 @@ type TextAuditingJobConf struct {
 	Callback        string `xml:",omitempty"`
 	CallbackVersion string `xml:",omitempty"`
 	BizType         string `xml:",omitempty"`
+	CallbackType    int    `xml:",omitempty"`
 }
 
 // PutTextAuditingJobResult is the result of PutTextAuditingJob
@@ -567,6 +606,7 @@ type TextAuditingJobDetail struct {
 	AbuseInfo     *TextRecognitionInfo `xml:",omitempty"`
 	Section       []TextSectionResult  `xml:",omitempty"`
 	UserInfo      *UserExtraInfo       `xml:",omitempty"`
+	ListInfo      *UserListInfo        `xml:",omitempty"`
 }
 
 // TextLibResult
@@ -584,6 +624,7 @@ type TextRecognitionInfo struct {
 	Count      int             `xml:",omitempty"`
 	Keywords   string          `xml:",omitempty"`
 	LibResults []TextLibResult `xml:",omitempty"`
+	SubLabel   string          `xml:",omitempty"`
 }
 
 // TextSectionResult is the section result of TextAuditingJobDetail
@@ -625,9 +666,10 @@ type PutDocumentAuditingJobOptions struct {
 
 // DocumentAuditingJobConf is the config of PutDocumentAuditingJobOptions
 type DocumentAuditingJobConf struct {
-	DetectType string `xml:",omitempty"`
-	Callback   string `xml:",omitempty"`
-	BizType    string `xml:",omitempty"`
+	DetectType   string `xml:",omitempty"`
+	Callback     string `xml:",omitempty"`
+	BizType      string `xml:",omitempty"`
+	CallbackType int    `xml:",omitempty"`
 }
 
 // PutDocumentAuditingJobResult is the result of PutDocumentAuditingJob
@@ -670,6 +712,7 @@ type DocumentAuditingJobDetail struct {
 	Labels       *DocumentResultInfo      `xml:",omitempty"`
 	PageSegment  *DocumentPageSegmentInfo `xml:",omitempty"`
 	UserInfo     *UserExtraInfo           `xml:",omitempty"`
+	ListInfo     *UserListInfo            `xml:",omitempty"`
 }
 
 // DocumentResultInfo
@@ -755,6 +798,8 @@ type WebpageAuditingJobConf struct {
 	DetectType          string `xml:",omitempty"`
 	Callback            string `xml:",omitempty"`
 	ReturnHighlightHtml bool   `xml:",omitempty"`
+	BizType             string `xml:",omitempty"`
+	CallbackType        int    `xml:",omitempty"`
 }
 
 // PutWebpageAuditingJobResult is the result of PutWebpageAuditingJob
@@ -796,6 +841,8 @@ type WebpageAuditingJobDetail struct {
 	HighlightHtml string               `xml:",omitempty"`
 	DataId        string               `xml:",omitempty"`
 	UserInfo      *UserExtraInfo       `xml:",omitempty"`
+	ListInfo      *UserListInfo        `xml:",omitempty"`
+	Label         string               `xml:",omitempty"`
 }
 
 // WebpageResultInfo
@@ -804,6 +851,8 @@ type WebpageResultInfo struct {
 	TerrorismInfo *RecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *RecognitionInfo `xml:",omitempty"`
 	AdsInfo       *RecognitionInfo `xml:",omitempty"`
+	IllegalInfo   *RecognitionInfo `xml:",omitempty"`
+	AbuseInfo     *RecognitionInfo `xml:",omitempty"`
 }
 
 // WebpageImageResults
