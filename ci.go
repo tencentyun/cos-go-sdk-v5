@@ -1888,7 +1888,19 @@ type GoodsMattingptions struct {
 }
 
 // GoodsMatting 商品抠图
-func (s *CIService) GoodsMatting(ctx context.Context, key string, opt *GoodsMattingptions) (*Response, error) {
+func (s *CIService) GoodsMatting(ctx context.Context, key string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(key) + "?ci-process=GoodsMatting",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// GoodsMattingWithOpt 商品抠图
+func (s *CIService) GoodsMattingWithOpt(ctx context.Context, key string, opt *GoodsMattingptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,
 		uri:              "/" + encodeURIComponent(key) + "?ci-process=GoodsMatting",

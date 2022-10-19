@@ -98,7 +98,7 @@ func goodsMattingWhenDownload() {
 		CenterLayout:  "1",
 		PaddingLayout: "500x500",
 	}
-	resp, err := c.CI.GoodsMatting(context.Background(), key, opt)
+	resp, err := c.CI.GoodsMattingWithOpt(context.Background(), key, opt)
 	log_status(err)
 	fd, _ := os.OpenFile(localPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	io.Copy(fd, resp.Body)
