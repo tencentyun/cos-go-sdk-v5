@@ -59,7 +59,7 @@ func goodsMattingWhenUpload() {
 		Rules: []cos.PicOperationsRules{
 			{
 				FileId: "pic/out.jpeg",
-				Rule:   "ci-process=GoodsMatting",
+				Rule:   "ci-process=GoodsMatting&center-layout=1&padding-layout=500x500",
 			},
 		},
 	}
@@ -94,7 +94,11 @@ func goodsMattingWhenDownload() {
 
 	key := "pic/cup.jpeg"
 	localPath := "cup.jpeg"
-	resp, err := c.CI.GoodsMatting(context.Background(), key)
+	opt := &cos.GoodsMattingptions{
+		CenterLayout:  "1",
+		PaddingLayout: "500x500",
+	}
+	resp, err := c.CI.GoodsMatting(context.Background(), key, opt)
 	log_status(err)
 	fd, _ := os.OpenFile(localPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	io.Copy(fd, resp.Body)
@@ -124,7 +128,7 @@ func goodsMattingWhenCloud() {
 		Rules: []cos.PicOperationsRules{
 			{
 				FileId: "pic/cup_out.jpeg",
-				Rule:   "ci-process=GoodsMatting",
+				Rule:   "ci-process=GoodsMatting&center-layout=1&padding-layout=500x500",
 			},
 		},
 	}

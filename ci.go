@@ -1882,11 +1882,17 @@ func (s *CIService) LivenessRecognitionWhenUpload(ctx context.Context, obj, file
 	return &res, resp, err
 }
 
+type GoodsMattingptions struct {
+	CenterLayout  string `url:"center-layout,omitempty"`
+	PaddingLayout string `url:"padding-layout,omitempty"`
+}
+
 // GoodsMatting 商品抠图
-func (s *CIService) GoodsMatting(ctx context.Context, key string) (*Response, error) {
+func (s *CIService) GoodsMatting(ctx context.Context, key string, opt *GoodsMattingptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,
 		uri:              "/" + encodeURIComponent(key) + "?ci-process=GoodsMatting",
+		optQuery:         opt,
 		method:           http.MethodGet,
 		disableCloseBody: true,
 	}
