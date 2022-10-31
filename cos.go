@@ -24,10 +24,11 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.39"
+	Version               = "0.7.40"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
+	XOptionalKey          = "cos-go-sdk-v5-XOptionalKey"
 )
 
 var (
@@ -59,9 +60,9 @@ type BaseURL struct {
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
 //
-//   bucketName: bucket名称, bucket的命名规则为{name}-{appid} ，此处填写的存储桶名称必须为此格式
-//   Region: 区域代码: ap-beijing-1,ap-beijing,ap-shanghai,ap-guangzhou...
-//   secure: 是否使用 https
+//	bucketName: bucket名称, bucket的命名规则为{name}-{appid} ，此处填写的存储桶名称必须为此格式
+//	Region: 区域代码: ap-beijing-1,ap-beijing,ap-shanghai,ap-guangzhou...
+//	secure: 是否使用 https
 func NewBucketURL(bucketName, region string, secure bool) (*url.URL, error) {
 	schema := "https"
 	if !secure {
@@ -233,7 +234,7 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 		return
 	}
 
-	req.Header, err = addHeaderOptions(req.Header, optHeader)
+	req.Header, err = addHeaderOptions(ctx, req.Header, optHeader)
 	if err != nil {
 		return
 	}
@@ -429,9 +430,27 @@ func addURLOptions(s string, opt interface{}) (string, error) {
 	return u.String(), nil
 }
 
+type XOptionalValue struct {
+	Header *http.Header
+}
+
 // addHeaderOptions adds the parameters in opt as Header fields to req. opt
 // must be a struct whose fields may contain "header" tags.
-func addHeaderOptions(header http.Header, opt interface{}) (http.Header, error) {
+func addHeaderOptions(ctx context.Context, header http.Header, opt interface{}) (http.Header, error) {
+	defer func() {
+		// 通过context传递
+		if val := ctx.Value(XOptionalKey); val != nil {
+			if optVal, ok := val.(*XOptionalValue); ok {
+				if optVal.Header != nil {
+					for key, values := range *optVal.Header {
+						for _, value := range values {
+							header.Add(key, value)
+						}
+					}
+				}
+			}
+		}
+	}()
 	v := reflect.ValueOf(opt)
 	if v.Kind() == reflect.Ptr && v.IsNil() {
 		return header, nil
@@ -447,6 +466,7 @@ func addHeaderOptions(header http.Header, opt interface{}) (http.Header, error) 
 			header.Add(key, value)
 		}
 	}
+
 	return header, nil
 }
 

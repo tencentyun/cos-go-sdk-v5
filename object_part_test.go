@@ -427,7 +427,6 @@ func TestObjectService_CopyPart(t *testing.T) {
 			"partNumber": "1",
 		}
 		testFormValues(t, r, vs)
-		fmt.Printf("==============\n")
 		fmt.Fprint(w, `<Error>
 		            <Code>string</Code>
 					            <Message>string</Message>
@@ -438,20 +437,10 @@ func TestObjectService_CopyPart(t *testing.T) {
 </Error>`)
 	})
 
-	r, _, err := client.Object.CopyPart(context.Background(),
+	_, _, err := client.Object.CopyPart(context.Background(),
 		name, uploadID, partNumber, sourceUrl, opt)
-	if err != nil {
-		t.Fatalf("Object.CopyPart returned error: %v", err)
-	}
-
-	want := &CopyPartResult{
-		XMLName:      xml.Name{Local: "CopyPartResult"},
-		ETag:         `"ba82b57cfdfda8bd17ad4e5879ebb4fe"`,
-		LastModified: "2017-09-04T04:45:45",
-	}
-
-	if !reflect.DeepEqual(r, want) {
-		t.Errorf("Object.Copy returned %+v, want %+v", r, want)
+	if err == nil {
+		t.Fatalf("Object.CopyPart returned error is nil")
 	}
 }
 

@@ -47,7 +47,7 @@ func (s *BucketService) Get(ctx context.Context, opt *BucketGetOptions) (*Bucket
 		optHeader: opt,
 		result:    &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
 
@@ -80,7 +80,7 @@ func (s *BucketService) Put(ctx context.Context, opt *BucketPutOptions) (*Respon
 	if opt != nil && opt.CreateBucketConfiguration != nil {
 		sendOpt.body = opt.CreateBucketConfiguration
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -102,7 +102,7 @@ func (s *BucketService) Delete(ctx context.Context, opt ...*BucketDeleteOptions)
 		method:    http.MethodDelete,
 		optHeader: dopt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -128,7 +128,7 @@ func (s *BucketService) Head(ctx context.Context, opt ...*BucketHeadOptions) (*R
 		method:    http.MethodHead,
 		optHeader: hopt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }
 
@@ -206,6 +206,6 @@ func (s *BucketService) GetObjectVersions(ctx context.Context, opt *BucketGetObj
 		optHeader: opt,
 		result:    &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
