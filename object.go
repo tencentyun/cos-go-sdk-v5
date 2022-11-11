@@ -278,7 +278,7 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 		totalBytes = opt.ContentLength
 	}
 	if err == nil {
-		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定ContentLength, 或使用 Chunk 上传
+		// 非bytes.Buffer/bytes.Reader/strings.Reader/os.File 由用户指定ContentLength, 或使用 Chunk 上传
 		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
 			opt.ContentLength = totalBytes
 		}
@@ -600,7 +600,7 @@ func (s *ObjectService) Append(ctx context.Context, name string, position int, r
 		totalBytes = opt.ContentLength
 	}
 	if err == nil {
-		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader需用户指定ContentLength
+		// 非bytes.Buffer/bytes.Reader/strings.Reader/os.File 由用户指定ContentLength, 或使用 Chunk 上传
 		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
 			opt.ContentLength = totalBytes
 		}

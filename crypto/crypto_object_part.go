@@ -64,7 +64,7 @@ func (s *CryptoObjectService) UploadPart(ctx context.Context, name, uploadID str
 	}
 	totalBytes, err := cos.GetReaderLen(r)
 	if err == nil {
-		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader需用户指定ContentLength
+		// 非bytes.Buffer/bytes.Reader/strings.Reader/os.File 由用户指定ContentLength, 或使用 Chunk 上传
 		if opt != nil && opt.ContentLength == 0 && cos.IsLenReader(r) {
 			opt.ContentLength = totalBytes
 		}

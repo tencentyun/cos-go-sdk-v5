@@ -55,7 +55,7 @@ func (s *CryptoObjectService) Put(ctx context.Context, name string, r io.Reader,
 	}
 	if err == nil {
 		if opt != nil && opt.ContentLength == 0 {
-			// 如果未设置Listener, 非bytes.Buffer/bytes.Reader/strings.Reader由用户指定Contength
+			// 如果未设置Listener, 非bytes.Buffer/bytes.Reader/strings.Reader/os.File由用户指定Contength
 			if opt.Listener != nil || cos.IsLenReader(r) {
 				opt.ContentLength = totalBytes
 			}

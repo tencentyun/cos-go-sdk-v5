@@ -88,7 +88,7 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 	}
 	// 分块上传不支持 Chunk 上传
 	if err == nil {
-		// 与 go http 保持一致, 非bytes.Buffer/bytes.Reader/strings.Reader需用户指定ContentLength
+		// 非bytes.Buffer/bytes.Reader/strings.Reader/os.File 由用户指定ContentLength, 或使用 Chunk 上传
 		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
 			opt.ContentLength = totalBytes
 		}
