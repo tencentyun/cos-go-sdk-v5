@@ -310,7 +310,7 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 			scoscrc := response.Header.Get("x-cos-hash-crc64ecma")
 			icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)
 			if icoscrc != localcrc {
-				return response, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma:%v, err:%v", localcrc, icoscrc, scoscrc, err)
+				return response, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma:%v, err:%v, header:%+v", localcrc, icoscrc, scoscrc, err, response.Header)
 			}
 		}
 	}

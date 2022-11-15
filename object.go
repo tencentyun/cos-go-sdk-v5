@@ -628,7 +628,7 @@ func (s *ObjectService) Append(ctx context.Context, name string, position int, r
 		if s.client.Conf.EnableCRC && reader.writer != nil {
 			wanted := hex.EncodeToString(reader.Sum())
 			if wanted != resp.Header.Get("x-cos-content-sha1") {
-				return res, resp, fmt.Errorf("append verification failed, want:%v, return:%v", wanted, resp.Header.Get("x-cos-content-sha1"))
+				return res, resp, fmt.Errorf("append verification failed, want:%v, return:%v, header:%+v", wanted, resp.Header.Get("x-cos-content-sha1"), resp.Header)
 			}
 		}
 		np, err := strconv.ParseInt(resp.Header.Get("x-cos-next-append-position"), 10, 64)
@@ -1063,7 +1063,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			scoscrc := rsp.Header.Get("x-cos-hash-crc64ecma")
 			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
 			if icoscrc != localcrc {
-				return result, rsp, fmt.Errorf("verification failed, want:%v, return:%v", localcrc, icoscrc)
+				return result, rsp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", localcrc, icoscrc, rsp.Header)
 			}
 		}
 		return result, rsp, nil
@@ -1196,7 +1196,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
 		icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)
 		if icoscrc != localcrc {
-			return v, resp, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma: %v, err:%v", localcrc, icoscrc, scoscrc, err)
+			return v, resp, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma: %v, err:%v, header:%+v", localcrc, icoscrc, scoscrc, err, resp.Header)
 		}
 	}
 	return v, resp, err
@@ -1330,7 +1330,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 				return rsp, err
 			}
 			if localcrc != icoscrc {
-				return rsp, fmt.Errorf("verification failed, want:%v, return:%v", icoscrc, localcrc)
+				return rsp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", icoscrc, localcrc, resp.Header)
 			}
 		}
 		return rsp, err
@@ -1449,7 +1449,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			return resp, err
 		}
 		if localcrc != icoscrc {
-			return resp, fmt.Errorf("verification failed, want:%v, return:%v", icoscrc, localcrc)
+			return resp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", icoscrc, localcrc, resp.Header)
 		}
 	}
 	return resp, err
