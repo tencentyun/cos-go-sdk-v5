@@ -2465,6 +2465,28 @@ func (s *CIService) UpdateMediaWorkflow(ctx context.Context, opt *CreateMediaWor
 	return &res, resp, err
 }
 
+// UpdateMediaWorkflow TODO
+func (s *CIService) ActiveMediaWorkflow(ctx context.Context, workflowId string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/workflow/" + workflowId + "?active",
+		method:  http.MethodPut,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// UpdateMediaWorkflow TODO
+func (s *CIService) PausedMediaWorkflow(ctx context.Context, workflowId string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/workflow/" + workflowId + "?paused",
+		method:  http.MethodPut,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
 // DescribeMediaWorkflowOptions TODO
 type DescribeMediaWorkflowOptions struct {
 	Ids        string `url:"ids,omitempty"`
