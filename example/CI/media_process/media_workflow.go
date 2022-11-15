@@ -306,11 +306,72 @@ func UpdatStreamWorkflow() {
 	fmt.Printf("%+v\n", DescribeWorkflowRes)
 }
 
+// 启用工作流
+func ActiveWorkflow() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-jakarta.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-jakarta.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	WorkflowId := "w8d1f24d05b434b17b491555496acf11d"
+	_, err := c.CI.ActiveMediaWorkflow(context.Background(), WorkflowId)
+	log_status(err)
+
+	opt := &cos.DescribeMediaWorkflowOptions{
+		Ids: WorkflowId,
+	}
+	DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeWorkflowRes)
+}
+// 停用工作流
+func PausedWorkflow() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-jakarta.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-jakarta.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	WorkflowId := "w8d1f24d05b434b17b491555496acf11d"
+	_, err := c.CI.PausedMediaWorkflow(context.Background(), WorkflowId)
+	log_status(err)
+
+	opt := &cos.DescribeMediaWorkflowOptions{
+		Ids: WorkflowId,
+	}
+	DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeWorkflowRes)
+}
+
 func main() {
 	// DescribeWorkflow()
 	// DeleteWorkflow()
 	// CreateWorkflow()
 	// UpdateWorkflow()
 	// CreateStreamWorkflow()
-	UpdatStreamWorkflow()
+	// UpdatStreamWorkflow()
+	ActiveWorkflow()
+	//PausedWorkflow()
 }
