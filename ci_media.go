@@ -469,6 +469,11 @@ type QualityEstimate struct {
 	Score string `xml:"Score,omitempty"`
 }
 
+// QualityEstimate TODO
+type QualityEstimateConfig struct {
+	Rotate string `xml:"Rotate,omitempty"`
+}
+
 // MediaResult TODO
 type MediaResult struct {
 	OutputFile struct {
@@ -633,6 +638,7 @@ type MediaProcessJobOperation struct {
 	Translation             *Translation             `xml:"Translation,omitempty"`
 	WordsGeneralize         *WordsGeneralize         `xml:"WordsGeneralize,omitempty"`
 	WordsGeneralizeResult   *WordsGeneralizeResult   `xml:"WordsGeneralizeResult,omitempty"`
+	QualityEstimateConfig   *QualityEstimateConfig   `xml:"QualityEstimateConfig,omitempty"`
 }
 
 // CreatePicJobsOptions TODO

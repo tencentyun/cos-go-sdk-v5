@@ -1680,6 +1680,9 @@ func InvokeQualityEstimateJob() {
 		Operation: &cos.MediaProcessJobOperation{
 			UserData: "This is my QualityEstimate job",
 			JobLevel: 1,
+			QualityEstimateConfig: &cos.QualityEstimateConfig{
+				Rotate: "90", // 只支持0 90 180 270
+			},
 		},
 		QueueId: DescribeQueueRes.QueueList[0].QueueId,
 	}
