@@ -11,7 +11,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
-const (
+var (
 	KMSEndPoint = "kms.tencentcloudapi.com"
 )
 
@@ -21,7 +21,15 @@ type MasterKMSCipher struct {
 	MatDesc string
 }
 
-func NewKMSClient(cred *cos.Credential, region string) (*kms.Client, error) {
+type KMSClientOptions = func(*profile.HttpProfile)
+
+func KMSEndpoint(endpoint string) KMSClientOptions {
+	return func(pf *profile.HttpProfile) {
+		pf.Endpoint = endpoint
+	}
+}
+
+func NewKMSClient(cred *cos.Credential, region string, opt ...KMSClientOptions) (*kms.Client, error) {
 	if cred == nil {
 		fmt.Errorf("credential is nil")
 	}
@@ -32,6 +40,10 @@ func NewKMSClient(cred *cos.Credential, region string) (*kms.Client, error) {
 	)
 	cpf := profile.NewClientProfile()
 	cpf.HttpProfile.Endpoint = KMSEndPoint
+
+	for _, fn := range opt {
+		fn(cpf.HttpProfile)
+	}
 	client, err := kms.NewClient(credential, region, cpf)
 	return client, err
 }

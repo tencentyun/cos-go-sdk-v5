@@ -70,7 +70,8 @@ func simple_put_object() {
 	materialDesc := make(map[string]string)
 	//materialDesc["desc"] = "material information of your master encrypt key"
 
-	// 创建KMS客户端
+	// 创建KMS客户端, 可通过 coscrypto.KMSEndpoint 指定KMS域名
+	// kmsclient, _ := coscrypto.NewKMSClient(c.GetCredential(), "ap-guangzhou", coscrypto.KMSEndpoint("kms.internal.tencentcloudapi.com"))
 	kmsclient, _ := coscrypto.NewKMSClient(c.GetCredential(), "ap-guangzhou")
 	// 创建KMS主加密密钥，标识信息和主密钥一一对应
 	kmsID := os.Getenv("KMSID")
