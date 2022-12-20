@@ -1009,6 +1009,100 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 	}
 }
 
+func TestObjectService_DownloadProgressWithCheckPoint(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "rsp.file" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	totalBytes := int64(1024*1024*9 + 123)
+	partSize := 1024 * 1024
+	b := make([]byte, totalBytes)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	oddok := false
+	var oddcount, evencount int
+	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if (start/int64(partSize))%2 == 1 {
+			if oddok {
+				io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			} else {
+				// 数据校验失败, Download做3次重试
+				io.Copy(w, bytes.NewBuffer(b[start:end]))
+			}
+			oddcount++
+		} else {
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			evencount++
+		}
+	})
+
+	opt := &MultiDownloadOptions{
+		Opt: &ObjectGetOptions{
+			Listener: &DefaultProgressListener{},
+		},
+		ThreadPoolSize: 3,
+		PartSize:       1,
+		CheckPoint:     true,
+	}
+	downPath := "down.file" + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err == nil {
+		// 偶数块下载完成，奇数块下载失败
+		t.Fatalf("Object.Download returned error: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Object Download Open File Failed:%v", err)
+	}
+	offset := 0
+	for i := 0; i < 10; i++ {
+		bs, _ := ioutil.ReadAll(io.LimitReader(fd, int64(partSize)))
+		offset += len(bs)
+		if i%2 == 1 {
+			bs[len(bs)-1] = b[offset-1]
+		}
+		if bytes.Compare(bs, b[i*partSize:offset]) != 0 {
+			t.Fatalf("Compare Error, index:%v, len:%v, offset:%v", i, len(bs), offset)
+		}
+	}
+	fd.Close()
+
+	if oddcount != 15 || evencount != 5 {
+		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
+	}
+	// 设置奇数块OK
+	oddok = true
+	_, err = client.Object.Download(context.Background(), "test.go.download", downPath, opt)
+	if err != nil {
+		// 下载成功
+		t.Fatalf("Object.Download returned error: %v", err)
+	}
+	if oddcount != 20 || evencount != 5 {
+		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
+	}
+}
+
 func TestObjectService_GetTagging(t *testing.T) {
 	setup()
 	defer teardown()
