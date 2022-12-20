@@ -949,7 +949,6 @@ type multiDownloadProgress struct {
 	listener      ProgressListener
 	notify        chan *chunkProgressEvent
 	stopc         chan struct{}
-	queue         int64
 }
 
 func newMultiDownloadProgress(listener ProgressListener, chunks int, totalSize int64) *multiDownloadProgress {
@@ -986,21 +985,33 @@ func (p *multiDownloadProgress) Start() {
 				consumed -= o.ConsumedBytes
 			}
 			p.chunkProgress[e.number-1] = e.event
-			if e.event.EventType == ProgressCompletedEvent {
+
+			// eventType聚合逻辑改为所有chunkjob都完成之后判定成功和失败
+			// 因为就算提前给失败，Download function并不会终止执行
+			// 用户捕获期间event中的Error即可不丢失数据
+			if e.event.EventType == ProgressCompletedEvent || e.event.EventType == ProgressFailedEvent {
 				completed := 0
+				failed := 0
 				for _, c := range p.chunkProgress {
-					if c != nil && c.EventType == ProgressCompletedEvent {
-						completed += 1
+					if c != nil {
+						if c.EventType == ProgressCompletedEvent {
+							completed += 1
+						} else if c.EventType == ProgressFailedEvent {
+							failed += 1
+						}
 					}
 				}
-				if completed == p.chunks && consumed == p.totalSize {
-					et = ProgressCompletedEvent
+
+				if total := completed + failed; total < p.chunks {
+					if started {
+						et = ProgressDataEvent
+					}
+				} else if failed > 0 {
+					et = ProgressFailedEvent
 				} else {
-					et = ProgressDataEvent
+					et = ProgressCompletedEvent
 				}
-			} else if e.event.EventType == ProgressFailedEvent {
-				et = ProgressFailedEvent
-			} else if started && et != ProgressDataEvent {
+			} else if started && et == ProgressStartedEvent {
 				et = ProgressDataEvent
 			}
 

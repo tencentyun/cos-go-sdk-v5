@@ -1009,6 +1009,28 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 	}
 }
 
+type fullProgressListener struct {
+}
+
+func (l *fullProgressListener) ProgressChangedCallback(event *ProgressEvent) {
+	switch event.EventType {
+	case ProgressStartedEvent:
+		fmt.Printf("Transfer Start    [ConsumedBytes/TotalBytes: %d/%d]\n",
+			event.ConsumedBytes, event.TotalBytes)
+	case ProgressDataEvent:
+		fmt.Printf("Transfer Data     [ConsumedBytes/TotalBytes: %d/%d, %d%%] [Err: %v]\n",
+			event.ConsumedBytes, event.TotalBytes, event.ConsumedBytes*100/event.TotalBytes, event.Err)
+	case ProgressCompletedEvent:
+		fmt.Printf("\nTransfer Complete [ConsumedBytes/TotalBytes: %d/%d]\n",
+			event.ConsumedBytes, event.TotalBytes)
+	case ProgressFailedEvent:
+		fmt.Printf("\nTransfer Failed   [ConsumedBytes/TotalBytes: %d/%d] [Err: %v]\n",
+			event.ConsumedBytes, event.TotalBytes, event.Err)
+	default:
+		fmt.Printf("Progress Changed Error: unknown progress event type\n")
+	}
+}
+
 func TestObjectService_DownloadProgressWithCheckPoint(t *testing.T) {
 	setup()
 	defer teardown()
@@ -1058,7 +1080,7 @@ func TestObjectService_DownloadProgressWithCheckPoint(t *testing.T) {
 
 	opt := &MultiDownloadOptions{
 		Opt: &ObjectGetOptions{
-			Listener: &DefaultProgressListener{},
+			Listener: &fullProgressListener{},
 		},
 		ThreadPoolSize: 3,
 		PartSize:       1,
