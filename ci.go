@@ -215,6 +215,17 @@ type UserExtraInfo struct {
 	Role           string `xml:",omitempty"`
 }
 
+// FreezeConf is auto freeze options
+type FreezeConf struct {
+	PornScore      string `xml:",omitempty"`
+	IllegalScore   string `xml:",omitempty"`
+	TerrorismScore string `xml:",omitempty"`
+	PoliticsScore  string `xml:",omitempty"`
+	AdsScore       string `xml:",omitempty"`
+	AbuseScore     string `xml:",omitempty"`
+	TeenagerScore  string `xml:",omitempty"`
+}
+
 // ImageAuditingInputOptions is the option of BatchImageAuditingOptions
 type ImageAuditingInputOptions struct {
 	DataId           string         `xml:",omitempty"`
@@ -229,10 +240,11 @@ type ImageAuditingInputOptions struct {
 
 // ImageAuditingJobConf is the config of BatchImageAuditingOptions
 type ImageAuditingJobConf struct {
-	DetectType string `xml:",omitempty"`
-	BizType    string `xml:",omitempty"`
-	Async      int    `xml:",omitempty"`
-	Callback   string `xml:",omitempty"`
+	DetectType string      `xml:",omitempty"`
+	BizType    string      `xml:",omitempty"`
+	Async      int         `xml:",omitempty"`
+	Callback   string      `xml:",omitempty"`
+	Freeze     *FreezeConf `xml:",omitempty"`
 }
 
 // BatchImageAuditingOptions is the option of BatchImageAuditing
@@ -265,6 +277,7 @@ type ImageAuditingResult struct {
 	CompressionResult int              `xml:",omitempty"`
 	UserInfo          *UserExtraInfo   `xml:",omitempty"`
 	ListInfo          *UserListInfo    `xml:",omitempty"`
+	ForbidState       int              `xml:",omitempty"`
 }
 
 // BatchImageAuditingJobResult is the result of BatchImageAuditing
@@ -317,6 +330,7 @@ type PutVideoAuditingJobOptions struct {
 	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
 	Conf          *VideoAuditingJobConf `xml:"Conf"`
 	Type          string                `xml:"Type,omitempty"`
+	StorageConf   *StorageConf          `xml:"StorageConf,omitempty"`
 }
 
 // VideoAuditingJobConf is the config of PutVideoAuditingJobOptions
@@ -328,6 +342,7 @@ type VideoAuditingJobConf struct {
 	CallbackType    int                          `xml:",omitempty"`
 	BizType         string                       `xml:",omitempty"`
 	DetectContent   int                          `xml:",omitempty"`
+	Freeze          *FreezeConf                  `xml:",omitempty"`
 }
 
 // PutVideoAuditingJobSnapshot is the snapshot config of VideoAuditingJobConf
@@ -335,6 +350,11 @@ type PutVideoAuditingJobSnapshot struct {
 	Mode         string  `xml:",omitempty"`
 	Count        int     `xml:",omitempty"`
 	TimeInterval float32 `xml:",omitempty"`
+}
+
+// StorageConf is live video storage config of PutVideoAuditingJobOptions
+type StorageConf struct {
+	Path string `xml:",omitempty"`
 }
 
 // PutVideoAuditingJobResult is the result of PutVideoAuditingJob
@@ -394,6 +414,7 @@ type AuditingJobDetail struct {
 	UserInfo      *UserExtraInfo                `xml:",omitempty"`
 	Type          string                        `xml:",omitempty"`
 	ListInfo      *UserListInfo                 `xml:",omitempty"`
+	ForbidState   int                           `xml:",omitempty"`
 }
 
 // GetVideoAuditingJobSnapshot is the snapshot result of AuditingJobDetail
@@ -417,6 +438,7 @@ type AudioSectionResult struct {
 	OffsetTime      int              `xml:",omitempty"`
 	Duration        int              `xml:",omitempty"`
 	Label           string           `xml:",omitempty"`
+	SubLabel        string           `xml:",omitempty"`
 	Result          int              `xml:",omitempty"`
 	PornInfo        *RecognitionInfo `xml:",omitempty"`
 	TerrorismInfo   *RecognitionInfo `xml:",omitempty"`
@@ -464,11 +486,12 @@ type PutAudioAuditingJobOptions struct {
 
 // AudioAuditingJobConf is the config of PutAudioAuditingJobOptions
 type AudioAuditingJobConf struct {
-	DetectType      string `xml:",omitempty"`
-	Callback        string `xml:",omitempty"`
-	CallbackVersion string `xml:",omitempty"`
-	CallbackType    int    `xml:",omitempty"`
-	BizType         string `xml:",omitempty"`
+	DetectType      string      `xml:",omitempty"`
+	Callback        string      `xml:",omitempty"`
+	CallbackVersion string      `xml:",omitempty"`
+	CallbackType    int         `xml:",omitempty"`
+	BizType         string      `xml:",omitempty"`
+	Freeze          *FreezeConf `xml:",omitempty"`
 }
 
 // PutAudioAuditingJobResult is the result of PutAudioAuditingJob
@@ -517,6 +540,7 @@ type AudioAuditingJobDetail struct {
 	Section         []AudioSectionResult `xml:",omitempty"`
 	UserInfo        *UserExtraInfo       `xml:",omitempty"`
 	ListInfo        *UserListInfo        `xml:",omitempty"`
+	ForbidState     int                  `xml:",omitempty"`
 }
 
 // LanguageResult 语种识别结果
@@ -553,11 +577,12 @@ type PutTextAuditingJobOptions struct {
 
 // TextAuditingJobConf is the config of PutAudioAuditingJobOptions
 type TextAuditingJobConf struct {
-	DetectType      string `xml:",omitempty"`
-	Callback        string `xml:",omitempty"`
-	CallbackVersion string `xml:",omitempty"`
-	BizType         string `xml:",omitempty"`
-	CallbackType    int    `xml:",omitempty"`
+	DetectType      string      `xml:",omitempty"`
+	Callback        string      `xml:",omitempty"`
+	CallbackVersion string      `xml:",omitempty"`
+	BizType         string      `xml:",omitempty"`
+	CallbackType    int         `xml:",omitempty"`
+	Freeze          *FreezeConf `xml:",omitempty"`
 }
 
 // PutTextAuditingJobResult is the result of PutTextAuditingJob
@@ -607,6 +632,7 @@ type TextAuditingJobDetail struct {
 	Section       []TextSectionResult  `xml:",omitempty"`
 	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 	ListInfo      *UserListInfo        `xml:",omitempty"`
+	ForbidState   int                  `xml:",omitempty"`
 }
 
 // TextLibResult
@@ -666,10 +692,11 @@ type PutDocumentAuditingJobOptions struct {
 
 // DocumentAuditingJobConf is the config of PutDocumentAuditingJobOptions
 type DocumentAuditingJobConf struct {
-	DetectType   string `xml:",omitempty"`
-	Callback     string `xml:",omitempty"`
-	BizType      string `xml:",omitempty"`
-	CallbackType int    `xml:",omitempty"`
+	DetectType   string      `xml:",omitempty"`
+	Callback     string      `xml:",omitempty"`
+	BizType      string      `xml:",omitempty"`
+	CallbackType int         `xml:",omitempty"`
+	Freeze       *FreezeConf `xml:",omitempty"`
 }
 
 // PutDocumentAuditingJobResult is the result of PutDocumentAuditingJob
@@ -713,6 +740,7 @@ type DocumentAuditingJobDetail struct {
 	PageSegment  *DocumentPageSegmentInfo `xml:",omitempty"`
 	UserInfo     *UserExtraInfo           `xml:",omitempty"`
 	ListInfo     *UserListInfo            `xml:",omitempty"`
+	ForbidState  int                      `xml:",omitempty"`
 }
 
 // DocumentResultInfo
