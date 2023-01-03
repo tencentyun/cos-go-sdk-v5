@@ -49,23 +49,27 @@ type Container struct {
 
 // Video TODO
 type Video struct {
-	Codec         string `xml:"Codec"`
-	Width         string `xml:"Width,omitempty"`
-	Height        string `xml:"Height,omitempty"`
-	Fps           string `xml:"Fps,omitempty"`
-	Remove        string `xml:"Remove,omitempty"`
-	Profile       string `xml:"Profile,omitempty"`
-	Bitrate       string `xml:"Bitrate,omitempty"`
-	Crf           string `xml:"Crf,omitempty"`
-	Gop           string `xml:"Gop,omitempty"`
-	Preset        string `xml:"Preset,omitempty"`
-	Bufsize       string `xml:"Bufsize,omitempty"`
-	Maxrate       string `xml:"Maxrate,omitempty"`
-	HlsTsTime     string `xml:"HlsTsTime,omitempty"`
-	DashSegment   string `xml:"DashSegment,omitempty"`
-	Pixfmt        string `xml:"Pixfmt,omitempty"`
-	LongShortMode string `xml:"LongShortMode,omitempty"`
-	Rotate        string `xml:"Rotate,omitempty"`
+	Codec                      string `xml:"Codec"`
+	Width                      string `xml:"Width,omitempty"`
+	Height                     string `xml:"Height,omitempty"`
+	Fps                        string `xml:"Fps,omitempty"`
+	Remove                     string `xml:"Remove,omitempty"`
+	Profile                    string `xml:"Profile,omitempty"`
+	Bitrate                    string `xml:"Bitrate,omitempty"`
+	Crf                        string `xml:"Crf,omitempty"`
+	Gop                        string `xml:"Gop,omitempty"`
+	Preset                     string `xml:"Preset,omitempty"`
+	Bufsize                    string `xml:"Bufsize,omitempty"`
+	Maxrate                    string `xml:"Maxrate,omitempty"`
+	HlsTsTime                  string `xml:"HlsTsTime,omitempty"`
+	DashSegment                string `xml:"DashSegment,omitempty"`
+	Pixfmt                     string `xml:"Pixfmt,omitempty"`
+	LongShortMode              string `xml:"LongShortMode,omitempty"`
+	Rotate                     string `xml:"Rotate,omitempty"`
+	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame"`
+	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame"`
+	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond"`
+	Quality                    string `xml:"Quality"`
 }
 
 // TranscodeProVideo TODO
@@ -125,7 +129,7 @@ type Transcode struct {
 	TimeInterval *TimeInterval `xml:"TimeInterval,omitempty"`
 	Audio        *Audio        `xml:"Audio,omitempty"`
 	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
-	AudioMix     []AudioMix    `xml:"AudioMix,omitempty"`
+	AudioMix     *AudioMix     `xml:"AudioMix,omitempty"`
 }
 
 // Image TODO
@@ -241,7 +245,7 @@ type ConcatTemplate struct {
 	Video          *Video           `xml:"Video,omitempty"`
 	Container      *Container       `xml:"Container,omitempty"`
 	Index          string           `xml:"Index,omitempty"`
-	AudioMix       []AudioMix       `xml:"AudioMix,omitempty"`
+	AudioMix       *AudioMix        `xml:"AudioMix,omitempty"`
 }
 
 // SpriteSnapshotConfig TODO
@@ -322,7 +326,7 @@ type VideoMontage struct {
 	Video     *VideoMontageVideo `xml:"Video,omitempty"`
 	Audio     *Audio             `xml:"Audio,omitempty"`
 	Duration  string             `xml:"Duration,omitempty"`
-	AudioMix  []AudioMix         `xml:"AudioMix,omitempty"`
+	AudioMix  *AudioMix          `xml:"AudioMix,omitempty"`
 }
 
 // AudioConfig TODO
@@ -1777,7 +1781,7 @@ type CreateMediaTranscodeTemplateOptions struct {
 	Audio        *Audio        `xml:"Audio,omitempty"`
 	TimeInterval *TimeInterval `xml:"TimeInterval,omitempty"`
 	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
-	AudioMix     []AudioMix    `xml:"AudioMix,omitempty"`
+	AudioMix     *AudioMix     `xml:"AudioMix,omitempty"`
 }
 
 // CreateMediaAnimationTemplateOptions TODO
@@ -1816,7 +1820,7 @@ type CreateMediaVideoMontageTemplateOptions struct {
 	Container *Container `xml:"Container,omitempty"`
 	Video     *Video     `xml:"Video,omitempty"`
 	Audio     *Audio     `xml:"Audio,omitempty"`
-	AudioMix  []AudioMix `xml:"AudioMix,omitempty"`
+	AudioMix  *AudioMix  `xml:"AudioMix,omitempty"`
 }
 
 // CreateMediaVoiceSeparateTemplateOptions TODO
