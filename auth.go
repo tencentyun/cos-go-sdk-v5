@@ -44,6 +44,10 @@ var DNSScatterTransport = &http.Transport{
 	ExpectContinueTimeout: 1 * time.Second,
 }
 
+func init() {
+	math_rand.Seed(time.Now().UnixNano())
+}
+
 func DNSScatterDialContextFunc(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -59,7 +63,6 @@ func DNSScatterDialContextFunc(ctx context.Context, network string, addr string)
 		DualStack: true,
 	}
 	// DNS 打散
-	math_rand.Seed(time.Now().UnixNano())
 	start := math_rand.Intn(len(ips))
 	for i := start; i < len(ips); i++ {
 		conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ips[i].IP.String(), port))
