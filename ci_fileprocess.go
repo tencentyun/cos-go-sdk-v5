@@ -32,11 +32,11 @@ type FileUncompressResult struct {
 }
 
 type FileCompressConfig struct {
-	Flatten string `xml:",omitempty"`
-	Format  string `xml:",omitempty"`
-	UrlList string `xml:",omitempty"`
-	Prefix  string `xml:",omitempty"`
-	Key     string `xml:",omitempty"`
+	Flatten string   `xml:",omitempty"`
+	Format  string   `xml:",omitempty"`
+	UrlList string   `xml:",omitempty"`
+	Prefix  string   `xml:",omitempty"`
+	Key     []string `xml:",omitempty"`
 }
 
 type FileCompressResult struct {
@@ -60,15 +60,15 @@ type FileProcessJobOperation struct {
 }
 
 type FileProcessJobOptions struct {
-	XMLName          xml.Name                 `xml:"Request"`
-	Tag              string                   `xml:",omitempty"`
-	Input            *FileProcessInput        `xml:",omitempty"`
-	Operation        *FileProcessJobOperation `xml:",omitempty"`
-	QueueId          string                   `xml:",omitempty"`
-	CallBackFormat   string                   `xml:",omitempty"`
-	CallBackType     string                   `xml:",omitempty"`
-	CallBack         string                   `xml:",omitempty"`
-	CallBackMqConfig string                   `xml:",omitempty"`
+	XMLName          xml.Name                     `xml:"Request"`
+	Tag              string                       `xml:",omitempty"`
+	Input            *FileProcessInput            `xml:",omitempty"`
+	Operation        *FileProcessJobOperation     `xml:",omitempty"`
+	QueueId          string                       `xml:",omitempty"`
+	CallBackFormat   string                       `xml:",omitempty"`
+	CallBackType     string                       `xml:",omitempty"`
+	CallBack         string                       `xml:",omitempty"`
+	CallBackMqConfig NotifyConfigCallBackMqConfig `xml:",omitempty"`
 }
 
 type FileProcessJobResult struct {
