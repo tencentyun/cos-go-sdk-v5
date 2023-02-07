@@ -466,7 +466,7 @@ func (s *CIService) PostVideoAuditingCancelJob(ctx context.Context, jobid string
 	var res PutVideoAuditingJobResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
-		uri:     "/video/cancel_auditing" + jobid,
+		uri:     "/video/cancel_auditing/" + jobid,
 		method:  http.MethodPost,
 		result:  &res,
 	}

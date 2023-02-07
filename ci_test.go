@@ -917,3 +917,170 @@ func TestBucketService_DeleteGuetzli(t *testing.T) {
 		t.Fatalf("CI.PutGuetzli returned error: %v", err)
 	}
 }
+
+func TestCIService_GetImageAuditingJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "si8e6586b0a6e411edb8db525400a28986"
+
+	mux.HandleFunc("/image/auditing/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, `<Response>
+  <JobsDetail>
+    <JobId>si8e6586b0a6e411edb8db525400a28986</JobId>
+    <State>Success</State>
+    <DataId>99999999999999977777777777777777</DataId>
+    <Object>202106300295654374239be721f.jpg</Object>
+    <Text>xxxyyyzzz</Text>
+    <Label>Politics</Label>
+    <Result>1</Result>
+    <Score>99</Score>
+    <Category>PolityOCR</Category>
+    <PornInfo></PornInfo>
+    <TerrorismInfo></TerrorismInfo>
+    <PoliticsInfo>
+      <HitFlag>1</HitFlag>
+      <Score>99</Score>
+      <Label>xxx</Label>
+      <Category>PolityOCR</Category>
+      <OcrResults>
+        <Text>xxxyyyzzz</Text>
+        <Keywords>xxx</Keywords>
+        <Keywords>yyy</Keywords>
+        <Keywords>zzz</Keywords>
+        <Location></Location>
+      </OcrResults>
+    </PoliticsInfo>
+    <AdsInfo></AdsInfo>
+  </JobsDetail>
+  <RequestId>NjNlMjQ2YzJfNDE3OTgyMDlfNGI5NV9jZjU=</RequestId>
+</Response>
+`)
+	})
+
+	want := &GetImageAuditingJobResult{
+		XMLName: xml.Name{Local: "Response"},
+		JobsDetail: &ImageAuditingResult{
+			JobId:         "si8e6586b0a6e411edb8db525400a28986",
+			State:         "Success",
+			DataId:        "99999999999999977777777777777777",
+			Object:        "202106300295654374239be721f.jpg",
+			Text:          "xxxyyyzzz",
+			Label:         "Politics",
+			Result:        1,
+			Score:         99,
+			Category:      "PolityOCR",
+			PornInfo:      &RecognitionInfo{},
+			TerrorismInfo: &RecognitionInfo{},
+			PoliticsInfo: &RecognitionInfo{
+				HitFlag:  1,
+				Score:    99,
+				Label:    "xxx",
+				Category: "PolityOCR",
+				OcrResults: []OcrResult{OcrResult{
+					Text: "xxxyyyzzz",
+					Keywords: []string{
+						"xxx",
+						"yyy",
+						"zzz",
+					},
+					Location: &Location{},
+				}},
+			},
+			AdsInfo: &RecognitionInfo{},
+		},
+		RequestId: "NjNlMjQ2YzJfNDE3OTgyMDlfNGI5NV9jZjU=",
+	}
+
+	res, _, err := client.CI.GetImageAuditingJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetImageAuditingJob returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetImageAuditingJob failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_PostVideoAuditingCancelJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "av8e6586b0a6e411edb8db525400a28986"
+
+	mux.HandleFunc("/video/cancel_auditing/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	_, _, err := client.CI.PostVideoAuditingCancelJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.PostVideoAuditingCancelJob returned error: %v", err)
+	}
+}
+
+func TestCIService_ReportBadcase(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<Request><ContentType>1</ContentType><Text>abc</Text>" +
+		"<Label>Ad</Label><SuggestedLabel>Normal</SuggestedLabel></Request>"
+
+
+	mux.HandleFunc("/report/badcase", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &ReportBadcaseOptions{
+		ContentType: 1,
+		Text: "abc",
+		Label: "Ad",
+		SuggestedLabel: "Normal",
+	}
+
+	_, _, err := client.CI.ReportBadcase(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.ReportBadcase returned error: %v", err)
+	}
+}
+
+func TestCIService_PutVirusDetectJob(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<Request><Input><Object>a.exe</Object></Input>" +
+		"<Conf><DetectType>Virus</DetectType>" +
+		"<Callback>http://callback.com/call_back_test</Callback></Conf></Request>"
+
+
+	mux.HandleFunc("/virus/detect", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &PutVirusDetectJobOptions{
+		InputObject: "a.exe",
+		Conf: &VirusDetectJobConf{
+			DetectType: "Virus",
+			Callback:   "http://callback.com/call_back_test",
+		},
+	}
+
+	_, _, err := client.CI.PutVirusDetectJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutVirusDetectJob returned error: %v", err)
+	}
+}
+
+func TestCIService_GetVirusDetectJob(t *testing.T) {
+	setup()
+	defer teardown()
+	jobID := "ssb1ca9fc8a3ed11ea834c525400863904"
+
+	mux.HandleFunc("/virus/detect"+"/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetVirusDetectJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.GetVirusDetectJob returned error: %v", err)
+	}
+}

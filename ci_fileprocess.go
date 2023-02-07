@@ -60,15 +60,15 @@ type FileProcessJobOperation struct {
 }
 
 type FileProcessJobOptions struct {
-	XMLName          xml.Name                     `xml:"Request"`
-	Tag              string                       `xml:",omitempty"`
-	Input            *FileProcessInput            `xml:",omitempty"`
-	Operation        *FileProcessJobOperation     `xml:",omitempty"`
-	QueueId          string                       `xml:",omitempty"`
-	CallBackFormat   string                       `xml:",omitempty"`
-	CallBackType     string                       `xml:",omitempty"`
-	CallBack         string                       `xml:",omitempty"`
-	CallBackMqConfig NotifyConfigCallBackMqConfig `xml:",omitempty"`
+	XMLName          xml.Name                      `xml:"Request"`
+	Tag              string                        `xml:",omitempty"`
+	Input            *FileProcessInput             `xml:",omitempty"`
+	Operation        *FileProcessJobOperation      `xml:",omitempty"`
+	QueueId          string                        `xml:",omitempty"`
+	CallBackFormat   string                        `xml:",omitempty"`
+	CallBackType     string                        `xml:",omitempty"`
+	CallBack         string                        `xml:",omitempty"`
+	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:",omitempty"`
 }
 
 type FileProcessJobResult struct {
