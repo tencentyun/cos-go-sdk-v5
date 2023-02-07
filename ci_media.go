@@ -132,6 +132,15 @@ type Transcode struct {
 	AudioMix     *AudioMix     `xml:"AudioMix,omitempty"`
 }
 
+// TranscodePro TODO
+type TranscodePro struct {
+	Container    *Container         `xml:"Container,omitempty"`
+	Video        *TranscodeProVideo `xml:"Video,omitempty"`
+	Audio        *TranscodeProAudio `xml:"Audio,omitempty"`
+	TimeInterval *TimeInterval      `xml:"TimeInterval,omitempty"`
+	TransConfig  *TransConfig       `xml:"TransConfig,omitempty"`
+}
+
 // Image TODO
 type Image struct {
 	Url          string `xml:"Url,omitempty"`
@@ -1924,7 +1933,7 @@ type Template struct {
 	SuperResolution   *SuperResolution   `xml:"SuperResolution,omitempty"`
 	PicProcess        *PicProcess        `xml:"PicProcess,omitempty"`
 	Watermark         *Watermark         `xml:"Watermark,omitempty"`
-	TransProTpl       *Transcode         `xml:"TransProTpl,omitempty"`
+	TransProTpl       *TranscodePro      `xml:"TransProTpl,omitempty"`
 	TtsTpl            *TtsTpl            `xml:"TtsTpl,omitempty"`
 	SmartCover        *NodeSmartCover    `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
 	SpeechRecognition *SpeechRecognition `xml:"SpeechRecognition,omitempty" json:"SpeechRecognition,omitempty"`
