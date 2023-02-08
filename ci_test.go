@@ -1022,7 +1022,6 @@ func TestCIService_ReportBadcase(t *testing.T) {
 	wantBody := "<Request><ContentType>1</ContentType><Text>abc</Text>" +
 		"<Label>Ad</Label><SuggestedLabel>Normal</SuggestedLabel></Request>"
 
-
 	mux.HandleFunc("/report/badcase", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
 		testHeader(t, r, "Content-Type", "application/xml")
@@ -1030,9 +1029,9 @@ func TestCIService_ReportBadcase(t *testing.T) {
 	})
 
 	opt := &ReportBadcaseOptions{
-		ContentType: 1,
-		Text: "abc",
-		Label: "Ad",
+		ContentType:    1,
+		Text:           "abc",
+		Label:          "Ad",
 		SuggestedLabel: "Normal",
 	}
 
@@ -1048,7 +1047,6 @@ func TestCIService_PutVirusDetectJob(t *testing.T) {
 	wantBody := "<Request><Input><Object>a.exe</Object></Input>" +
 		"<Conf><DetectType>Virus</DetectType>" +
 		"<Callback>http://callback.com/call_back_test</Callback></Conf></Request>"
-
 
 	mux.HandleFunc("/virus/detect", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -1082,5 +1080,1153 @@ func TestCIService_GetVirusDetectJob(t *testing.T) {
 	_, _, err := client.CI.GetVirusDetectJob(context.Background(), jobID)
 	if err != nil {
 		t.Fatalf("CI.GetVirusDetectJob returned error: %v", err)
+	}
+}
+
+func TestCIService_AddStyle(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<AddStyle><StyleName>style1</StyleName>" +
+		"<StyleBody>imageMogr2/thumbnail/!50px</StyleBody></AddStyle>"
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"style": "",
+		}
+		testFormValues(t, r, v)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &AddStyleOptions{
+		StyleName: "style1",
+		StyleBody: "imageMogr2/thumbnail/!50px",
+	}
+
+	_, err := client.CI.AddStyle(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.AddStyle returned error: %v", err)
+	}
+}
+
+func TestCIService_GetStyle(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<GetStyle><StyleName>style1</StyleName></GetStyle>"
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"style": "",
+		}
+		testFormValues(t, r, v)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, `<StyleList>
+  <StyleRule>
+    <StyleName>style1</StyleName>
+    <StyleBody>imageMogr2/thumbnail/!50px</StyleBody>
+  </StyleRule>
+</StyleList>
+`)
+	})
+
+	opt := &GetStyleOptions{
+		StyleName: "style1",
+	}
+
+	want := &GetStyleResult{
+		XMLName: xml.Name{Local: "StyleList"},
+		StyleRule: []StyleRule{StyleRule{
+			StyleName: "style1",
+			StyleBody: "imageMogr2/thumbnail/!50px",
+		},
+		},
+	}
+
+	res, _, err := client.CI.GetStyle(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GetStyle returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetStyle failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_DeleteStyle(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<DeleteStyle><StyleName>style1</StyleName></DeleteStyle>"
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+		v := values{
+			"style": "",
+		}
+		testFormValues(t, r, v)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &DeleteStyleOptions{
+		StyleName: "style1",
+	}
+
+	_, err := client.CI.DeleteStyle(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DeleteStyle returned error: %v", err)
+	}
+}
+
+func TestCIService_ImageQuality(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AssessQuality",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <LongImage>TRUE</LongImage>
+  <BlackAndWhite>TRUE</BlackAndWhite>
+  <SmallImage>TRUE</SmallImage>
+  <BigImage>FALSE</BigImage>
+  <PureImage>FALSE</PureImage>
+  <ClarityScore>50</ClarityScore>
+  <AestheticScore>50</AestheticScore>
+  <RequestId>xxx</RequestId>
+</Response>
+`)
+	})
+
+	want := &ImageQualityResult{
+		XMLName:        xml.Name{Local: "Response"},
+		LongImage:      true,
+		BlackAndWhite:  true,
+		SmallImage:     true,
+		BigImage:       false,
+		PureImage:      false,
+		ClarityScore:   50,
+		AestheticScore: 50,
+		RequestId:      "xxx",
+	}
+
+	res, _, err := client.CI.ImageQuality(context.Background(), "test.jpg")
+	if err != nil {
+		t.Fatalf("CI.ImageQuality returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.ImageQuality failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_OcrRecognition(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":    "OCR",
+			"type":          "general",
+			"language-type": "zh",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <Angel>359.99</Angel>
+  <Language>zh</Language>
+  <PdfPageSize>0</PdfPageSize>
+  <RequestId>xxx</RequestId>
+  <TextDetections>
+      <Confidence>99</Confidence>
+      <DetectedText>你好</DetectedText>
+      <ItemPolygon>
+          <Height>64</Height>
+          <Width>123</Width>
+          <X>140</X>
+          <Y>167</Y>
+      </ItemPolygon>
+      <Polygon>
+          <X>140</X>
+          <Y>167</Y>
+      </Polygon>
+      <Polygon>
+          <X>263</X>
+          <Y>167</Y>
+      </Polygon>
+      <Polygon>
+          <X>263</X>
+          <Y>231</Y>
+      </Polygon>
+      <Polygon>
+          <X>140</X>
+          <Y>231</Y>
+      </Polygon>
+      <Words>
+          <Character>你</Character>
+          <Confidence>99</Confidence>
+          <WordCoordPoint>
+              <WordCoordinate>
+                  <X>212</X>
+                  <Y>167</Y>
+              </WordCoordinate>
+              <WordCoordinate>
+                  <X>341</X>
+                  <Y>167</Y>
+              </WordCoordinate>
+              <WordCoordinate>
+                  <X>341</X>
+                  <Y>231</Y>
+              </WordCoordinate>
+              <WordCoordinate>
+                  <X>212</X>
+                  <Y>231</Y>
+              </WordCoordinate>
+          </WordCoordPoint>
+      </Words>
+      <Words>
+          <Character>好</Character>
+          <Confidence>99</Confidence>
+          <WordCoordPoint>
+              <WordCoordinate>
+                  <X>341</X>
+                  <Y>167</Y>
+              </WordCoordinate>
+              <WordCoordinate>
+                  <X>263</X>
+                  <Y>167</Y>
+              </WordCoordinate>
+              <WordCoordinate>
+                  <X>263</X>
+                  <Y>231</Y>
+              </WordCoordinate>
+              <WordCoordinate>
+                  <X>341</X>
+                  <Y>230</Y>
+              </WordCoordinate>
+          </WordCoordPoint>
+      </Words>
+  </TextDetections>
+</Response>
+`)
+	})
+
+	opt := &OcrRecognitionOptions{
+		Type:         "general",
+		LanguageType: "zh",
+		Ispdf:        false,
+		Isword:       false,
+	}
+
+	want := &OcrRecognitionResult{
+		XMLName: xml.Name{Local: "Response"},
+		TextDetections: []TextDetections{
+			TextDetections{
+				DetectedText: "你好",
+				Confidence:   99,
+				Polygon: []Polygon{
+					Polygon{
+						X: 140,
+						Y: 167,
+					},
+					Polygon{
+						X: 263,
+						Y: 167,
+					},
+					Polygon{
+						X: 263,
+						Y: 231,
+					},
+					Polygon{
+						X: 140,
+						Y: 231,
+					},
+				},
+				ItemPolygon: []ItemPolygon{
+					ItemPolygon{
+						X:      140,
+						Y:      167,
+						Width:  123,
+						Height: 64,
+					},
+				},
+				Words: []Words{
+					Words{
+						Confidence: 99,
+						Character:  "你",
+						WordCoordPoint: &WordCoordPoint{
+							WordCoordinate: []Polygon{
+								Polygon{
+									X: 212,
+									Y: 167,
+								},
+								Polygon{
+									X: 341,
+									Y: 167,
+								},
+								Polygon{
+									X: 341,
+									Y: 231,
+								},
+								Polygon{
+									X: 212,
+									Y: 231,
+								},
+							},
+						},
+					},
+					Words{
+						Confidence: 99,
+						Character:  "好",
+						WordCoordPoint: &WordCoordPoint{
+							WordCoordinate: []Polygon{
+								Polygon{
+									X: 341,
+									Y: 167,
+								},
+								Polygon{
+									X: 263,
+									Y: 167,
+								},
+								Polygon{
+									X: 263,
+									Y: 231,
+								},
+								Polygon{
+									X: 341,
+									Y: 230,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Language:    "zh",
+		Angel:       359.99,
+		PdfPageSize: 0,
+		RequestId:   "xxx",
+	}
+
+	res, _, err := client.CI.OcrRecognition(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.OcrRecognition returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.OcrRecognition failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_DetectCar(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "DetectCar",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <RequestId>xxx</RequestId>
+  <CarTags>
+      <Serial>五菱宏光</Serial>
+      <Brand>五菱</Brand>
+      <Type>面包车</Type>
+      <Color>白</Color>
+      <Confidence>0</Confidence>
+      <Year>0</Year>
+      <CarLocation>
+          <X>0</X>
+          <Y>228</Y>
+      </CarLocation>
+      <CarLocation>
+          <X>0</X>
+          <Y>81</Y>
+      </CarLocation>
+      <CarLocation>
+          <X>73</X>
+          <Y>81</Y>
+      </CarLocation>
+      <CarLocation>
+          <X>73</X>
+          <Y>228</Y>
+      </CarLocation>
+  </CarTags>
+</Response>
+`)
+	})
+
+	want := &DetectCarResult{
+		XMLName: xml.Name{Local: "Response"},
+		CarTags: []CarTags{
+			CarTags{
+				Serial:     "五菱宏光",
+				Brand:      "五菱",
+				Type:       "面包车",
+				Color:      "白",
+				Confidence: 0,
+				Year:       0,
+				CarLocation: []CarLocation{
+					CarLocation{
+						X: 0,
+						Y: 228,
+					},
+					CarLocation{
+						X: 0,
+						Y: 81,
+					},
+					CarLocation{
+						X: 73,
+						Y: 81,
+					},
+					CarLocation{
+						X: 73,
+						Y: 228,
+					},
+				},
+			},
+		},
+		RequestId: "xxx",
+	}
+
+	res, _, err := client.CI.DetectCar(context.Background(), "test.jpg")
+	if err != nil {
+		t.Fatalf("CI.DetectCar returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.DetectCar failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_OpenCIService(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+	})
+
+	_, err := client.CI.OpenCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.OpenCIService returned error: %v", err)
+	}
+}
+
+func TestCIService_GetCIService(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, `<CIStatus>on</CIStatus>`)
+	})
+
+	want := &CIServiceResult{
+		XMLName:  xml.Name{Local: "CIStatus"},
+		CIStatus: "on",
+	}
+
+	res, _, err := client.CI.GetCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetCIService returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetCIService failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_CloseCIService(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"unbind": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.CloseCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.CloseCIService returned error: %v", err)
+	}
+}
+
+func TestCIService_SetHotLink(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "<Hotlink><Url>www.example.com</Url>" +
+		"<Type>black</Type></Hotlink>"
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"hotlink": "",
+		}
+		testFormValues(t, r, v)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &HotLinkOptions{
+		Url: []string{
+			"www.example.com",
+		},
+		Type: "black",
+	}
+
+	_, err := client.CI.SetHotLink(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.SetHotLink returned error: %v", err)
+	}
+}
+
+func TestCIService_GetHotLink(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"hotlink": "",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Hotlink>
+  <Status>on</Status>
+  <Type>white</Type>
+  <Url>xxx</Url>
+  <Url>yyy</Url>
+</Hotlink>`)
+	})
+
+	want := &HotLinkResult{
+		XMLName: xml.Name{Local: "Hotlink"},
+		Status:  "on",
+		Type:    "white",
+		Url: []string{
+			"xxx",
+			"yyy",
+		},
+	}
+
+	res, _, err := client.CI.GetHotLink(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetHotLink returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetHotLink failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_OpenOriginProtect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"origin-protect": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.OpenOriginProtect(context.Background())
+	if err != nil {
+		t.Fatalf("CI.OpenOriginProtect returned error: %v", err)
+	}
+}
+
+func TestCIService_GetOriginProtect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"origin-protect": "",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<OriginProtectStatus>on</OriginProtectStatus>`)
+	})
+
+	want := &OriginProtectResult{
+		XMLName:             xml.Name{Local: "OriginProtectStatus"},
+		OriginProtectStatus: "on",
+	}
+
+	res, _, err := client.CI.GetOriginProtect(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetOriginProtect returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetOriginProtect failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_CloseOriginProtect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+		v := values{
+			"origin-protect": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.CloseOriginProtect(context.Background())
+	if err != nil {
+		t.Fatalf("CI.CloseOriginProtect returned error: %v", err)
+	}
+}
+
+func TestCIService_PicTag(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "detect-label",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<RecognitionResult>
+  <Labels>
+    <Confidence>88</Confidence>
+    <Name>玩具</Name>
+  </Labels>
+  <Labels>
+    <Confidence>87</Confidence>
+    <Name>毛绒玩具</Name>
+  </Labels>
+  <Labels>
+    <Confidence>77</Confidence>
+    <Name>泰迪熊</Name>
+  </Labels>
+  <Labels>
+    <Confidence>74</Confidence>
+    <Name>纺织品</Name>
+  </Labels>
+  <Labels>
+    <Confidence>15</Confidence>
+    <Name>艺术</Name>
+  </Labels>
+</RecognitionResult>
+`)
+	})
+
+	want := &PicTagResult{
+		XMLName: xml.Name{Local: "RecognitionResult"},
+		Labels: []PicTag{
+			PicTag{
+				Confidence: 88,
+				Name:       "玩具",
+			},
+			PicTag{
+				Confidence: 87,
+				Name:       "毛绒玩具",
+			},
+			PicTag{
+				Confidence: 77,
+				Name:       "泰迪熊",
+			},
+			PicTag{
+				Confidence: 74,
+				Name:       "纺织品",
+			},
+			PicTag{
+				Confidence: 15,
+				Name:       "艺术",
+			},
+		},
+	}
+
+	res, _, err := client.CI.PicTag(context.Background(), "test.jpg")
+	if err != nil {
+		t.Fatalf("CI.PicTag returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.PicTag failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_DetectFace(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "DetectFace",
+			"max-face-num": "1",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <ImageWidth>616</ImageWidth>
+  <ImageHeight>442</ImageHeight>
+  <FaceModelVersion>3.0</FaceModelVersion>
+  <RequestId>xxx</RequestId>
+  <FaceInfos>
+    <X>312</X>
+    <Y>-5</Y>
+    <Width>117</Width>
+    <Height>173</Height>
+  </FaceInfos>
+  <FaceInfos>
+    <X>600</X>
+    <Y>-5</Y>
+    <Width>117</Width>
+    <Height>173</Height>
+  </FaceInfos>
+</Response>
+`)
+	})
+
+	opt := &DetectFaceOptions{
+		MaxFaceNum: 1,
+	}
+
+	want := &DetectFaceResult{
+		XMLName:          xml.Name{Local: "Response"},
+		ImageWidth:       616,
+		ImageHeight:      442,
+		FaceModelVersion: "3.0",
+		RequestId:        "xxx",
+		FaceInfos: []FaceInfos{
+			FaceInfos{
+				X:      312,
+				Y:      -5,
+				Width:  117,
+				Height: 173,
+			},
+			FaceInfos{
+				X:      600,
+				Y:      -5,
+				Width:  117,
+				Height: 173,
+			},
+		},
+	}
+
+	res, _, err := client.CI.DetectFace(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.DetectFace returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.DetectFace failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_FaceEffect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "face-effect",
+			"type":         "face-beautify",
+			"whitening":    "70",
+			"smoothing":    "80",
+			"faceLifting":  "70",
+			"eyeEnlarging": "70",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <ResultImage>xxx</ResultImage>
+</Response>
+`)
+	})
+
+	opt := &FaceEffectOptions{
+		Type:         "face-beautify",
+		Whitening:    70,
+		Smoothing:    80,
+		FaceLifting:  70,
+		EyeEnlarging: 70,
+	}
+
+	want := &FaceEffectResult{
+		XMLName:     xml.Name{Local: "Response"},
+		ResultImage: "xxx",
+	}
+
+	res, _, err := client.CI.FaceEffect(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.FaceEffect returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.FaceEffect failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_IdCardOCRWhenCloud(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "IDCardOCR",
+			"CardSide":   "FRONT",
+			"Config":     `{"CropIdCard":true}`,
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <IdInfo>
+    <Name>李明</Name>
+    <Sex>男</Sex>
+    <Nation>汉</Nation>
+    <Birth>1987/1/1</Birth>
+    <Address>北京市xx大楼</Address>
+    <IdNum>440524198701010014</IdNum>
+  </IdInfo>
+  <AdvancedInfo>
+    <IdCard>xxx</IdCard>
+    <Portrait>yyy</Portrait>
+  </AdvancedInfo>
+</Response>
+`)
+	})
+
+	opt := &IdCardOCROptions{
+		CardSide: "FRONT",
+		Config: &IdCardOCROptionsConfig{
+			CropIdCard: true,
+		},
+	}
+
+	want := &IdCardOCRResult{
+		XMLName: xml.Name{Local: "Response"},
+		IdInfo: &IdCardInfo{
+			Name:    "李明",
+			Sex:     "男",
+			Nation:  "汉",
+			Birth:   "1987/1/1",
+			Address: "北京市xx大楼",
+			IdNum:   "440524198701010014",
+		},
+		AdvancedInfo: &IdCardAdvancedInfo{
+			IdCard:   "xxx",
+			Portrait: "yyy",
+		},
+	}
+
+	res, _, err := client.CI.IdCardOCRWhenCloud(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.IdCardOCRWhenCloud returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.IdCardOCRWhenCloud failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestObjectService_IdCardOCRWhenUpload(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	b := make([]byte, 1024*1024*3)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	tb := crc64.MakeTable(crc64.ECMA)
+	realcrc := crc64.Update(0, tb, b)
+	name := "test/hello.txt"
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testHeader(t, r, "x-cos-acl", "private")
+		testHeader(t, r, "Content-Type", "text/html")
+
+		bs, _ := ioutil.ReadAll(r.Body)
+		crc := crc64.Update(0, tb, bs)
+		if !reflect.DeepEqual(bs, b) {
+			t.Errorf("Object.Put request body Error")
+		}
+		if !reflect.DeepEqual(crc, realcrc) {
+			t.Errorf("Object.Put crc: %v, want: %v", crc, realcrc)
+		}
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+
+		w.Header().Add("Content-Type", "application/xml")
+		fmt.Fprint(w, `<Response>
+  <IdInfo>
+    <Name>李明</Name>
+    <Sex>男</Sex>
+    <Nation>汉</Nation>
+    <Birth>1987/1/1</Birth>
+    <Address>北京市xx大楼</Address>
+    <IdNum>440524198701010014</IdNum>
+  </IdInfo>
+  <AdvancedInfo>
+    <IdCard>xxx</IdCard>
+    <Portrait>yyy</Portrait>
+  </AdvancedInfo>
+</Response>
+`)
+	})
+
+	qopt := &IdCardOCROptions{
+		CardSide: "FRONT",
+		Config: &IdCardOCROptionsConfig{
+			CropIdCard: true,
+		},
+	}
+
+	hopt := &ObjectPutOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			ContentType: "text/html",
+			Listener:    &DefaultProgressListener{},
+		},
+		ACLHeaderOptions: &ACLHeaderOptions{
+			XCosACL: "private",
+		},
+	}
+
+	want := &IdCardOCRResult{
+		XMLName: xml.Name{Local: "Response"},
+		IdInfo: &IdCardInfo{
+			Name:    "李明",
+			Sex:     "男",
+			Nation:  "汉",
+			Birth:   "1987/1/1",
+			Address: "北京市xx大楼",
+			IdNum:   "440524198701010014",
+		},
+		AdvancedInfo: &IdCardAdvancedInfo{
+			IdCard:   "xxx",
+			Portrait: "yyy",
+		},
+	}
+
+	res, _, err := client.CI.IdCardOCRWhenUpload(context.Background(), name, filePath, qopt, hopt)
+	if err != nil {
+		t.Fatalf("CI.IdCardOCRWhenUpload returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.IdCardOCRWhenUpload failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_GetLiveCode(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "GetLiveCode",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <LiveCode>0521</LiveCode>
+</Response>
+`)
+	})
+
+	want := &GetLiveCodeResult{
+		XMLName:  xml.Name{Local: "Response"},
+		LiveCode: "0521",
+	}
+
+	res, _, err := client.CI.GetLiveCode(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetLiveCode returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetLiveCode failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_GetActionSequence(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "GetActionSequence",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <ActionSequence>2,1</ActionSequence>
+</Response>
+`)
+	})
+
+	want := &GetActionSequenceResult{
+		XMLName:        xml.Name{Local: "Response"},
+		ActionSequence: "2,1",
+	}
+
+	res, _, err := client.CI.GetActionSequence(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetActionSequence returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetActionSequence failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_LivenessRecognitionWhenCloud(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "LivenessRecognition",
+			"IdCard":       "11204416541220243X",
+			"Name":         "韦小宝",
+			"LivenessType": "SILENT",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <BestFrameBase64>/9j/4AAQSkZJRgABAQAAAQA</BestFrameBase64>
+  <Sim>100</Sim>
+</Response>
+`)
+	})
+
+	opt := &LivenessRecognitionOptions{
+		IdCard:       "11204416541220243X",
+		Name:         "韦小宝",
+		LivenessType: "SILENT",
+	}
+
+	want := &LivenessRecognitionResult{
+		XMLName:         xml.Name{Local: "Response"},
+		BestFrameBase64: "/9j/4AAQSkZJRgABAQAAAQA",
+		Sim:             100,
+	}
+
+	res, _, err := client.CI.LivenessRecognitionWhenCloud(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.LivenessRecognitionWhenCloud returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.LivenessRecognitionWhenCloud failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestObjectService_LivenessRecognitionWhenUpload(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	b := make([]byte, 1024*1024*3)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	tb := crc64.MakeTable(crc64.ECMA)
+	realcrc := crc64.Update(0, tb, b)
+	name := "test/hello.txt"
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testHeader(t, r, "x-cos-acl", "private")
+		testHeader(t, r, "Content-Type", "text/html")
+
+		bs, _ := ioutil.ReadAll(r.Body)
+		crc := crc64.Update(0, tb, bs)
+		if !reflect.DeepEqual(bs, b) {
+			t.Errorf("Object.Put request body Error")
+		}
+		if !reflect.DeepEqual(crc, realcrc) {
+			t.Errorf("Object.Put crc: %v, want: %v", crc, realcrc)
+		}
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+
+		w.Header().Add("Content-Type", "application/xml")
+		fmt.Fprint(w, `<Response>
+  <BestFrameBase64>/9j/4AAQSkZJRgABAQAAAQA</BestFrameBase64>
+  <Sim>100</Sim>
+</Response>
+`)
+	})
+
+	qopt := &LivenessRecognitionOptions{
+		IdCard:       "11204416541220243X",
+		Name:         "韦小宝",
+		LivenessType: "SILENT",
+	}
+
+	hopt := &ObjectPutOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			ContentType: "text/html",
+			Listener:    &DefaultProgressListener{},
+		},
+		ACLHeaderOptions: &ACLHeaderOptions{
+			XCosACL: "private",
+		},
+	}
+
+	want := &LivenessRecognitionResult{
+		XMLName:         xml.Name{Local: "Response"},
+		BestFrameBase64: "/9j/4AAQSkZJRgABAQAAAQA",
+		Sim:             100,
+	}
+
+	res, _, err := client.CI.LivenessRecognitionWhenUpload(context.Background(), name, filePath, qopt, hopt)
+	if err != nil {
+		t.Fatalf("CI.LivenessRecognitionWhenUpload returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.LivenessRecognitionWhenUpload failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_GoodsMatting(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "GoodsMatting",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.GoodsMatting(context.Background(), "test.jpg")
+	if err != nil {
+		t.Fatalf("CI.GoodsMatting returned error: %v", err)
+	}
+}
+
+func TestCIService_GoodsMattingWithOpt(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "GoodsMatting",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.GoodsMattingWithOpt(context.Background(), "test.jpg", nil)
+	if err != nil {
+		t.Fatalf("CI.GoodsMattingWithOpt returned error: %v", err)
 	}
 }
