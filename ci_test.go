@@ -917,3 +917,61 @@ func TestBucketService_DeleteGuetzli(t *testing.T) {
 		t.Fatalf("CI.PutGuetzli returned error: %v", err)
 	}
 }
+
+func TestCIService_AIBodyRecognition(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"ci-process": "AIBodyRecognition",
+			"detect-url": "http://test123.com/test.jpg",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprint(w, `<RecognitionResult>
+	<Status>1</Status>
+	<PedestrianInfo>
+		<Name>person</Name>
+		<Score>91</Score>
+		<Location>
+			<Point>77,37</Point>
+			<Point>77,346</Point>
+			<Point>522,346</Point>
+			<Point>522,37</Point>
+		</Location>
+	</PedestrianInfo>
+</RecognitionResult>`)
+	})
+
+	opt := &AIBodyRecognitionOptions{
+		DetectUrl: "http://test123.com/test.jpg",
+	}
+
+	want := &AIBodyRecognitionResult{
+		XMLName: xml.Name{Local: "RecognitionResult"},
+		Status:  1,
+		PedestrianInfo: []PedestrianInfo{
+			{
+				Name:  "person",
+				Score: 91,
+				Location: &PedestrianLocation{
+					Point: []string{
+						"77,37",
+						"77,346",
+						"522,346",
+						"522,37",
+					},
+				},
+			},
+		},
+	}
+
+	res, _, err := client.CI.AIBodyRecognition(context.Background(), "", opt)
+	if err != nil {
+		t.Fatalf("CI.AIBodyRecognition returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.AIBodyRecognition failed, return:%v, want:%v", res, want)
+	}
+}
