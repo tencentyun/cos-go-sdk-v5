@@ -114,7 +114,7 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 
 // ObjectListPartsOptions is the option of ListParts
 type ObjectListPartsOptions struct {
-	EncodingType     string `url:"Encoding-type,omitempty"`
+	EncodingType     string `url:"encoding-type,omitempty"`
 	MaxParts         string `url:"max-parts,omitempty"`
 	PartNumberMarker string `url:"part-number-marker,omitempty"`
 }
