@@ -674,6 +674,7 @@ type CreateMediaJobsOptions struct {
 	Input            *JobInput                     `xml:"Input,omitempty"`
 	Operation        *MediaProcessJobOperation     `xml:"Operation,omitempty"`
 	QueueId          string                        `xml:"QueueId,omitempty"`
+	QueueType        string                        `xml:"QueueType,omitempty"`
 	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
 	CallBackType     string                        `xml:"CallBackType,omitempty"`
 	CallBack         string                        `xml:"CallBack,omitempty"`
