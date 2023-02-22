@@ -1281,6 +1281,55 @@ func TestCIService_ImageQuality(t *testing.T) {
 	}
 }
 
+func TestCIService_ImageQualityWithOpt(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AssessQuality",
+			"detect-url": "http://test123.com/test.jpg",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<Response>
+  <LongImage>TRUE</LongImage>
+  <BlackAndWhite>TRUE</BlackAndWhite>
+  <SmallImage>TRUE</SmallImage>
+  <BigImage>FALSE</BigImage>
+  <PureImage>FALSE</PureImage>
+  <ClarityScore>50</ClarityScore>
+  <AestheticScore>50</AestheticScore>
+  <RequestId>xxx</RequestId>
+</Response>
+`)
+	})
+
+	opt := &ImageQualityOptions{
+		DetectUrl: "http://test123.com/test.jpg",
+	}
+
+	want := &ImageQualityResult{
+		XMLName:        xml.Name{Local: "Response"},
+		LongImage:      true,
+		BlackAndWhite:  true,
+		SmallImage:     true,
+		BigImage:       false,
+		PureImage:      false,
+		ClarityScore:   50,
+		AestheticScore: 50,
+		RequestId:      "xxx",
+	}
+
+	res, _, err := client.CI.ImageQualityWithOpt(context.Background(), "", opt)
+	if err != nil {
+		t.Fatalf("CI.ImageQualityWithOpt returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.ImageQualityWithOpt failed, return:%+v, want:%+v", res, want)
+	}
+}
+
 func TestCIService_OcrRecognition(t *testing.T) {
 	setup()
 	defer teardown()
