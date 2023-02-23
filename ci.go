@@ -1364,6 +1364,30 @@ func (s *CIService) ImageQuality(ctx context.Context, obj string) (*ImageQuality
 	return &res, resp, err
 }
 
+// ImageQualityOptions is the option of ImageQualityWithOpt
+type ImageQualityOptions struct {
+	CIProcess        string `url:"ci-process,omitempty"`
+	DetectUrl        string `url:"detect-url,omitempty"`
+	EnableClarity    string `url:"enable_clarity,omitempty"`
+	EnableAesthetics string `url:"enable_aesthetics,omitempty"`
+	EnableLowquality string `url:"enable_lowquality,omitempty"`
+}
+
+// ImageQualityWithOpt 图片质量评估
+func (s *CIService) ImageQualityWithOpt(ctx context.Context, obj string, opt *ImageQualityOptions) (*ImageQualityResult, *Response, error) {
+	var res ImageQualityResult
+	opt.CIProcess = "AssessQuality"
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(obj),
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
 type OcrRecognitionOptions struct {
 	Type              string `url:"type,omitempty"`
 	LanguageType      string `url:"language-type,omitempty"`
@@ -1938,4 +1962,39 @@ func (s *CIService) GoodsMattingWithOpt(ctx context.Context, key string, opt *Go
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+type PedestrianLocation CodeLocation
+
+type PedestrianInfo struct {
+	Name     string              `xml:"Name,omitempty"`
+	Score    int                 `xml:"Score,omitempty"`
+	Location *PedestrianLocation `xml:"Location,omitempty"`
+}
+
+type AIBodyRecognitionResult struct {
+	XMLName        xml.Name         `xml:"RecognitionResult"`
+	Status         int              `xml:"Status,omitempty"`
+	PedestrianInfo []PedestrianInfo `xml:"PedestrianInfo,omitempty"`
+}
+
+// AIBodyRecognitionOptions is the option of AIBodyRecognitionWithOpt
+type AIBodyRecognitionOptions struct {
+	CIProcess string `url:"ci-process,omitempty"`
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+// 人体识别 https://cloud.tencent.com/document/product/436/83728
+func (s *CIService) AIBodyRecognition(ctx context.Context, key string, opt *AIBodyRecognitionOptions) (*AIBodyRecognitionResult, *Response, error) {
+	var res AIBodyRecognitionResult
+	opt.CIProcess = "AIBodyRecognition"
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(key),
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }

@@ -201,3 +201,36 @@ func TestCIService_DocPreview(t *testing.T) {
 		t.Fatalf("CI.DocPreview returned error: %v", err)
 	}
 }
+
+func TestCIService_DocPreviewHTML(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "sample.pdf"
+	mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "doc-preview",
+			"dstType":    "html",
+			"srcType":    "pdf",
+			"htmlParams": `{"commonOptions":{"isShowTopArea":true,"isShowHeader":true,"isBrowserViewFullscreen":false,"isIframeViewFullscreen":false}}`,
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DocPreviewHTMLOptions{
+		DstType: "html",
+		SrcType: "pdf",
+		HtmlParams: &HtmlParams{
+			CommonOptions: &HtmlCommonParams{
+				IsShowTopArea: true,
+				IsShowHeader:  true,
+			},
+		},
+	}
+
+	_, err := client.CI.DocPreviewHTML(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("CI.DocPreviewHTML returned error: %v", err)
+	}
+}
