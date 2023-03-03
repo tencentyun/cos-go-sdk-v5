@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -681,11 +682,14 @@ func TestObjectService_Upload(t *testing.T) {
 	newfile.Write(b)
 	newfile.Close()
 
+	var mu sync.Mutex
 	// 已上传内容, 10个分块
 	rb := make([][]byte, 33)
 	uploadid := "test-cos-multiupload-uploadid"
 	partmap := make(map[int64]int)
 	mux.HandleFunc("/test.go.upload", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		if r.Method == http.MethodPut { // 分块上传
 			r.ParseForm()
 			part, _ := strconv.ParseInt(r.Form.Get("partNumber"), 10, 64)
