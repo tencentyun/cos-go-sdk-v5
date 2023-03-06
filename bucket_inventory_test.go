@@ -290,3 +290,53 @@ func TestBucketService_DeleteInventory(t *testing.T) {
 		t.Fatalf("Bucket.DeleteInventory returned error: %v", err)
 	}
 }
+
+func TestBucketService_PostInventory(t *testing.T) {
+	setup()
+	defer teardown()
+	opt := &BucketPostInventoryOptions{
+		XMLName:                xml.Name{Local: "InventoryConfiguration"},
+		ID:                     "list1",
+		IncludedObjectVersions: "All",
+		Filter:                 &BucketInventoryFilter{"myPrefix", nil},
+		Destination: &BucketInventoryDestination{
+			Bucket:     "qcs::cos:ap-guangzhou::examplebucket-1250000000",
+			AccountId:  "100000000001",
+			Prefix:     "list1",
+			Format:     "CSV",
+			Encryption: &BucketInventoryEncryption{},
+		},
+		OptionalFields: &BucketInventoryOptionalFields{
+			BucketInventoryFields: []string{
+				"Size",
+				"LastModifiedDate",
+				"ETag",
+				"StorageClass",
+				"IsMultipartUploaded",
+				"ReplicationStatus",
+			},
+		},
+	}
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		vs := values{
+			"inventory": "",
+			"id":        "list1",
+		}
+		testFormValues(t, r, vs)
+
+		body := &BucketPostInventoryOptions{}
+		xml.NewDecoder(r.Body).Decode(body)
+		want := opt
+		if !reflect.DeepEqual(want, body) {
+			t.Fatalf("Bucket.PostInventory request\n body: %+v\n, want %+v\n", body, want)
+		}
+	})
+
+	_, err := client.Bucket.PostInventory(context.Background(), "list1", opt)
+	if err != nil {
+		t.Fatalf("Bucket.PostInventory failed, error: %v", err)
+	}
+}
+
+

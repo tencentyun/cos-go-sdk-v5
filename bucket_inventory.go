@@ -62,6 +62,15 @@ type BucketPutInventoryOptions struct {
 	Destination            *BucketInventoryDestination    `xml:"Destination>COSBucketDestination"`
 }
 
+type BucketPostInventoryOptions struct {
+	XMLName                xml.Name                       `xml:"InventoryConfiguration"`
+	ID                     string                         `xml:"Id"`
+	IncludedObjectVersions string                         `xml:"IncludedObjectVersions"`
+	Filter                 *BucketInventoryFilter         `xml:"Filter,omitempty"`
+	OptionalFields         *BucketInventoryOptionalFields `xml:"OptionalFields,omitempty"`
+	Destination            *BucketInventoryDestination    `xml:"Destination>COSBucketDestination"`
+}
+
 // ListBucketInventoryConfigResult result of ListBucketInventoryConfiguration
 type ListBucketInventoryConfigResult struct {
 	XMLName                 xml.Name                           `xml:"ListInventoryConfigurationResult"`
@@ -129,4 +138,15 @@ func (s *BucketService) ListInventoryConfigurations(ctx context.Context, token s
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 
+}
+func (s *BucketService) PostInventory(ctx context.Context, id string, opt *BucketPostInventoryOptions) (*Response, error) {
+	u := fmt.Sprintf("/?inventory&id=%s", id)
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     u,
+		method:  http.MethodPost,
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
 }
