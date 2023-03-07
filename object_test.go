@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -129,15 +130,15 @@ func TestObjectService_GetRetry(t *testing.T) {
 	name := "test/hello.txt"
 	contentLength := 1024 * 1024 * 10
 	data := make([]byte, contentLength)
-	index := 0
+	index := int32(0)
 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		vs := values{
 			"response-content-type": "text/html",
 		}
-		index++
-		if index%3 != 0 {
-			if index > 6 {
+		atomic.AddInt32(&index, 1)
+		if atomic.LoadInt32(&index)%3 != 0 {
+			if atomic.LoadInt32(&index) > 6 {
 				w.WriteHeader(499)
 				return
 			}
@@ -291,7 +292,6 @@ func TestObjectService_PutFromFile(t *testing.T) {
 	opt := &ObjectPutOptions{
 		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
 			ContentType: "text/html",
-			Listener:    &DefaultProgressListener{},
 		},
 		ACLHeaderOptions: &ACLHeaderOptions{
 			XCosACL: "private",
@@ -324,6 +324,7 @@ func TestObjectService_PutFromFile(t *testing.T) {
 	})
 
 	for retry <= final {
+		opt.Listener = &DefaultProgressListener{}
 		_, err := client.Object.PutFromFile(context.Background(), name, filePath, opt)
 		if retry < final && err == nil {
 			t.Fatalf("Error must not nil when retry < final")
@@ -838,8 +839,11 @@ func TestObjectService_Download(t *testing.T) {
 	tb := crc64.MakeTable(crc64.ECMA)
 	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
 
+	var mu sync.Mutex
 	retryMap := make(map[int64]int)
 	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		if r.Method == http.MethodHead {
 			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
 			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
@@ -943,7 +947,7 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
 
 	oddok := false
-	var oddcount, evencount int
+	var oddcount, evencount int32
 	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodHead {
 			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
@@ -962,10 +966,10 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 				// 数据校验失败, Download做3次重试
 				io.Copy(w, bytes.NewBuffer(b[start:end]))
 			}
-			oddcount++
+			atomic.AddInt32(&oddcount, 1)
 		} else {
 			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
-			evencount++
+			atomic.AddInt32(&evencount, 1)
 		}
 	})
 
@@ -998,8 +1002,8 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 	}
 	fd.Close()
 
-	if oddcount != 15 || evencount != 5 {
-		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
+	if atomic.LoadInt32(&oddcount) != 15 || atomic.LoadInt32(&evencount) != 5 {
+		t.Fatalf("Object.Download failed, odd:%v, even:%v", atomic.LoadInt32(&oddcount), atomic.LoadInt32(&evencount))
 	}
 	// 设置奇数块OK
 	oddok = true
@@ -1008,8 +1012,8 @@ func TestObjectService_DownloadWithCheckPoint(t *testing.T) {
 		// 下载成功
 		t.Fatalf("Object.Download returned error: %v", err)
 	}
-	if oddcount != 20 || evencount != 5 {
-		t.Fatalf("Object.Download failed, odd:%v, even:%v", oddcount, evencount)
+	if atomic.LoadInt32(&oddcount) != 20 || atomic.LoadInt32(&evencount) != 5 {
+		t.Fatalf("Object.Download failed, odd:%v, even:%v", atomic.LoadInt32(&oddcount), atomic.LoadInt32(&evencount))
 	}
 }
 
