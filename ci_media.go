@@ -727,12 +727,16 @@ type CreateMediaJobsResult struct {
 
 // CreateMultiMediaJobsOptions TODO
 type CreateMultiMediaJobsOptions struct {
-	XMLName   xml.Name                   `xml:"Request"`
-	Tag       string                     `xml:"Tag,omitempty"`
-	Input     *JobInput                  `xml:"Input,omitempty"`
-	Operation []MediaProcessJobOperation `xml:"Operation,omitempty"`
-	QueueId   string                     `xml:"QueueId,omitempty"`
-	CallBack  string                     `xml:"CallBack,omitempty"`
+	XMLName          xml.Name                      `xml:"Request"`
+	Tag              string                        `xml:"Tag,omitempty"`
+	Input            *JobInput                     `xml:"Input,omitempty"`
+	Operation        []MediaProcessJobOperation    `xml:"Operation,omitempty"`
+	QueueId          string                        `xml:"QueueId,omitempty"`
+	QueueType        string                        `xml:"QueueType,omitempty"`
+	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType     string                        `xml:"CallBackType,omitempty"`
+	CallBack         string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
 }
 
 // CreateMultiMediaJobsResult TODO
@@ -1645,12 +1649,57 @@ type SpeechRecognition struct {
 	SpeakerNumber      string `xml:"SpeakerNumber,omitempty"`
 	FilterPunc         string `xml:"FilterPunc,omitempty"`
 	OutputFileType     string `xml:"OutputFileType,omitempty"`
+	FlashAsr           string `xml:"FlashAsr,omitempty"`
+	Format             string `xml:"Format,omitempty"`
+	FirstChannelOnly   string `xml:"FirstChannelOnly,omitempty"`
+	WordInfo           string `xml:"WordInfo,omitempty"`
 }
 
 // SpeechRecognitionResult TODO
 type SpeechRecognitionResult struct {
-	AudioTime float64  `xml:"AudioTime,omitempty"`
-	Result    []string `xml:"Result,omitempty"`
+	AudioTime                     float64                        `xml:"AudioTime,omitempty"`
+	Result                        []string                       `xml:"Result,omitempty"`
+	ObjectName                    string                         `xml:"ObjectName,omitempty"`
+	DetailObjectName              string                         `xml:"DetailObjectName,omitempty"`
+	SpeechRecognitionFlashResult  *SpeechRecognitionFlashResult  `xml:"FlashResult,omitempty"`
+	SpeechRecognitionResultDetail *SpeechRecognitionResultDetail `xml:"ResultDetail,omitempty"`
+}
+
+type SpeechRecognitionFlashResult struct {
+	ChannelId    int32                           `xml:"channel_id,omitempty"`
+	Text         string                          `xml:"text,omitempty"`
+	SentenceList []SpeechRecognitionSentenceList `xml:"sentence_list,omitempty"`
+}
+
+type SpeechRecognitionSentenceList struct {
+	Text      string                      `xml:"text,omitempty"`
+	StartTime string                      `xml:"start_time,omitempty"`
+	EndTime   string                      `xml:"end_time,omitempty"`
+	SpeakerId string                      `xml:"speaker_id,omitempty"`
+	WordList  []SpeechRecognitionWordList `xml:"word_list,omitempty"`
+}
+
+type SpeechRecognitionWordList struct {
+	Word      string `xml:"word,omitempty"`
+	StartTime string `xml:"start_time,omitempty"`
+	EndTime   string `xml:"end_time,omitempty"`
+}
+
+type SpeechRecognitionResultDetail struct {
+	FinalSentence string                   `xml:"FinalSentence,omitempty"`
+	SliceSentence string                   `xml:"SliceSentence,omitempty"`
+	StartMs       string                   `xml:"StartMs,omitempty"`
+	EndMs         string                   `xml:"EndMs,omitempty"`
+	WordsNum      string                   `xml:"WordsNum,omitempty"`
+	SpeechSpeed   string                   `xml:"SpeechSpeed,omitempty"`
+	SpeakerId     string                   `xml:"SpeakerId,omitempty"`
+	Words         []SpeechRecognitionWords `xml:"Words,omitempty"`
+}
+
+type SpeechRecognitionWords struct {
+	Word          string `xml:"Word,omitempty"`
+	OffsetStartMs string `xml:"OffsetStartMs,omitempty"`
+	OffsetEndMs   string `xml:"OffsetEndMs,omitempty"`
 }
 
 // ASRJobOperation TODO
@@ -2551,7 +2600,7 @@ func (s *CIService) DescribeMediaWorkflow(ctx context.Context, opt *DescribeMedi
 	var res DescribeMediaWorkflowResult
 	sendOpt := sendOptions{
 		baseURL:  s.client.BaseURL.CIURL,
-		uri:      "/Workflow",
+		uri:      "/workflow",
 		optQuery: opt,
 		method:   http.MethodGet,
 		result:   &res,
@@ -2571,7 +2620,7 @@ func (s *CIService) DeleteMediaWorkflow(ctx context.Context, workflowId string) 
 	var res DeleteMediaWorkflowResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
-		uri:     "/Workflow/" + workflowId,
+		uri:     "/workflow/" + workflowId,
 		method:  http.MethodDelete,
 		result:  &res,
 	}
@@ -2718,9 +2767,10 @@ func (s *CIService) DescribeInventoryTriggerJob(ctx context.Context, jobId strin
 type DescribeInventoryTriggerJobsOptions struct {
 	NextToken         string `url:"nextToken,omitempty"`
 	Size              string `url:"size,omitempty"`
+	Type              string `url:"type,omitempty"`
 	OrderByTime       string `url:"orderByTime,omitempty"`
 	States            string `url:"states,omitempty"`
-	StartCreationTime string `url:"states,omitempty"`
+	StartCreationTime string `url:"startCreationTime,omitempty"`
 	EndCreationTime   string `url:"endCreationTime,omitempty"`
 	WorkflowId        string `url:"workflowId,omitempty"`
 	JobId             string `url:"jobId,omitempty"`

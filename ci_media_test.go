@@ -3,10 +3,10 @@ package cos
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"reflect"
 	"testing"
@@ -16,10 +16,13 @@ func TestCIService_CreateMultiMediaJobs(t *testing.T) {
 	setup()
 	defer teardown()
 
-	wantBody := "<Request><Tag>Animation</Tag><Input><Object>test.mp4</Object></Input>" +
-		"<Operation><Output><Region>ap-beijing</Region><Bucket>abc-1250000000</Bucket>" +
-		"<Object>test-trans.gif</Object></Output>" +
+	wantBody := "<Request><Input><Object>test.mp4</Object></Input>" +
+		"<Operation><Tag>Animation</Tag><Output><Region>ap-beijing</Region><Bucket>abc-1250000000</Bucket>" +
+		"<Object>test.gif</Object></Output>" +
 		"<TemplateId>t1460606b9752148c4ab182f55163ba7cd</TemplateId>" +
+		"</Operation><Operation><Tag>Transcode</Tag><Output><Region>ap-beijing</Region><Bucket>abc-1250000000</Bucket>" +
+		"<Object>test.mp4</Object></Output>" +
+		"<TemplateId>t1995d523e42df4c5e858f244b4174360c</TemplateId>" +
 		"</Operation><QueueId>p893bcda225bf4945a378da6662e81a89</QueueId>" +
 		"<CallBack>https://www.callback.com</CallBack></Request>"
 
@@ -29,26 +32,37 @@ func TestCIService_CreateMultiMediaJobs(t *testing.T) {
 		testBody(t, r, wantBody)
 	})
 
-	opt := &CreateMediaJobsOptions{
-		Tag: "Animation",
+	opt := &CreateMultiMediaJobsOptions{
 		Input: &JobInput{
 			Object: "test.mp4",
 		},
-		Operation: &MediaProcessJobOperation{
-			Output: &JobOutput{
-				Region: "ap-beijing",
-				Bucket: "abc-1250000000",
-				Object: "test-trans.gif",
+		Operation: []MediaProcessJobOperation{
+			{
+				Tag: "Animation",
+				Output: &JobOutput{
+					Region: "ap-beijing",
+					Bucket: "abc-1250000000",
+					Object: "test.gif",
+				},
+				TemplateId: "t1460606b9752148c4ab182f55163ba7cd",
 			},
-			TemplateId: "t1460606b9752148c4ab182f55163ba7cd",
+			{
+				Tag: "Transcode",
+				Output: &JobOutput{
+					Region: "ap-beijing",
+					Bucket: "abc-1250000000",
+					Object: "test.mp4",
+				},
+				TemplateId: "t1995d523e42df4c5e858f244b4174360c",
+			},
 		},
 		QueueId:  "p893bcda225bf4945a378da6662e81a89",
 		CallBack: "https://www.callback.com",
 	}
 
-	_, _, err := client.CI.CreateMediaJobs(context.Background(), opt)
+	_, _, err := client.CI.CreateMultiMediaJobs(context.Background(), opt)
 	if err != nil {
-		t.Fatalf("CI.CreateMediaJobs returned errors: %v", err)
+		t.Fatalf("CI.CreateMultiMediaJobs returned errors: %v", err)
 	}
 }
 
@@ -222,17 +236,31 @@ func TestCIService_DescribeAIJob(t *testing.T) {
 }
 
 func TestCIService_DescribeMultiMediaJob(t *testing.T) {
-	setup()
-	defer teardown()
+	{
+		setup()
+		jobIDs := []string{}
+		mux.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+		})
 
-	jobIDs := []string{"jc7c990a00bf211ed946af9e0691f2b7a", "jabcsdssfeipplsdfwe"}
-	mux.HandleFunc("/jobs/"+"jc7c990a00bf211ed946af9e0691f2b7a,jabcsdssfeipplsdfwe", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-	})
+		_, _, err := client.CI.DescribeMultiMediaJob(context.Background(), jobIDs)
+		if err == nil || err.Error() != "empty param jobids" {
+			t.Fatalf("CI.DescribeMultiMediaJob returned error: %v", err)
+		}
+		teardown()
+	}
+	{
+		setup()
+		jobIDs := []string{"jc7c990a00bf211ed946af9e0691f2b7a", "jabcsdssfeipplsdfwe"}
+		mux.HandleFunc("/jobs/"+"jc7c990a00bf211ed946af9e0691f2b7a,jabcsdssfeipplsdfwe", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+		})
 
-	_, _, err := client.CI.DescribeMultiMediaJob(context.Background(), jobIDs)
-	if err != nil {
-		t.Fatalf("CI.DescribeMultiMediaJob returned error: %v", err)
+		_, _, err := client.CI.DescribeMultiMediaJob(context.Background(), jobIDs)
+		if err != nil {
+			t.Fatalf("CI.DescribeMultiMediaJob returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -492,89 +520,134 @@ func TestCIService_DescribeASRProcessBuckets(t *testing.T) {
 }
 
 func TestCIService_GetMediaInfo(t *testing.T) {
-	setup()
-	defer teardown()
-
 	res_xml := `<Response>
-    <MediaInfo>
-        <Format>
-            <Bitrate>1014.950000</Bitrate>
-            <Duration>10.125000</Duration>
-            <FormatLongName>QuickTime / MOV</FormatLongName>
-            <FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName>
-            <NumProgram>0</NumProgram>
-            <NumStream>2</NumStream>
-            <Size>1284547</Size>
-            <StartTime>0.000000</StartTime>
-        </Format>
-        <Stream>
-            <Audio>
-                <Bitrate>70.451000</Bitrate>
-                <Channel>1</Channel>
-                <ChannelLayout>mono</ChannelLayout>
-                <CodecLongName>AAC (Advanced Audio Coding)</CodecLongName>
-                <CodecName>aac</CodecName>
-                <CodecTag>0x6134706d</CodecTag>
-                <CodecTagString>mp4a</CodecTagString>
-                <CodecTimeBase>1/44100</CodecTimeBase>
-                <Duration>0.440294</Duration>
-                <Index>1</Index>
-                <Language>und</Language>
-                <SampleFmt>fltp</SampleFmt>
-                <SampleRate>44100</SampleRate>
-                <StartTime>0.000000</StartTime>
-                <Timebase>1/44100</Timebase>
-            </Audio>
-            <Subtitle/>
-            <Video>
-                <AvgFps>24/1</AvgFps>
-                <Bitrate>938.164000</Bitrate>
-                <CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName>
-                <CodecName>h264</CodecName>
-                <CodecTag>0x31637661</CodecTag>
-                <CodecTagString>avc1</CodecTagString>
-                <CodecTimeBase>1/12288</CodecTimeBase>
-                <Dar>40:53</Dar>
-                <Duration>0.124416</Duration>
-                <Fps>24.500000</Fps>
-                <HasBFrame>2</HasBFrame>
-                <Height>1280</Height>
-                <Index>0</Index>
-                <Language>und</Language>
-                <Level>32</Level>
-                <NumFrames>243</NumFrames>
-                <PixFormat>yuv420p</PixFormat>
-                <Profile>High</Profile>
-                <RefFrames>1</RefFrames>
-                <Sar>25600:25599</Sar>
-                <StartTime>0.000000</StartTime>
-                <Timebase>1/12288</Timebase>
-                <Width>966</Width>
-            </Video>
-        </Stream>
-    </MediaInfo>
+	<MediaInfo>
+		<Format>
+			<Bitrate>1014.950000</Bitrate>
+			<Duration>10.125000</Duration>
+			<FormatLongName>QuickTime / MOV</FormatLongName>
+			<FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName>
+			<NumProgram>0</NumProgram>
+			<NumStream>2</NumStream>
+			<Size>1284547</Size>
+			<StartTime>0.000000</StartTime>
+		</Format>
+		<Stream>
+			<Audio>
+				<Bitrate>70.451000</Bitrate>
+				<Channel>1</Channel>
+				<ChannelLayout>mono</ChannelLayout>
+				<CodecLongName>AAC (Advanced Audio Coding)</CodecLongName>
+				<CodecName>aac</CodecName>
+				<CodecTag>0x6134706d</CodecTag>
+				<CodecTagString>mp4a</CodecTagString>
+				<CodecTimeBase>1/44100</CodecTimeBase>
+				<Duration>0.440294</Duration>
+				<Index>1</Index>
+				<Language>und</Language>
+				<SampleFmt>fltp</SampleFmt>
+				<SampleRate>44100</SampleRate>
+				<StartTime>0.000000</StartTime>
+				<Timebase>1/44100</Timebase>
+			</Audio>
+			<Subtitle/>
+			<Video>
+				<AvgFps>24/1</AvgFps>
+				<Bitrate>938.164000</Bitrate>
+				<CodecLongName>H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10</CodecLongName>
+				<CodecName>h264</CodecName>
+				<CodecTag>0x31637661</CodecTag>
+				<CodecTagString>avc1</CodecTagString>
+				<CodecTimeBase>1/12288</CodecTimeBase>
+				<Dar>40:53</Dar>
+				<Duration>0.124416</Duration>
+				<Fps>24.500000</Fps>
+				<HasBFrame>2</HasBFrame>
+				<Height>1280</Height>
+				<Index>0</Index>
+				<Language>und</Language>
+				<Level>32</Level>
+				<NumFrames>243</NumFrames>
+				<PixFormat>yuv420p</PixFormat>
+				<Profile>High</Profile>
+				<RefFrames>1</RefFrames>
+				<Sar>25600:25599</Sar>
+				<StartTime>0.000000</StartTime>
+				<Timebase>1/12288</Timebase>
+				<Width>966</Width>
+			</Video>
+		</Stream>
+	</MediaInfo>
 </Response>`
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "videoinfo",
+			}
+			testFormValues(t, r, v)
+			fmt.Fprint(w, res_xml)
+		})
 
-	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		v := values{
-			"ci-process": "videoinfo",
+		res, _, err := client.CI.GetMediaInfo(context.Background(), "test", nil)
+		if err != nil {
+			t.Fatalf("CI.GetMediaInfo returned error: %v", err)
 		}
-		testFormValues(t, r, v)
-		fmt.Fprint(w, res_xml)
-	})
+		want := &GetMediaInfoResult{}
+		err = xml.Unmarshal([]byte(res_xml), want)
+		if err != nil {
+			t.Errorf("Bucket.GetMediaInfo Unmarshal returned error %+v", err)
+		}
+		if !reflect.DeepEqual(res, want) {
+			t.Errorf("Bucket.GetMediaInfo returned %+v, want %+v", res, want)
+		}
+		teardown()
+	}
 
-	res, _, err := client.CI.GetMediaInfo(context.Background(), "test", nil)
-	if err != nil {
-		t.Fatalf("CI.GetMediaInfo returned error: %v", err)
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "videoinfo",
+				"versionId":  "1",
+			}
+			testFormValues(t, r, v)
+			fmt.Fprint(w, res_xml)
+		})
+
+		res, _, err := client.CI.GetMediaInfo(context.Background(), "test", nil, "1")
+		if err != nil {
+			t.Fatalf("CI.GetMediaInfo returned error: %v", err)
+		}
+		want := &GetMediaInfoResult{}
+		err = xml.Unmarshal([]byte(res_xml), want)
+		if err != nil {
+			t.Errorf("Bucket.GetMediaInfo Unmarshal returned error %+v", err)
+		}
+		if !reflect.DeepEqual(res, want) {
+			t.Errorf("Bucket.GetMediaInfo returned %+v, want %+v", res, want)
+		}
+		teardown()
 	}
-	want := &GetMediaInfoResult{}
-	err = xml.Unmarshal([]byte(res_xml), want)
-	if err != nil {
-		t.Errorf("Bucket.GetMediaInfo Unmarshal returned error %+v", err)
-	}
-	if !reflect.DeepEqual(res, want) {
-		t.Errorf("Bucket.GetMediaInfo returned %+v, want %+v", res, want)
+
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "videoinfo",
+			}
+			testFormValues(t, r, v)
+			fmt.Fprint(w, res_xml)
+		})
+
+		_, _, err := client.CI.GetMediaInfo(context.Background(), "test", nil, "1", "2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.GetMediaInfo returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -601,9 +674,6 @@ func TestCIService_GenerateMediaInfo(t *testing.T) {
 }
 
 func TestCIService_GetSnapshot(t *testing.T) {
-	setup()
-	defer teardown()
-
 	opt := &GetSnapshotOptions{
 		Time:   1,
 		Height: 100,
@@ -614,33 +684,94 @@ func TestCIService_GetSnapshot(t *testing.T) {
 	}
 	data := make([]byte, 1234*2)
 	rand.Read(data)
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "snapshot",
+				"time":       "1",
+				"format":     "jpg",
+				"width":      "100",
+				"height":     "100",
+				"rotate":     "auto",
+				"mode":       "exactframe",
+			}
+			testFormValues(t, r, v)
+			w.Write(data)
+		})
 
-	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		v := values{
-			"ci-process": "snapshot",
-			"time":       "1",
-			"format":     "jpg",
-			"width":      "100",
-			"height":     "100",
-			"rotate":     "auto",
-			"mode":       "exactframe",
+		resp, err := client.CI.GetSnapshot(context.Background(), "test", opt)
+		if err != nil {
+			t.Fatalf("CI.GetSnapshot returned error: %v", err)
 		}
-		testFormValues(t, r, v)
-		w.Write(data)
-	})
+		defer resp.Body.Close()
+		bs, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("CI.GetSnapshot ReadAll returned error: %v", err)
+		}
+		if bytes.Compare(bs, data) != 0 {
+			t.Errorf("Bucket.GetSnapshot Compare failed")
+		}
+		teardown()
+	}
 
-	resp, err := client.CI.GetSnapshot(context.Background(), "test", opt)
-	if err != nil {
-		t.Fatalf("CI.GetSnapshot returned error: %v", err)
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "snapshot",
+				"versionId":  "1.1",
+				"time":       "1",
+				"format":     "jpg",
+				"width":      "100",
+				"height":     "100",
+				"rotate":     "auto",
+				"mode":       "exactframe",
+			}
+			testFormValues(t, r, v)
+			w.Write(data)
+		})
+
+		resp, err := client.CI.GetSnapshot(context.Background(), "test", opt, "1.1")
+		if err != nil {
+			t.Fatalf("CI.GetSnapshot returned error: %v", err)
+		}
+		defer resp.Body.Close()
+		bs, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("CI.GetSnapshot ReadAll returned error: %v", err)
+		}
+		if bytes.Compare(bs, data) != 0 {
+			t.Errorf("Bucket.GetSnapshot Compare failed")
+		}
+		teardown()
 	}
-	defer resp.Body.Close()
-	bs, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("CI.GetSnapshot ReadAll returned error: %v", err)
-	}
-	if bytes.Compare(bs, data) != 0 {
-		t.Errorf("Bucket.GetSnapshot Compare failed")
+
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "snapshot",
+				"versionId":  "1.1",
+				"time":       "1",
+				"format":     "jpg",
+				"width":      "100",
+				"height":     "100",
+				"rotate":     "auto",
+				"mode":       "exactframe",
+			}
+			testFormValues(t, r, v)
+			w.Write(data)
+		})
+
+		_, err := client.CI.GetSnapshot(context.Background(), "test", opt, "1.1", "1.2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.GetMediaInfo returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -682,36 +813,82 @@ func TestCIService_PostSnapshot(t *testing.T) {
 }
 
 func TestCIService_GetPrivateM3U8(t *testing.T) {
-	setup()
-	defer teardown()
-
 	opt := &GetPrivateM3U8Options{
 		Expires: 3600,
 	}
 	data := make([]byte, 1234*2)
 	rand.Read(data)
 
-	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		v := values{
-			"ci-process": "pm3u8",
-			"expires":    "3600",
-		}
-		testFormValues(t, r, v)
-		w.Write(data)
-	})
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "pm3u8",
+				"expires":    "3600",
+			}
+			testFormValues(t, r, v)
+			w.Write(data)
+		})
 
-	resp, err := client.CI.GetPrivateM3U8(context.Background(), "test", opt)
-	if err != nil {
-		t.Fatalf("CI.GetPrivateM3U8 returned error: %v", err)
+		resp, err := client.CI.GetPrivateM3U8(context.Background(), "test", opt)
+		if err != nil {
+			t.Fatalf("CI.GetPrivateM3U8 returned error: %v", err)
+		}
+		defer resp.Body.Close()
+		bs, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("CI.GetSnapshot ReadAll returned error: %v", err)
+		}
+		if bytes.Compare(bs, data) != 0 {
+			t.Errorf("Bucket.GetSnapshot Compare failed")
+		}
+		teardown()
 	}
-	defer resp.Body.Close()
-	bs, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("CI.GetSnapshot ReadAll returned error: %v", err)
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "pm3u8",
+				"expires":    "3600",
+				"versionId":  "1.1",
+			}
+			testFormValues(t, r, v)
+			w.Write(data)
+		})
+
+		resp, err := client.CI.GetPrivateM3U8(context.Background(), "test", opt, "1.1")
+		if err != nil {
+			t.Fatalf("CI.GetPrivateM3U8 returned error: %v", err)
+		}
+		defer resp.Body.Close()
+		bs, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("CI.GetSnapshot ReadAll returned error: %v", err)
+		}
+		if bytes.Compare(bs, data) != 0 {
+			t.Errorf("Bucket.GetSnapshot Compare failed")
+		}
+		teardown()
 	}
-	if bytes.Compare(bs, data) != 0 {
-		t.Errorf("Bucket.GetSnapshot Compare failed")
+	{
+		setup()
+		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "pm3u8",
+				"expires":    "3600",
+			}
+			testFormValues(t, r, v)
+			w.Write(data)
+		})
+
+		_, err := client.CI.GetPrivateM3U8(context.Background(), "test", opt, "1.1", "1.2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.GetMediaInfo returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -938,17 +1115,32 @@ func TestCIService_CreateASRJobs(t *testing.T) {
 }
 
 func TestCIService_DescribeMultiASRJob(t *testing.T) {
-	setup()
-	defer teardown()
+	{
+		setup()
+		jobIDs := []string{"ac7c990a00bf211ed946af9e0691f2b7a", "aabcsdssfeipplsdfwe"}
+		mux.HandleFunc("/asr_jobs/"+"ac7c990a00bf211ed946af9e0691f2b7a,aabcsdssfeipplsdfwe", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+		})
 
-	jobIDs := []string{"ac7c990a00bf211ed946af9e0691f2b7a", "aabcsdssfeipplsdfwe"}
-	mux.HandleFunc("/asr_jobs/"+"ac7c990a00bf211ed946af9e0691f2b7a,aabcsdssfeipplsdfwe", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-	})
+		_, _, err := client.CI.DescribeMultiASRJob(context.Background(), jobIDs)
+		if err != nil {
+			t.Fatalf("CI.DescribeMultiASRJob returned error: %v", err)
+		}
+		teardown()
+	}
 
-	_, _, err := client.CI.DescribeMultiASRJob(context.Background(), jobIDs)
-	if err != nil {
-		t.Fatalf("CI.DescribeMultiASRJob returned error: %v", err)
+	{
+		setup()
+		jobIDs := []string{}
+		mux.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+		})
+
+		_, _, err := client.CI.DescribeMultiASRJob(context.Background(), jobIDs)
+		if err == nil || err.Error() != "empty param jobids" {
+			t.Fatalf("CI.DescribeMultiASRJob returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -2180,5 +2372,378 @@ func TestCIService_UpdateMediaSmartCoverTemplate(t *testing.T) {
 	_, _, err := client.CI.UpdateMediaSmartCoverTemplate(context.Background(), opt, tplId)
 	if err != nil {
 		t.Fatalf("CI.UpdateMediaSmartCoverTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateMediaSpeechRecognitionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>SpeechRecognition</Tag><Name>test-SpeechRecognition</Name><SpeechRecognition><ChannelNum>2</ChannelNum><ConvertNumMode>0</ConvertNumMode>" +
+		"<EngineModelType>16k_zh</EngineModelType><FilterDirty>0</FilterDirty><FilterModal>1</FilterModal><ResTextFormat>1</ResTextFormat><SpeakerDiarization>1</SpeakerDiarization>" +
+		"<SpeakerNumber>0</SpeakerNumber><FilterPunc>0</FilterPunc><OutputFileType>txt</OutputFileType></SpeechRecognition></Request>"
+
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateMediaSpeechRecognitionTemplateOptions{
+		Tag:  "SpeechRecognition",
+		Name: "test-SpeechRecognition",
+		SpeechRecognition: &SpeechRecognition{
+			ChannelNum:         "2",
+			ConvertNumMode:     "0",
+			EngineModelType:    "16k_zh",
+			FilterDirty:        "0",
+			FilterModal:        "1",
+			ResTextFormat:      "1",
+			SpeakerDiarization: "1",
+			SpeakerNumber:      "0",
+			FilterPunc:         "0",
+			OutputFileType:     "txt",
+		},
+	}
+
+	_, _, err := client.CI.CreateMediaSpeechRecognitionTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateMediaSpeechRecognitionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateMediaSpeechRecognitionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>SpeechRecognition</Tag><Name>test-SpeechRecognition</Name><SpeechRecognition><ChannelNum>2</ChannelNum><ConvertNumMode>0</ConvertNumMode>" +
+		"<EngineModelType>16k_zh</EngineModelType><FilterDirty>0</FilterDirty><FilterModal>1</FilterModal><ResTextFormat>1</ResTextFormat><SpeakerDiarization>1</SpeakerDiarization>" +
+		"<SpeakerNumber>0</SpeakerNumber><FilterPunc>0</FilterPunc><OutputFileType>txt</OutputFileType></SpeechRecognition></Request>"
+
+	tplId := "t1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateMediaSpeechRecognitionTemplateOptions{
+		Tag:  "SpeechRecognition",
+		Name: "test-SpeechRecognition",
+		SpeechRecognition: &SpeechRecognition{
+			ChannelNum:         "2",
+			ConvertNumMode:     "0",
+			EngineModelType:    "16k_zh",
+			FilterDirty:        "0",
+			FilterModal:        "1",
+			ResTextFormat:      "1",
+			SpeakerDiarization: "1",
+			SpeakerNumber:      "0",
+			FilterPunc:         "0",
+			OutputFileType:     "txt",
+		},
+	}
+
+	_, _, err := client.CI.UpdateMediaSpeechRecognitionTemplate(context.Background(), opt, tplId)
+	if err != nil {
+		t.Fatalf("CI.UpdateMediaSpeechRecognitionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UnmarshalXML(t *testing.T) {
+	responseBody := "<Request><MediaWorkflow><Name>workflow-1</Name><State>Active</State><Topology><Dependencies>" +
+		"<Start>Transcode_1581665960537</Start><Transcode_1581665960537>Snapshot_1581665960536</Transcode_1581665960537>" +
+		"<Snapshot_1581665960536>End</Snapshot_1581665960536></Dependencies><Nodes><Start><Type>Start</Type><Input><QueueId>p09d709939fef48a0a5c247ef39d90cec</QueueId>" +
+		"<ObjectPrefix>wk-test</ObjectPrefix><ExtFilter><State>On</State><Custom>true</Custom><CustomExts>mp4</CustomExts></ExtFilter></Input></Start>" +
+		"<Transcode_1581665960537><Type>Transcode</Type><Operation><TemplateId>t01e57db1c2d154d2fb57aa5de9313a897</TemplateId><Output><Region>ap-chongqing</Region>" +
+		"<Bucket>test-123456789</Bucket><Object>trans1.mp4</Object></Output></Operation></Transcode_1581665960537><Snapshot_1581665960536><Type>Snapshot</Type>" +
+		"<Operation><TemplateId>t07740e32081b44ad7a0aea03adcffd54a</TemplateId><Output><Region>ap-chongqing</Region><Bucket>test-123456789</Bucket>" +
+		"<Object>snapshot-${number}.jpg</Object></Output></Operation></Snapshot_1581665960536></Nodes></Topology></MediaWorkflow></Request>"
+
+	opt := &CreateMediaWorkflowOptions{
+		MediaWorkflow: &MediaWorkflow{
+			Topology: &Topology{},
+		},
+	}
+	err := xml.Unmarshal([]byte(responseBody), opt)
+	if err != nil {
+		t.Fatalf("CI.UnmarshalXML returned error: %v", err)
+	}
+
+}
+func TestCIService_CreateMediaWorkflow(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><MediaWorkflow><Name>workflow-1</Name><State>Active</State><Topology><Dependencies>" +
+		"<Start>Transcode_1581665960537</Start><Transcode_1581665960537>Snapshot_1581665960536</Transcode_1581665960537>" +
+		"<Snapshot_1581665960536>End</Snapshot_1581665960536></Dependencies><Nodes><Start><Type>Start</Type><Input><QueueId>p09d709939fef48a0a5c247ef39d90cec</QueueId>" +
+		"<ObjectPrefix>wk-test</ObjectPrefix><ExtFilter><State>On</State><Custom>true</Custom><CustomExts>mp4</CustomExts></ExtFilter></Input></Start>" +
+		"<Transcode_1581665960537><Type>Transcode</Type><Operation><TemplateId>t01e57db1c2d154d2fb57aa5de9313a897</TemplateId><Output><Region>ap-chongqing</Region>" +
+		"<Bucket>test-123456789</Bucket><Object>trans1.mp4</Object></Output></Operation></Transcode_1581665960537><Snapshot_1581665960536><Type>Snapshot</Type>" +
+		"<Operation><TemplateId>t07740e32081b44ad7a0aea03adcffd54a</TemplateId><Output><Region>ap-chongqing</Region><Bucket>test-123456789</Bucket>" +
+		"<Object>snapshot-${number}.jpg</Object></Output></Operation></Snapshot_1581665960536></Nodes></Topology></MediaWorkflow></Request>"
+
+	mux.HandleFunc("/workflow", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateMediaWorkflowOptions{
+		MediaWorkflow: &MediaWorkflow{
+			Name:  "workflow-1",
+			State: "Active",
+			Topology: &Topology{
+				Dependencies: map[string]string{"Start": "Transcode_1581665960537", "Transcode_1581665960537": "Snapshot_1581665960536",
+					"Snapshot_1581665960536": "End"},
+				Nodes: map[string]Node{"Start": {Type: "Start", Input: &NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
+					ObjectPrefix: "wk-test", ExtFilter: &ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
+					"Transcode_1581665960537": {Type: "Transcode", Operation: &NodeOperation{TemplateId: "t01e57db1c2d154d2fb57aa5de9313a897",
+						Output: &NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "trans1.mp4"}}},
+					"Snapshot_1581665960536": {Type: "Snapshot", Operation: &NodeOperation{TemplateId: "t07740e32081b44ad7a0aea03adcffd54a",
+						Output: &NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "snapshot-${number}.jpg"}}},
+				},
+			},
+		},
+	}
+
+	_, _, err := client.CI.CreateMediaWorkflow(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateMediaWorkflow returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateMediaWorkflow(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><MediaWorkflow><Name>workflow-1</Name><State>Active</State><Topology><Dependencies>" +
+		"<Start>Transcode_1581665960537</Start><Transcode_1581665960537>Snapshot_1581665960536</Transcode_1581665960537>" +
+		"<Snapshot_1581665960536>End</Snapshot_1581665960536></Dependencies><Nodes><Start><Type>Start</Type><Input><QueueId>p09d709939fef48a0a5c247ef39d90cec</QueueId>" +
+		"<ObjectPrefix>wk-test</ObjectPrefix><ExtFilter><State>On</State><Custom>true</Custom><CustomExts>mp4</CustomExts></ExtFilter></Input></Start>" +
+		"<Transcode_1581665960537><Type>Transcode</Type><Operation><TemplateId>t01e57db1c2d154d2fb57aa5de9313a897</TemplateId><Output><Region>ap-chongqing</Region>" +
+		"<Bucket>test-123456789</Bucket><Object>trans1.mp4</Object></Output></Operation></Transcode_1581665960537><Snapshot_1581665960536><Type>Snapshot</Type>" +
+		"<Operation><TemplateId>t07740e32081b44ad7a0aea03adcffd54a</TemplateId><Output><Region>ap-chongqing</Region><Bucket>test-123456789</Bucket>" +
+		"<Object>snapshot-${number}.jpg</Object></Output></Operation></Snapshot_1581665960536></Nodes></Topology></MediaWorkflow></Request>"
+
+	wId := "w1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/workflow/"+wId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateMediaWorkflowOptions{
+		MediaWorkflow: &MediaWorkflow{
+			Name:  "workflow-1",
+			State: "Active",
+			Topology: &Topology{
+				Dependencies: map[string]string{"Start": "Transcode_1581665960537", "Transcode_1581665960537": "Snapshot_1581665960536",
+					"Snapshot_1581665960536": "End"},
+				Nodes: map[string]Node{"Start": {Type: "Start", Input: &NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
+					ObjectPrefix: "wk-test", ExtFilter: &ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
+					"Transcode_1581665960537": {Type: "Transcode", Operation: &NodeOperation{TemplateId: "t01e57db1c2d154d2fb57aa5de9313a897",
+						Output: &NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "trans1.mp4"}}},
+					"Snapshot_1581665960536": {Type: "Snapshot", Operation: &NodeOperation{TemplateId: "t07740e32081b44ad7a0aea03adcffd54a",
+						Output: &NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "snapshot-${number}.jpg"}}},
+				},
+			},
+		},
+	}
+
+	_, _, err := client.CI.UpdateMediaWorkflow(context.Background(), opt, wId)
+	if err != nil {
+		t.Fatalf("CI.UpdateMediaWorkflow returned error: %v", err)
+	}
+}
+
+func TestCIService_ActiveMediaWorkflow(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wId := "w1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/workflow/"+wId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"active": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.ActiveMediaWorkflow(context.Background(), wId)
+	if err != nil {
+		t.Fatalf("CI.ActiveMediaWorkflow returned error: %v", err)
+	}
+}
+
+func TestCIService_PausedMediaWorkflow(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wId := "w1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/workflow/"+wId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"paused": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.PausedMediaWorkflow(context.Background(), wId)
+	if err != nil {
+		t.Fatalf("CI.PausedMediaWorkflow returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeMediaWorkflow(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/workflow", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"pageNumber": "2",
+			"pageSize":   "5",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribeMediaWorkflowOptions{
+		Ids:        "",
+		Name:       "",
+		PageNumber: 2,
+		PageSize:   5,
+	}
+
+	_, _, err := client.CI.DescribeMediaWorkflow(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeMediaWorkflow returned error: %v", err)
+	}
+}
+
+func TestCIService_DeleteMediaWorkflow(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wId := "w1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/workflow/"+wId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+	})
+
+	_, _, err := client.CI.DeleteMediaWorkflow(context.Background(), wId)
+	if err != nil {
+		t.Fatalf("CI.DeleteMediaWorkflow returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateInventoryTriggerJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Name>demo</Name><Type>Job</Type><Input><Prefix>input</Prefix></Input><Operation><TimeInterval><Start>2022-02-01T12:00:00+0800</Start>" +
+		"<End>2022-05-01T12:00:00+0800</End></TimeInterval><QueueId>p893bcda225bf4945a378da6662e81a89</QueueId><UserData>this is my inventorytriggerjob</UserData><JobLevel>1</JobLevel>" +
+		"<CallBack>https://www.callback.com</CallBack><Tag>Transcode</Tag><JobParam><TemplateId>t1460606b9752148c4ab182f55163ba7cd</TemplateId></JobParam>" +
+		"<Output><Region>ap-chongqing</Region><Bucket>test-1234567890</Bucket><Object>output/${InventoryTriggerJobId}/out.mp4</Object></Output>" +
+		"</Operation></Request>"
+
+	mux.HandleFunc("/inventorytriggerjob", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateInventoryTriggerJobOptions{
+		Name: "demo",
+		Type: "Job",
+		Input: &InventoryTriggerJobInput{
+			Prefix: "input",
+		},
+		Operation: &InventoryTriggerJobOperation{
+			TimeInterval: InventoryTriggerJobOperationTimeInterval{
+				Start: "2022-02-01T12:00:00+0800",
+				End:   "2022-05-01T12:00:00+0800",
+			},
+			QueueId:  "p893bcda225bf4945a378da6662e81a89",
+			UserData: "this is my inventorytriggerjob",
+			JobLevel: 1,
+			CallBack: "https://www.callback.com",
+			Tag:      "Transcode",
+			JobParam: &InventoryTriggerJobOperationJobParam{
+				TemplateId: "t1460606b9752148c4ab182f55163ba7cd",
+			},
+			Output: &JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-1234567890",
+				Object: "output/${InventoryTriggerJobId}/out.mp4",
+			},
+		},
+	}
+
+	_, _, err := client.CI.CreateInventoryTriggerJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateInventoryTriggerJob returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeInventoryTriggerJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	id := "b1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/inventorytriggerjob/"+id, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.DescribeInventoryTriggerJob(context.Background(), id)
+	if err != nil {
+		t.Fatalf("CI.DescribeInventoryTriggerJob returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeInventoryTriggerJobs(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/inventorytriggerjob", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"size":              "10",
+			"type":              "Job",
+			"orderByTime":       "Asc",
+			"states":            "Running",
+			"startCreationTime": "2022-02-25T12:00:00z",
+			"endCreationTime":   "2022-02-28T12:00:00z",
+			"workflowId":        "w123456789",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribeInventoryTriggerJobsOptions{
+		NextToken:         "",
+		Size:              "10",
+		Type:              "Job",
+		OrderByTime:       "Asc",
+		States:            "Running",
+		StartCreationTime: "2022-02-25T12:00:00z",
+		EndCreationTime:   "2022-02-28T12:00:00z",
+		WorkflowId:        "w123456789",
+		JobId:             "",
+		Name:              "",
+	}
+
+	_, _, err := client.CI.DescribeInventoryTriggerJobs(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeInventoryTriggerJobs returned error: %v", err)
+	}
+}
+
+func TestCIService_CancelInventoryTriggerJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	id := "b1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/inventorytriggerjob/"+id, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+	})
+
+	_, err := client.CI.CancelInventoryTriggerJob(context.Background(), id)
+	if err != nil {
+		t.Fatalf("CI.CancelInventoryTriggerJob returned error: %v", err)
 	}
 }
