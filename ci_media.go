@@ -66,10 +66,10 @@ type Video struct {
 	Pixfmt                     string `xml:"Pixfmt,omitempty"`
 	LongShortMode              string `xml:"LongShortMode,omitempty"`
 	Rotate                     string `xml:"Rotate,omitempty"`
-	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame"`
-	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame"`
-	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond"`
-	Quality                    string `xml:"Quality"`
+	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame,omitempty"`
+	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame,omitempty"`
+	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond,omitempty"`
+	Quality                    string `xml:"Quality,omitempty"`
 }
 
 // TranscodeProVideo TODO
@@ -255,17 +255,19 @@ type ConcatTemplate struct {
 	Container      *Container       `xml:"Container,omitempty"`
 	Index          string           `xml:"Index,omitempty"`
 	AudioMix       *AudioMix        `xml:"AudioMix,omitempty"`
+	AudioMixArray  []AudioMix       `xml:"AudioMixArray,omitempty"`
 }
 
 // SpriteSnapshotConfig TODO
 type SpriteSnapshotConfig struct {
-	CellHeight string `xml:"CellHeight,omitempty"`
-	CellWidth  string `xml:"CellWidth,omitempty"`
-	Color      string `xml:"Color,omitempty"`
-	Columns    string `xml:"Columns,omitempty"`
-	Lines      string `xml:"Lines,omitempty"`
-	Margin     string `xml:"Margin,omitempty"`
-	Padding    string `xml:"Padding,omitempty"`
+	CellHeight  string `xml:"CellHeight,omitempty"`
+	CellWidth   string `xml:"CellWidth,omitempty"`
+	Color       string `xml:"Color,omitempty"`
+	Columns     string `xml:"Columns,omitempty"`
+	Lines       string `xml:"Lines,omitempty"`
+	Margin      string `xml:"Margin,omitempty"`
+	Padding     string `xml:"Padding,omitempty"`
+	ScaleMethod string `xml:"ScaleMethod,omitempty"`
 }
 
 // Snapshot TODO
@@ -288,14 +290,14 @@ type Snapshot struct {
 // AnimationVideo TODO
 // 有意和转码区分，两种任务关注的参数不一样避免干扰
 type AnimationVideo struct {
-	Codec                      string `xml:"Codec"`
-	Width                      string `xml:"Width"`
-	Height                     string `xml:"Height"`
-	Fps                        string `xml:"Fps"`
-	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame"`
-	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame"`
-	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond"`
-	Quality                    string `xml:"Quality"`
+	Codec                      string `xml:"Codec,omitempty"`
+	Width                      string `xml:"Width,omitempty"`
+	Height                     string `xml:"Height,omitempty"`
+	Fps                        string `xml:"Fps,omitempty"`
+	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame,omitempty"`
+	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame,omitempty"`
+	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond,omitempty"`
+	Quality                    string `xml:"Quality,omitempty"`
 }
 
 // Animation TODO
@@ -354,16 +356,16 @@ type VoiceSeparate struct {
 
 // ColorEnhance TODO
 type ColorEnhance struct {
-	Enable     string `xml:"Enable"`
-	Contrast   string `xml:"Contrast"`
-	Correction string `xml:"Correction"`
-	Saturation string `xml:"Saturation"`
+	Enable     string `xml:"Enable,omitempty"`
+	Contrast   string `xml:"Contrast,omitempty"`
+	Correction string `xml:"Correction,omitempty"`
+	Saturation string `xml:"Saturation,omitempty"`
 }
 
 // MsSharpen TODO
 type MsSharpen struct {
-	Enable       string `xml:"Enable"`
-	SharpenLevel string `xml:"SharpenLevel"`
+	Enable       string `xml:"Enable,omitempty"`
+	SharpenLevel string `xml:"SharpenLevel,omitempty"`
 }
 
 // VideoProcess TODO
@@ -613,9 +615,12 @@ type PicProcessResult struct {
 
 // PicProcessJobOperation TODO
 type PicProcessJobOperation struct {
+	TemplateId       string            `xml:"TemplateId,omitempty"`
 	PicProcess       *PicProcess       `xml:"PicProcess,omitempty"`
-	PicProcessResult *PicProcessResult `xml:"PicProcessResult,omitempty"`
 	Output           *JobOutput        `xml:"Output,omitempty"`
+	UserData         string            `xml:"UserData,omitempty"`
+	JobLevel         int               `xml:"JobLevel,omitempty"`
+	PicProcessResult *PicProcessResult `xml:"PicProcessResult,omitempty"`
 }
 
 // MediaProcessJobOperation TODO
@@ -656,12 +661,16 @@ type MediaProcessJobOperation struct {
 
 // CreatePicJobsOptions TODO
 type CreatePicJobsOptions struct {
-	XMLName   xml.Name                `xml:"Request"`
-	Tag       string                  `xml:"Tag,omitempty"`
-	Input     *JobInput               `xml:"Input,omitempty"`
-	Operation *PicProcessJobOperation `xml:"Operation,omitempty"`
-	QueueId   string                  `xml:"QueueId,omitempty"`
-	CallBack  string                  `xml:"CallBack,omitempty"`
+	XMLName          xml.Name                      `xml:"Request"`
+	Tag              string                        `xml:"Tag,omitempty"`
+	Input            *JobInput                     `xml:"Input,omitempty"`
+	Operation        *PicProcessJobOperation       `xml:"Operation,omitempty"`
+	QueueId          string                        `xml:"QueueId,omitempty"`
+	CallBack         string                        `xml:"CallBack,omitempty"`
+	QueueType        string                        `xml:"QueueType,omitempty"`
+	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType     string                        `xml:"CallBackType,omitempty"`
+	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
 }
 
 // CreateAIJobsOptions TODO
@@ -718,12 +727,16 @@ type CreateMediaJobsResult struct {
 
 // CreateMultiMediaJobsOptions TODO
 type CreateMultiMediaJobsOptions struct {
-	XMLName   xml.Name                   `xml:"Request"`
-	Tag       string                     `xml:"Tag,omitempty"`
-	Input     *JobInput                  `xml:"Input,omitempty"`
-	Operation []MediaProcessJobOperation `xml:"Operation,omitempty"`
-	QueueId   string                     `xml:"QueueId,omitempty"`
-	CallBack  string                     `xml:"CallBack,omitempty"`
+	XMLName          xml.Name                      `xml:"Request"`
+	Tag              string                        `xml:"Tag,omitempty"`
+	Input            *JobInput                     `xml:"Input,omitempty"`
+	Operation        []MediaProcessJobOperation    `xml:"Operation,omitempty"`
+	QueueId          string                        `xml:"QueueId,omitempty"`
+	QueueType        string                        `xml:"QueueType,omitempty"`
+	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType     string                        `xml:"CallBackType,omitempty"`
+	CallBack         string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
 }
 
 // CreateMultiMediaJobsResult TODO
@@ -1302,7 +1315,7 @@ type PostSnapshotOptions struct {
 
 type PostSnapshotResult struct {
 	XMLName xml.Name   `xml:"Response"`
-	Output  *JobOutput `xml:"Output, omitempty"`
+	Output  *JobOutput `xml:"Output,omitempty"`
 }
 
 // PostSnapshot
@@ -1353,6 +1366,7 @@ func (s *CIService) GetPrivateM3U8(ctx context.Context, name string, opt *GetPri
 type TriggerWorkflowOptions struct {
 	WorkflowId string `url:"workflowId"`
 	Object     string `url:"object"`
+	Name       string `url:"name"`
 }
 
 // TriggerWorkflowResult TODO
@@ -1380,13 +1394,14 @@ func (s *CIService) TriggerWorkflow(ctx context.Context, opt *TriggerWorkflowOpt
 // DescribeWorkflowExecutionsOptions TODO
 type DescribeWorkflowExecutionsOptions struct {
 	WorkflowId        string `url:"workflowId,omitempty"`
-	Name              string `url:"Name,omitempty"`
+	Name              string `url:"name,omitempty"`
 	OrderByTime       string `url:"orderByTime,omitempty"`
 	NextToken         string `url:"nextToken,omitempty"`
 	Size              int    `url:"size,omitempty"`
 	States            string `url:"states,omitempty"`
 	StartCreationTime string `url:"startCreationTime,omitempty"`
 	EndCreationTime   string `url:"endCreationTime,omitempty"`
+	JobId             string `url:"jobId,omitempty"`
 }
 
 // WorkflowExecutionList TODO
@@ -1406,7 +1421,7 @@ type DescribeWorkflowExecutionsResult struct {
 }
 
 // DescribeWorkflowExecutions TODO
-// 获取工作流实例列表 https://cloud.tencent.com/document/product/460/45950
+// 获取工作流实例列表 https://cloud.tencent.com/document/product/460/80050
 func (s *CIService) DescribeWorkflowExecutions(ctx context.Context, opt *DescribeWorkflowExecutionsOptions) (*DescribeWorkflowExecutionsResult, *Response, error) {
 	var res DescribeWorkflowExecutionsResult
 	sendOpt := sendOptions{
@@ -1634,12 +1649,57 @@ type SpeechRecognition struct {
 	SpeakerNumber      string `xml:"SpeakerNumber,omitempty"`
 	FilterPunc         string `xml:"FilterPunc,omitempty"`
 	OutputFileType     string `xml:"OutputFileType,omitempty"`
+	FlashAsr           string `xml:"FlashAsr,omitempty"`
+	Format             string `xml:"Format,omitempty"`
+	FirstChannelOnly   string `xml:"FirstChannelOnly,omitempty"`
+	WordInfo           string `xml:"WordInfo,omitempty"`
 }
 
 // SpeechRecognitionResult TODO
 type SpeechRecognitionResult struct {
-	AudioTime float64  `xml:"AudioTime,omitempty"`
-	Result    []string `xml:"Result,omitempty"`
+	AudioTime                     float64                        `xml:"AudioTime,omitempty"`
+	Result                        []string                       `xml:"Result,omitempty"`
+	ObjectName                    string                         `xml:"ObjectName,omitempty"`
+	DetailObjectName              string                         `xml:"DetailObjectName,omitempty"`
+	SpeechRecognitionFlashResult  *SpeechRecognitionFlashResult  `xml:"FlashResult,omitempty"`
+	SpeechRecognitionResultDetail *SpeechRecognitionResultDetail `xml:"ResultDetail,omitempty"`
+}
+
+type SpeechRecognitionFlashResult struct {
+	ChannelId    int32                           `xml:"channel_id,omitempty"`
+	Text         string                          `xml:"text,omitempty"`
+	SentenceList []SpeechRecognitionSentenceList `xml:"sentence_list,omitempty"`
+}
+
+type SpeechRecognitionSentenceList struct {
+	Text      string                      `xml:"text,omitempty"`
+	StartTime string                      `xml:"start_time,omitempty"`
+	EndTime   string                      `xml:"end_time,omitempty"`
+	SpeakerId string                      `xml:"speaker_id,omitempty"`
+	WordList  []SpeechRecognitionWordList `xml:"word_list,omitempty"`
+}
+
+type SpeechRecognitionWordList struct {
+	Word      string `xml:"word,omitempty"`
+	StartTime string `xml:"start_time,omitempty"`
+	EndTime   string `xml:"end_time,omitempty"`
+}
+
+type SpeechRecognitionResultDetail struct {
+	FinalSentence string                   `xml:"FinalSentence,omitempty"`
+	SliceSentence string                   `xml:"SliceSentence,omitempty"`
+	StartMs       string                   `xml:"StartMs,omitempty"`
+	EndMs         string                   `xml:"EndMs,omitempty"`
+	WordsNum      string                   `xml:"WordsNum,omitempty"`
+	SpeechSpeed   string                   `xml:"SpeechSpeed,omitempty"`
+	SpeakerId     string                   `xml:"SpeakerId,omitempty"`
+	Words         []SpeechRecognitionWords `xml:"Words,omitempty"`
+}
+
+type SpeechRecognitionWords struct {
+	Word          string `xml:"Word,omitempty"`
+	OffsetStartMs string `xml:"OffsetStartMs,omitempty"`
+	OffsetEndMs   string `xml:"OffsetEndMs,omitempty"`
 }
 
 // ASRJobOperation TODO
@@ -1648,16 +1708,23 @@ type ASRJobOperation struct {
 	Output                  *JobOutput               `xml:"Output,omitempty"`
 	SpeechRecognition       *SpeechRecognition       `xml:"SpeechRecognition,omitempty"`
 	SpeechRecognitionResult *SpeechRecognitionResult `xml:"SpeechRecognitionResult,omitempty"`
+	TemplateId              string                   `xml:"TemplateId,omitempty"`
+	UserData                string                   `xml:"UserData,omitempty"`
+	JobLevel                int                      `xml:"JobLevel,omitempty"`
 }
 
 // CreateASRJobsOptions TODO
 type CreateASRJobsOptions struct {
-	XMLName   xml.Name         `xml:"Request"`
-	Tag       string           `xml:"Tag,omitempty"`
-	Input     *JobInput        `xml:"Input,omitempty"`
-	Operation *ASRJobOperation `xml:"Operation,omitempty"`
-	QueueId   string           `xml:"QueueId,omitempty"`
-	CallBack  string           `xml:"CallBack,omitempty"`
+	XMLName          xml.Name                      `xml:"Request"`
+	Tag              string                        `xml:"Tag,omitempty"`
+	Input            *JobInput                     `xml:"Input,omitempty"`
+	Operation        *ASRJobOperation              `xml:"Operation,omitempty"`
+	QueueId          string                        `xml:"QueueId,omitempty"`
+	CallBack         string                        `xml:"CallBack,omitempty"`
+	QueueType        string                        `xml:"QueueType,omitempty"`
+	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType     string                        `xml:"CallBackType,omitempty"`
+	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
 }
 
 // ASRJobDetail TODO
@@ -1783,15 +1850,16 @@ type CreateMediaSnapshotTemplateOptions struct {
 
 // CreateMediaTranscodeTemplateOptions TODO
 type CreateMediaTranscodeTemplateOptions struct {
-	XMLName      xml.Name      `xml:"Request"`
-	Tag          string        `xml:"Tag,omitempty"`
-	Name         string        `xml:"Name,omitempty"`
-	Container    *Container    `xml:"Container,omitempty"`
-	Video        *Video        `xml:"Video,omitempty"`
-	Audio        *Audio        `xml:"Audio,omitempty"`
-	TimeInterval *TimeInterval `xml:"TimeInterval,omitempty"`
-	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
-	AudioMix     *AudioMix     `xml:"AudioMix,omitempty"`
+	XMLName       xml.Name      `xml:"Request"`
+	Tag           string        `xml:"Tag,omitempty"`
+	Name          string        `xml:"Name,omitempty"`
+	Container     *Container    `xml:"Container,omitempty"`
+	Video         *Video        `xml:"Video,omitempty"`
+	Audio         *Audio        `xml:"Audio,omitempty"`
+	TimeInterval  *TimeInterval `xml:"TimeInterval,omitempty"`
+	TransConfig   *TransConfig  `xml:"TransConfig,omitempty"`
+	AudioMix      *AudioMix     `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix    `xml:"AudioMixArray,omitempty"`
 }
 
 // CreateMediaAnimationTemplateOptions TODO
@@ -1823,14 +1891,15 @@ type CreateMediaVideoProcessTemplateOptions struct {
 
 // CreateMediaVideoMontageTemplateOptions TODO
 type CreateMediaVideoMontageTemplateOptions struct {
-	XMLName   xml.Name   `xml:"Request"`
-	Tag       string     `xml:"Tag,omitempty"`
-	Name      string     `xml:"Name,omitempty"`
-	Duration  string     `xml:"Duration,omitempty"`
-	Container *Container `xml:"Container,omitempty"`
-	Video     *Video     `xml:"Video,omitempty"`
-	Audio     *Audio     `xml:"Audio,omitempty"`
-	AudioMix  *AudioMix  `xml:"AudioMix,omitempty"`
+	XMLName       xml.Name   `xml:"Request"`
+	Tag           string     `xml:"Tag,omitempty"`
+	Name          string     `xml:"Name,omitempty"`
+	Duration      string     `xml:"Duration,omitempty"`
+	Container     *Container `xml:"Container,omitempty"`
+	Video         *Video     `xml:"Video,omitempty"`
+	Audio         *Audio     `xml:"Audio,omitempty"`
+	AudioMix      *AudioMix  `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix `xml:"AudioMixArray,omitempty"`
 }
 
 // CreateMediaVoiceSeparateTemplateOptions TODO
@@ -2531,7 +2600,7 @@ func (s *CIService) DescribeMediaWorkflow(ctx context.Context, opt *DescribeMedi
 	var res DescribeMediaWorkflowResult
 	sendOpt := sendOptions{
 		baseURL:  s.client.BaseURL.CIURL,
-		uri:      "/Workflow",
+		uri:      "/workflow",
 		optQuery: opt,
 		method:   http.MethodGet,
 		result:   &res,
@@ -2551,7 +2620,7 @@ func (s *CIService) DeleteMediaWorkflow(ctx context.Context, workflowId string) 
 	var res DeleteMediaWorkflowResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
-		uri:     "/Workflow/" + workflowId,
+		uri:     "/workflow/" + workflowId,
 		method:  http.MethodDelete,
 		result:  &res,
 	}
@@ -2698,9 +2767,10 @@ func (s *CIService) DescribeInventoryTriggerJob(ctx context.Context, jobId strin
 type DescribeInventoryTriggerJobsOptions struct {
 	NextToken         string `url:"nextToken,omitempty"`
 	Size              string `url:"size,omitempty"`
+	Type              string `url:"type,omitempty"`
 	OrderByTime       string `url:"orderByTime,omitempty"`
 	States            string `url:"states,omitempty"`
-	StartCreationTime string `url:"states,omitempty"`
+	StartCreationTime string `url:"startCreationTime,omitempty"`
 	EndCreationTime   string `url:"endCreationTime,omitempty"`
 	WorkflowId        string `url:"workflowId,omitempty"`
 	JobId             string `url:"jobId,omitempty"`

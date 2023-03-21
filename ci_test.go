@@ -18,19 +18,27 @@ import (
 )
 
 func TestCIService_EncodePicOperations(t *testing.T) {
-	opt := &PicOperations{
-		IsPicInfo: 1,
-		Rules: []PicOperationsRules{
-			{
-				FileId: "example.jpg",
-				Rule:   "imageView2/format/png",
+	{
+		opt := &PicOperations{
+			IsPicInfo: 1,
+			Rules: []PicOperationsRules{
+				{
+					FileId: "example.jpg",
+					Rule:   "imageView2/format/png",
+				},
 			},
-		},
+		}
+		res := EncodePicOperations(opt)
+		jsonStr := `{"is_pic_info":1,"rules":[{"fileid":"example.jpg","rule":"imageView2/format/png"}]}`
+		if jsonStr != res {
+			t.Fatalf("EncodePicOperations Failed, returned:%v, want:%v", res, jsonStr)
+		}
 	}
-	res := EncodePicOperations(opt)
-	jsonStr := `{"is_pic_info":1,"rules":[{"fileid":"example.jpg","rule":"imageView2/format/png"}]}`
-	if jsonStr != res {
-		t.Fatalf("EncodePicOperations Failed, returned:%v, want:%v", res, jsonStr)
+	{
+		res := EncodePicOperations(nil)
+		if res != "" {
+			t.Fatalf("EncodePicOperations Failed, returned:%v", res)
+		}
 	}
 }
 
@@ -739,20 +747,55 @@ func TestCIService_PutFromFile(t *testing.T) {
 }
 
 func TestCIService_Get(t *testing.T) {
-	setup()
-	defer teardown()
+	{
+		setup()
 
-	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		vs := values{
-			"imageMogr2/thumbnail/!50p": "",
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"imageMogr2/thumbnail/!50p": "",
+			}
+			testFormValues(t, r, vs)
+		})
+
+		_, err := client.CI.Get(context.Background(), "test.jpg", "imageMogr2/thumbnail/!50p", nil)
+		if err != nil {
+			t.Fatalf("CI.Get returned error: %v", err)
 		}
-		testFormValues(t, r, vs)
-	})
+		teardown()
+	}
 
-	_, err := client.CI.Get(context.Background(), "test.jpg", "imageMogr2/thumbnail/!50p", nil)
-	if err != nil {
-		t.Fatalf("CI.Get returned error: %v", err)
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"imageMogr2/thumbnail/!50p": "",
+				"versionId":                 "1.1",
+			}
+			testFormValues(t, r, vs)
+		})
+		_, err := client.CI.Get(context.Background(), "test.jpg", "imageMogr2/thumbnail/!50p", nil, "1.1")
+		if err != nil {
+			t.Fatalf("CI.Get returned error: %v", err)
+		}
+		teardown()
+	}
+
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"imageMogr2/thumbnail/!50p": "",
+			}
+			testFormValues(t, r, vs)
+		})
+		_, err := client.CI.Get(context.Background(), "test.jpg", "imageMogr2/thumbnail/!50p", nil, "1.1", "1.2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.Get returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -778,21 +821,57 @@ func TestCIService_GetToFile(t *testing.T) {
 }
 
 func TestCIService_GetQRcode(t *testing.T) {
-	setup()
-	defer teardown()
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"ci-process": "QRcode",
+				"cover":      "1",
+			}
+			testFormValues(t, r, vs)
+		})
 
-	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		vs := values{
-			"ci-process": "QRcode",
-			"cover":      "1",
+		_, _, err := client.CI.GetQRcode(context.Background(), "test.jpg", 1, nil)
+		if err != nil {
+			t.Fatalf("CI.GetQRcode returned error: %v", err)
 		}
-		testFormValues(t, r, vs)
-	})
+		teardown()
+	}
 
-	_, _, err := client.CI.GetQRcode(context.Background(), "test.jpg", 1, nil)
-	if err != nil {
-		t.Fatalf("CI.GetQRcode returned error: %v", err)
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"ci-process": "QRcode",
+				"cover":      "1",
+				"versionId":  "1.1",
+			}
+			testFormValues(t, r, vs)
+		})
+		_, _, err := client.CI.GetQRcode(context.Background(), "test.jpg", 1, nil, "1.1")
+		if err != nil {
+			t.Fatalf("CI.GetQRcode returned error: %v", err)
+		}
+		teardown()
+	}
+
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"ci-process": "QRcode",
+				"cover":      "1",
+			}
+			testFormValues(t, r, vs)
+		})
+		_, _, err := client.CI.GetQRcode(context.Background(), "test.jpg", 1, nil, "1.1", "1.2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.GetQRcode returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
@@ -2309,7 +2388,7 @@ func TestCIService_GoodsMatting(t *testing.T) {
 	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		v := values{
-			"ci-process":   "GoodsMatting",
+			"ci-process": "GoodsMatting",
 		}
 		testFormValues(t, r, v)
 	})
@@ -2327,7 +2406,7 @@ func TestCIService_GoodsMattingWithOpt(t *testing.T) {
 	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		v := values{
-			"ci-process":   "GoodsMatting",
+			"ci-process": "GoodsMatting",
 		}
 		testFormValues(t, r, v)
 	})
