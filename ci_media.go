@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/clbanning/mxj"
@@ -2446,8 +2447,14 @@ func (m *CreateMediaWorkflowOptions) MarshalXML(e *xml.Encoder, start xml.StartE
 		}
 	}
 	tokens = tokens[:0]
-	for k, v := range m.MediaWorkflow.Topology.Nodes {
-		e.Encode(xmlMapEntry{XMLName: xml.Name{Local: k}, Type: v.Type, Input: v.Input, Operation: v.Operation})
+	var nodesKeys []string
+	for k := range m.MediaWorkflow.Topology.Nodes {
+		nodesKeys = append(nodesKeys, k)
+	}
+	sort.Strings(nodesKeys)
+	for _, k := range nodesKeys {
+		e.Encode(xmlMapEntry{XMLName: xml.Name{Local: k}, Type: m.MediaWorkflow.Topology.Nodes[k].Type,
+			Input: m.MediaWorkflow.Topology.Nodes[k].Input, Operation: m.MediaWorkflow.Topology.Nodes[k].Operation})
 	}
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Nodes"}})
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Topology"}})
