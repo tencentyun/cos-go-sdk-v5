@@ -2433,9 +2433,15 @@ func (m *CreateMediaWorkflowOptions) MarshalXML(e *xml.Encoder, start xml.StartE
 	tokens = append(tokens, t, xml.CharData(m.MediaWorkflow.State), xml.EndElement{Name: t.Name})
 	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "Topology"}})
 	tokens = append(tokens, xml.StartElement{Name: xml.Name{Local: "Dependencies"}})
-	for key, value := range m.MediaWorkflow.Topology.Dependencies {
-		t := xml.StartElement{Name: xml.Name{Local: key}}
-		tokens = append(tokens, t, xml.CharData(value), xml.EndElement{Name: t.Name})
+
+	var dependenciesKeys []string
+	for k := range m.MediaWorkflow.Topology.Dependencies {
+		dependenciesKeys = append(dependenciesKeys, k)
+	}
+	sort.Strings(dependenciesKeys)
+	for _, k := range dependenciesKeys {
+		t := xml.StartElement{Name: xml.Name{Local: k}}
+		tokens = append(tokens, t, xml.CharData(m.MediaWorkflow.Topology.Dependencies[k]), xml.EndElement{Name: t.Name})
 	}
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Dependencies"}})
 	// Nodes
