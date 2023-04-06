@@ -123,3 +123,41 @@ func TestCVMCredentialTransport(t *testing.T) {
 	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
 }
+
+func TestDNSScatterTransport(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			t.Error("AuthorizationTransport didn't add Authorization header")
+		}
+	})
+
+	client.client.Transport = &AuthorizationTransport{
+		SecretID:  "test",
+		SecretKey: "test",
+		Transport: DNSScatterTransport,
+	}
+	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	client.doAPI(context.Background(), req, nil, true)
+}
+
+func TestCredentialTransport(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			t.Error("AuthorizationTransport didn't add Authorization header")
+		}
+	})
+
+	client.client.Transport = &CredentialTransport{
+		Credential: NewTokenCredential("test", "test", ""),
+	}
+	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	client.doAPI(context.Background(), req, nil, true)
+}
