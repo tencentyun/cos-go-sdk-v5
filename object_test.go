@@ -1406,3 +1406,38 @@ func TestObjectService_Select(t *testing.T) {
 		t.Errorf("Object.Select error frame failed, return: %+v, want: %+v\n", res.Frame.ErrorFrame, result.ErrorFrame)
 	}
 }
+
+func TestObjectService_GetSignature(t *testing.T) {
+	setup()
+	defer teardown()
+
+	timekey := "q-key-time="
+	secretID := "ak"
+	secretKey := "sk"
+	name := "exampleobject"
+	sign := client.Object.GetSignature(context.Background(), http.MethodGet, name, secretID, secretKey, time.Hour, nil)
+	if sign == "" || len(sign) <= len(timekey) {
+		t.Errorf("GetSignature sign is invalid: %v", sign)
+		return
+	}
+	pos := strings.Index(sign, timekey) + len(timekey)
+	st_et := strings.SplitN(sign[pos:pos+strings.Index(sign[pos:], "&")], ";", 2)
+	if len(st_et) != 2 {
+		t.Errorf("GetSignature sign is invalid: %v", sign)
+		return
+	}
+	startTime, _ := strconv.ParseInt(st_et[0], 10, 64)
+	endTime, _ := strconv.ParseInt(st_et[1], 10, 64)
+	authTime := &AuthTime{
+		SignStartTime: time.Unix(startTime, 0),
+		SignEndTime:   time.Unix(endTime, 0),
+		KeyStartTime:  time.Unix(startTime, 0),
+		KeyEndTime:    time.Unix(endTime, 0),
+	}
+	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String()+"/"+name, nil)
+	wanted := newAuthorization(secretID, secretKey, req, authTime, true)
+
+	if sign != wanted {
+		t.Errorf("GetSignature error, return: %+v, want: %+v\n", sign, wanted)
+	}
+}
