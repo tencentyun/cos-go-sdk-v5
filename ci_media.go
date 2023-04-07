@@ -482,12 +482,26 @@ type VideoTagResultStreamDataDataObjectTags struct {
 
 // QualityEstimate TODO
 type QualityEstimate struct {
-	Score string `xml:"Score,omitempty"`
+	Score         string `xml:"Score,omitempty"`
+	VqaPlusResult struct {
+		NoAudio        bool `xml:"NoAudio,omitempty"`
+		NoVideo        bool `xml:"NoVideo,omitempty"`
+		DetailedResult []struct {
+			Type  string `xml:"Type,omitempty"`
+			Items []struct {
+				Confidence      int     `xml:"Confidence,omitempty"`
+				StartTimeOffset float32 `xml:"StartTimeOffset,omitempty"`
+				EndTimeOffset   float32 `xml:"EndTimeOffset,omitempty"`
+				AreaCoordSet    []int   `xml:"AreaCoordSet,omitempty"`
+			} `xml:"Items,omitempty"`
+		} `xml:"DetailedResult,omitempty"`
+	} `xml:"VqaPlusResult,omitempty"`
 }
 
 // QualityEstimate TODO
 type QualityEstimateConfig struct {
 	Rotate string `xml:"Rotate,omitempty"`
+	Mode   string `xml:"Mode,omitempty"`
 }
 
 // MediaResult TODO
