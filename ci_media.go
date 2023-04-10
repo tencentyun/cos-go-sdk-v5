@@ -1579,16 +1579,16 @@ func (m *Topology) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	prefix := "<Nodes>"
 	postfix := "</Nodes>"
 	str := prefix + string(temp) + postfix
-	//fmt.Println(str)
+	// fmt.Println(str)
 	myMxjMap, _ := mxj.NewMapXml([]byte(str))
 	myMap, _ = myMxjMap["Nodes"].(map[string]interface{})
 	nodesMap := make(map[string]Node)
 
 	for k, v := range myMap {
 		var node Node
-		fmt.Printf("%+v\n", v)
+		// fmt.Printf("%+v\n", v)
 		err := mapstructure.Decode(v, &node)
-		fmt.Printf("%+v\n", err)
+		// fmt.Printf("%+v\n", err)
 		nodesMap[k] = node
 	}
 
