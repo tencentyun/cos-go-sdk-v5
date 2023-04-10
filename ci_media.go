@@ -1542,7 +1542,7 @@ type NodeStreamPackConfigInfo struct {
 type NodeOperation struct {
 	TemplateId           string                    `xml:"TemplateId,omitempty" json:"TemplateId,omitempty"`
 	Output               *NodeOutput               `xml:"Output,omitempty" json:"Output,omitempty"`
-	WatermarkTemplateId  []string                  `xml:"WatermarkTemplateId,omitempty" json:"WatermarkTemplateId,omitempty"`
+	WatermarkTemplateId  interface{}               `xml:"WatermarkTemplateId,omitempty" json:"WatermarkTemplateId,omitempty"` // xml解析map有问题，必须interface结构
 	DelogoParam          *DelogoParam              `xml:"DelogoParam,omitempty" json:"DelogoParam,omitempty"`
 	SDRtoHDR             *NodeSDRtoHDR             `xml:"SDRtoHDR,omitempty" json:"SDRtoHDR,omitempty"`
 	SCF                  *NodeSCF                  `xml:"SCF,omitempty" json:"SCF,omitempty"`
@@ -1564,8 +1564,8 @@ type Node struct {
 
 // Topology TODO
 type Topology struct {
-	Dependencies map[string]string `json:"Dependencies,omitempty"`
-	Nodes        map[string]Node   `json:"Nodes,omitempty"`
+	Dependencies map[string]string `xml:"Dependencies,omitempty" json:"Dependencies,omitempty"`
+	Nodes        map[string]Node   `xml:"Nodes,omitempty" json:"Nodes,omitempty"`
 }
 
 // UnmarshalXML TODO
@@ -1593,14 +1593,16 @@ func (m *Topology) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	prefix := "<Nodes>"
 	postfix := "</Nodes>"
 	str := prefix + string(temp) + postfix
-	//fmt.Println(str)
+	// fmt.Println(str)
 	myMxjMap, _ := mxj.NewMapXml([]byte(str))
 	myMap, _ = myMxjMap["Nodes"].(map[string]interface{})
 	nodesMap := make(map[string]Node)
 
 	for k, v := range myMap {
 		var node Node
-		mapstructure.Decode(v, &node)
+		// fmt.Printf("%+v\n", v)
+		err := mapstructure.Decode(v, &node)
+		// fmt.Printf("%+v\n", err)
 		nodesMap[k] = node
 	}
 
