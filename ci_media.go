@@ -1587,7 +1587,7 @@ func (m *Topology) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	for k, v := range myMap {
 		var node Node
 		// fmt.Printf("%+v\n", v)
-		err := mapstructure.Decode(v, &node)
+		mapstructure.Decode(v, &node)
 		// fmt.Printf("%+v\n", err)
 		nodesMap[k] = node
 	}
