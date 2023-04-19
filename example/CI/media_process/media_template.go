@@ -1339,9 +1339,10 @@ func CreateTtsTemplate() {
 		Name:      "Tts-" + strconv.Itoa(rand.Intn(100)),
 		Mode:      "Sync",
 		Codec:     "mp3",
-		VoiceType: "aixiaonan",
+		VoiceType: "aixiaoxing",
 		Volume:    "5",
 		Speed:     "150",
+		Emotion:   "arousal",
 	}
 	createTplRes, _, err := c.CI.CreateMediaTtsTemplate(context.Background(), createTplOpt)
 	log_status(err)
@@ -1592,6 +1593,91 @@ func UpdateSpeechRecognitionTemplate() {
 	fmt.Printf("%+v\n", DescribeTemplateRes)
 }
 
+// CreateNoiseReductionTemplate TODO
+func CreateNoiseReductionTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateNoiseReductionTemplateOptions{
+		Tag:  "NoiseReduction",
+		Name: "NoiseReduction-" + strconv.Itoa(rand.Intn(100)),
+		NoiseReduction: &cos.NoiseReduction{
+			Format:     "wav",
+			Samplerate: "16000",
+		},
+	}
+	createTplRes, _, err := c.CI.CreateNoiseReductionTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateNoiseReductionTemplate TODO
+func UpdateNoiseReductionTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateNoiseReductionTemplateOptions{
+		Tag:  "NoiseReduction",
+		Name: "NoiseReduction-" + strconv.Itoa(rand.Intn(100)),
+		NoiseReduction: &cos.NoiseReduction{
+			Format:     "mp3",
+			Samplerate: "16000",
+		},
+	}
+	templateId := "t178bbee7296b3412db24a274980d5eb1a"
+	updateTplRes, _, err := c.CI.UpdateNoiseReductionTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
 func main() {
 	// DescribeTemplate()
 	// DeleteTemplate()
@@ -1625,4 +1711,6 @@ func main() {
 	// UpdateSmartCoverTemplate()
 	// CreateSpeechRecognitionTemplate()
 	// UpdateSpeechRecognitionTemplate()
+	// CreateNoiseReductionTemplate()
+	// UpdateNoiseReductionTemplate()
 }

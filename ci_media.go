@@ -71,6 +71,9 @@ type Video struct {
 	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame,omitempty"`
 	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond,omitempty"`
 	Quality                    string `xml:"Quality,omitempty"`
+	Roi                        string `xml:"Roi,omitempty"`
+	Crop                       string `xml:"Crop,omitempty"`
+	Interlaced                 string `xml:"Interlaced,omitempty"`
 }
 
 // TranscodeProVideo TODO
@@ -672,6 +675,9 @@ type MediaProcessJobOperation struct {
 	WordsGeneralize         *WordsGeneralize         `xml:"WordsGeneralize,omitempty"`
 	WordsGeneralizeResult   *WordsGeneralizeResult   `xml:"WordsGeneralizeResult,omitempty"`
 	QualityEstimateConfig   *QualityEstimateConfig   `xml:"QualityEstimateConfig,omitempty"`
+	NoiseReduction          *NoiseReduction          `xml:"NoiseReduction,omitempty"`
+	SplitVideoParts         *SplitVideoParts         `xml:"SplitVideoParts,omitempty"`
+	SplitVideoInfoResult    *SplitVideoInfoResult    `xml:"SplitVideoInfoResult,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
@@ -795,6 +801,24 @@ type WorkflowExecutionNotifyBody struct {
 			TranscodeTemplateId   string `xml:"TranscodeTemplateId,omitempty"`
 			TranscodeTemplateName string `xml:"TranscodeTemplateName,omitempty"`
 			HdrMode               string `xml:"HdrMode,omitempty"`
+			ResultInfo            struct {
+				ObjectCount       int `xml:"ObjectCount"`
+				SpriteObjectCount int `xml:"SpriteObjectCount"`
+				ObjectInfo        []struct {
+					ObjectName      string `xml:"ObjectName"`
+					ObjectUrl       string `xml:"ObjectUrl"`
+					InputObjectName string `xml:"InputObjectName"`
+					Code            string `xml:"Code"`
+					Message         string `xml:"Message"`
+				} `xml:"ObjectInfo,omitempty"`
+				SpriteObjectInfo []struct {
+					ObjectName      string `xml:"ObjectName"`
+					ObjectUrl       string `xml:"ObjectUrl"`
+					InputObjectName string `xml:"InputObjectName"`
+					Code            string `xml:"Code"`
+					Message         string `xml:"Message"`
+				} `xml:"SpriteObjectInfo,omitempty"`
+			} `xml:"ResultInfo,omitempty"`
 		} `xml:"Tasks"`
 	} `xml:"WorkflowExecution"`
 }
@@ -1670,6 +1694,7 @@ type SpeechRecognition struct {
 	Format             string `xml:"Format,omitempty"`
 	FirstChannelOnly   string `xml:"FirstChannelOnly,omitempty"`
 	WordInfo           string `xml:"WordInfo,omitempty"`
+	SentenceMaxLength  string `xml:"SentenceMaxLength,omitempty"`
 }
 
 // SpeechRecognitionResult TODO
@@ -1976,6 +2001,7 @@ type CreateMediaTtsTemplateOptions struct {
 	VoiceType string   `xml:"VoiceType,omitempty"`
 	Volume    string   `xml:"Volume,omitempty"`
 	Speed     string   `xml:"Speed,omitempty"`
+	Emotion   string   `xml:"Emotion,omitempty"`
 }
 
 // CreateMediaSmartcoverTemplateOptions TODO
@@ -1992,6 +2018,34 @@ type CreateMediaSpeechRecognitionTemplateOptions struct {
 	Tag               string             `xml:"Tag,omitempty"`
 	Name              string             `xml:"Name,omitempty"`
 	SpeechRecognition *SpeechRecognition `xml:"SpeechRecognition,omitempty" json:"SpeechRecognition,omitempty"`
+}
+
+// CreateNoiseReductionTemplateOptions TODO
+type CreateNoiseReductionTemplateOptions struct {
+	XMLName        xml.Name        `xml:"Request"`
+	Tag            string          `xml:"Tag,omitempty"`
+	Name           string          `xml:"Name,omitempty"`
+	NoiseReduction *NoiseReduction `xml:"NoiseReduction,omitempty" json:"NoiseReduction,omitempty"`
+}
+
+// NoiseReduction TODO
+type NoiseReduction struct {
+	Format     string `xml:"Format,omitempty"`
+	Samplerate string `xml:"Samplerate,omitempty"`
+}
+
+// SplitVideoParts TODO
+type SplitVideoParts struct {
+	Mode string `xml:"Mode,omitempty"`
+}
+
+// SplitVideoInfoResult TODO
+type SplitVideoInfoResult struct {
+	TimeInfo []struct {
+		Index     string `xml:"Index,omitempty"`
+		PartBegin string `xml:"PartBegin,omitempty"`
+		PartEnd   string `xml:"PartEnd,omitempty"`
+	} `xml:"TimeInfo,omitempty"`
 }
 
 // CreateMediaTemplateResult TODO
@@ -2024,6 +2078,7 @@ type Template struct {
 	TtsTpl            *TtsTpl            `xml:"TtsTpl,omitempty"`
 	SmartCover        *NodeSmartCover    `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
 	SpeechRecognition *SpeechRecognition `xml:"SpeechRecognition,omitempty" json:"SpeechRecognition,omitempty"`
+	NoiseReduction    *NoiseReduction    `xml:"NoiseReduction,omitempty" json:"NoiseReduction,omitempty"`
 }
 
 // CreateMediaSnapshotTemplate 创建截图模板
@@ -2418,6 +2473,34 @@ func (s *CIService) UpdateMediaSpeechRecognitionTemplate(ctx context.Context, op
 	return &res, resp, err
 }
 
+// CreateNoiseReductionTemplate 创建音频降噪模板
+func (s *CIService) CreateNoiseReductionTemplate(ctx context.Context, opt *CreateNoiseReductionTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateNoiseReductionTemplate 更新音频降噪模板
+func (s *CIService) UpdateNoiseReductionTemplate(ctx context.Context, opt *CreateNoiseReductionTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // MediaWorkflow TODO
 type MediaWorkflow struct {
 	Name       string    `xml:"Name,omitempty"`
@@ -2716,6 +2799,7 @@ type InventoryTriggerJobOperationJobParam struct {
 	Translation             *Translation             `xml:"Translation,omitempty"`
 	WordsGeneralize         *WordsGeneralize         `xml:"WordsGeneralize,omitempty"`
 	WordsGeneralizeResult   *WordsGeneralizeResult   `xml:"WordsGeneralizeResult,omitempty"`
+	NoiseReduction          *NoiseReduction          `xml:"NoiseReduction,omitempty"`
 }
 
 // InventoryTriggerJob TODO

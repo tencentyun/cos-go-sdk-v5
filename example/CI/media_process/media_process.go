@@ -1919,6 +1919,48 @@ func PostSnapshot() {
 	fmt.Printf("%+v\n", PostSnapshotRes)
 }
 
+func InvokeSplitVideoPartsJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateAIJobsOptions{
+		Tag: "SplitVideoParts",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			SplitVideoParts: &cos.SplitVideoParts{
+				Mode: "SHOTDETECT",
+			},
+			UserData: "This is my SplitVideoParts job",
+			JobLevel: 1,
+		},
+	}
+	// 注意这里是AI
+	createJobRes, _, err := c.CI.CreateAIJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeAIJob
+	DescribeJobRes, _, err := c.CI.DescribeAIJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
 func main() {
 	// InvokeAnimationJob()
 	// InvokeSnapshotJob()
@@ -1943,7 +1985,7 @@ func main() {
 	// InvokeASRJob()
 	// DescribeASRJob()
 	// DescribeJob()
-	DescribeJobs()
+	// DescribeJobs()
 	// GenerateMediaInfo()
 	// InvokeMediaInfoJob()
 	// InvokeStreamExtractJob()
@@ -1957,5 +1999,6 @@ func main() {
 	// InvokeTtsJob()
 	// InvokeTranslationJob()
 	// InvokeWordsGeneralizeJob()
-	PostSnapshot()
+	// PostSnapshot()
+	// InvokeSplitVideoPartsJob()
 }

@@ -2448,6 +2448,59 @@ func TestCIService_UpdateMediaSpeechRecognitionTemplate(t *testing.T) {
 	}
 }
 
+func TestCIService_CreateNoiseReductionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>NoiseReduction</Tag><Name>NoiseReduction-1</Name><NoiseReduction><Format>wav</Format><Samplerate>16000</Samplerate></NoiseReduction></Request>"
+
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateNoiseReductionTemplateOptions{
+		Tag:  "NoiseReduction",
+		Name: "NoiseReduction-1",
+		NoiseReduction: &NoiseReduction{
+			Format:     "wav",
+			Samplerate: "16000",
+		},
+	}
+
+	_, _, err := client.CI.CreateNoiseReductionTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateNoiseReductionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateNoiseReductionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>NoiseReduction</Tag><Name>NoiseReduction-1</Name><NoiseReduction><Format>mp3</Format><Samplerate>16000</Samplerate></NoiseReduction></Request>"
+
+	tplId := "t1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateNoiseReductionTemplateOptions{
+		Tag:  "NoiseReduction",
+		Name: "NoiseReduction-1",
+		NoiseReduction: &NoiseReduction{
+			Format:     "mp3",
+			Samplerate: "16000",
+		},
+	}
+
+	_, _, err := client.CI.UpdateNoiseReductionTemplate(context.Background(), opt, tplId)
+	if err != nil {
+		t.Fatalf("CI.UpdateNoiseReductionTemplate returned error: %v", err)
+	}
+}
+
 func TestCIService_UnmarshalXML(t *testing.T) {
 	responseBody := "<Request><MediaWorkflow><Name>workflow-1</Name><State>Active</State><Topology><Dependencies>" +
 		"<Start>Transcode_1581665960537</Start><Transcode_1581665960537>Snapshot_1581665960536</Transcode_1581665960537>" +
