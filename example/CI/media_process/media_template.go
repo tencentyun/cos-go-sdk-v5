@@ -1678,6 +1678,246 @@ func UpdateNoiseReductionTemplate() {
 	fmt.Printf("%+v\n", DescribeTemplateRes)
 }
 
+// CreateVideoEnhanceTemplate TODO
+func CreateVideoEnhanceTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateVideoEnhanceTemplateOptions{
+		Tag:  "VideoEnhance",
+		Name: "VideoEnhance-" + strconv.Itoa(rand.Intn(100)),
+		VideoEnhance: &cos.VideoEnhance{
+			Transcode: &cos.Transcode{
+				Container: &cos.Container{
+					Format: "mp4",
+				},
+				Video: &cos.Video{
+					Codec:   "H.264",
+					Bitrate: "1000",
+					Width:   "1280",
+					Fps:     "30",
+				},
+				Audio: &cos.Audio{
+					Codec:      "aac",
+					Bitrate:    "128",
+					Samplerate: "44100",
+					Channels:   "4",
+				},
+			},
+			SuperResolution: &cos.SuperResolution{
+				Resolution:    "sdtohd",
+				EnableScaleUp: "true",
+				Version:       "Enhance",
+			},
+			ColorEnhance: &cos.ColorEnhance{
+				Contrast:   "50",
+				Correction: "100",
+				Saturation: "100",
+			},
+			MsSharpen: &cos.MsSharpen{
+				SharpenLevel: "5",
+			},
+			SDRtoHDR: &cos.SDRtoHDR{
+				HdrMode: "HDR10",
+			},
+			FrameEnhance: &cos.FrameEnhance{
+				FrameDoubling: "true",
+			},
+		},
+	}
+	createTplRes, _, err := c.CI.CreateVideoEnhanceTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateVideoEnhanceTemplate TODO
+func UpdateVideoEnhanceTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateVideoEnhanceTemplateOptions{
+		Tag:  "VideoEnhance",
+		Name: "VideoEnhance-" + strconv.Itoa(rand.Intn(100)),
+		VideoEnhance: &cos.VideoEnhance{
+			Transcode: &cos.Transcode{
+				Container: &cos.Container{
+					Format: "mp4",
+				},
+				Video: &cos.Video{
+					Codec:   "H.264",
+					Bitrate: "1000",
+					Width:   "1280",
+					Fps:     "30",
+				},
+				Audio: &cos.Audio{
+					Codec:      "aac",
+					Bitrate:    "128",
+					Samplerate: "44100",
+					Channels:   "4",
+				},
+			},
+			SuperResolution: &cos.SuperResolution{
+				Resolution:    "sdtohd",
+				EnableScaleUp: "true",
+				Version:       "Enhance",
+			},
+			ColorEnhance: &cos.ColorEnhance{
+				Contrast:   "50",
+				Correction: "100",
+				Saturation: "100",
+			},
+			MsSharpen: &cos.MsSharpen{
+				SharpenLevel: "5",
+			},
+			SDRtoHDR: &cos.SDRtoHDR{
+				HdrMode: "HDR10",
+			},
+			FrameEnhance: &cos.FrameEnhance{
+				FrameDoubling: "true",
+			},
+		},
+	}
+	templateId := "t17ad08dd4737541c294e2ca38e12695fc"
+	updateTplRes, _, err := c.CI.UpdateVideoEnhanceTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
+// CreateVideoTargetRecTemplate TODO
+func CreateVideoTargetRecTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateVideoTargetRecTemplateOptions{
+		Tag:  "VideoTargetRec",
+		Name: "VideoTargetRec-" + strconv.Itoa(rand.Intn(100)),
+		VideoTargetRec: &cos.VideoTargetRec{
+			Body: "true",
+			Pet:  "true",
+			Car:  "true",
+		},
+	}
+	createTplRes, _, err := c.CI.CreateVideoTargetRecTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+
+	// DescribeMediaTemplate
+	if createTplRes.Template != nil {
+		opt := &cos.DescribeMediaTemplateOptions{
+			Ids: createTplRes.Template.TemplateId,
+		}
+		DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+		log_status(err)
+		fmt.Printf("%+v\n", DescribeTemplateRes)
+	}
+}
+
+// UpdateVideoTargetRecTemplate TODO
+func UpdateVideoTargetRecTemplate() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediatemplate
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateVideoTargetRecTemplateOptions{
+		Tag:  "VideoTargetRec",
+		Name: "VideoTargetRec-" + strconv.Itoa(rand.Intn(100)),
+		VideoTargetRec: &cos.VideoTargetRec{
+			Body: "true",
+			Pet:  "true",
+			Car:  "true",
+		},
+	}
+	templateId := "t10d7cdebcea61426e9b7bd701fb2f2fdc"
+	updateTplRes, _, err := c.CI.UpdateVideoTargetRecTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+
+	// DescribeMediaTemplate
+	opt := &cos.DescribeMediaTemplateOptions{
+		Ids: templateId,
+	}
+	DescribeTemplateRes, _, err := c.CI.DescribeMediaTemplate(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeTemplateRes)
+}
+
 func main() {
 	// DescribeTemplate()
 	// DeleteTemplate()
@@ -1713,4 +1953,8 @@ func main() {
 	// UpdateSpeechRecognitionTemplate()
 	// CreateNoiseReductionTemplate()
 	// UpdateNoiseReductionTemplate()
+	// CreateVideoEnhanceTemplate()
+	// UpdateVideoEnhanceTemplate()
+	// CreateVideoTargetRecTemplate()
+	// UpdateVideoTargetRecTemplate()
 }

@@ -145,6 +145,13 @@ type TranscodePro struct {
 	TransConfig  *TransConfig       `xml:"TransConfig,omitempty"`
 }
 
+// WatermarkSlideConfig TODO
+type WatermarkSlideConfig struct {
+	SlideMode   string `xml:"SlideMode,omitempty"`
+	XSlideSpeed string `xml:"XSlideSpeed,omitempty"`
+	YSlideSpeed string `xml:"YSlideSpeed,omitempty"`
+}
+
 // Image TODO
 type Image struct {
 	Url          string `xml:"Url,omitempty"`
@@ -213,15 +220,16 @@ type WordsGeneralizeResulteToken struct {
 
 // Watermark TODO
 type Watermark struct {
-	Type      string `xml:"Type,omitempty"`
-	Pos       string `xml:"Pos,omitempty"` // TopLeft：左上; Top：上居中; TopRight：右上; Left：左居中; Center：正中心; Right：右居中; BottomLeft：左下; Bottom：下居中; BottomRight：右下
-	LocMode   string `xml:"LocMode,omitempty"`
-	Dx        string `xml:"Dx,omitempty"`
-	Dy        string `xml:"Dy,omitempty"`
-	StartTime string `xml:"StartTime,omitempty"`
-	EndTime   string `xml:"EndTime,omitempty"`
-	Image     *Image `xml:"Image,omitempty"`
-	Text      *Text  `xml:"Text,omitempty"`
+	Type        string                `xml:"Type,omitempty"`
+	Pos         string                `xml:"Pos,omitempty"` // TopLeft：左上; Top：上居中; TopRight：右上; Left：左居中; Center：正中心; Right：右居中; BottomLeft：左下; Bottom：下居中; BottomRight：右下
+	LocMode     string                `xml:"LocMode,omitempty"`
+	Dx          string                `xml:"Dx,omitempty"`
+	Dy          string                `xml:"Dy,omitempty"`
+	StartTime   string                `xml:"StartTime,omitempty"`
+	EndTime     string                `xml:"EndTime,omitempty"`
+	SlideConfig *WatermarkSlideConfig `xml:"SlideConfig,omitempty"`
+	Image       *Image                `xml:"Image,omitempty"`
+	Text        *Text                 `xml:"Text,omitempty"`
 }
 
 // EffectConfig TODO
@@ -337,11 +345,13 @@ type VideoMontageVideo struct {
 
 // VideoMontage TODO
 type VideoMontage struct {
-	Container *Container         `xml:"Container,omitempty"`
-	Video     *VideoMontageVideo `xml:"Video,omitempty"`
-	Audio     *Audio             `xml:"Audio,omitempty"`
-	Duration  string             `xml:"Duration,omitempty"`
-	AudioMix  *AudioMix          `xml:"AudioMix,omitempty"`
+	Container     *Container         `xml:"Container,omitempty"`
+	Video         *VideoMontageVideo `xml:"Video,omitempty"`
+	Audio         *Audio             `xml:"Audio,omitempty"`
+	Duration      string             `xml:"Duration,omitempty"`
+	Scene         string             `xml:"Scene,omitempty"`
+	AudioMix      *AudioMix          `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix         `xml:"AudioMixArray,omitempty"`
 }
 
 // AudioConfig TODO
@@ -401,6 +411,16 @@ type DigitalWatermark struct {
 type ExtractDigitalWatermark struct {
 	Type    string `xml:"Type"`
 	Version string `xml:"Version"`
+}
+
+// Subtitles TODO
+type Subtitles struct {
+	Subtitle []Subtitle `xml:"Subtitle,omitempty"`
+}
+
+// Subtitle TODO
+type Subtitle struct {
+	Url []Subtitle `xml:"Url,omitempty"`
 }
 
 // VideoTag TODO
@@ -678,6 +698,11 @@ type MediaProcessJobOperation struct {
 	NoiseReduction          *NoiseReduction          `xml:"NoiseReduction,omitempty"`
 	SplitVideoParts         *SplitVideoParts         `xml:"SplitVideoParts,omitempty"`
 	SplitVideoInfoResult    *SplitVideoInfoResult    `xml:"SplitVideoInfoResult,omitempty"`
+	Subtitles               *Subtitles               `xml:"Subtitles,omitempty"`
+	VideoEnhance            *VideoEnhance            `xml:"VideoEnhance,omitempty"`
+	VideoTargetRec          *VideoTargetRec          `xml:"VideoTargetRec,omitempty"`
+	VideoTargetRecResult    *VideoTargetRecResult    `xml:"VideoTargetRecResult,omitempty"`
+	SegmentVideoBody        *SegmentVideoBody        `xml:"SegmentVideoBody,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
@@ -1540,6 +1565,16 @@ type NodeHlsPackInfo struct {
 	VideoStreamConfig []VideoStreamConfig `xml:"VideoStreamConfig,omitempty"`
 }
 
+// WorkflowNodeCondition TODO
+type WorkflowNodeCondition struct {
+	Express string `xml:"Express,omitempty"`
+}
+
+// SegmentVideoBody TODO
+type SegmentVideoBody struct {
+	Mode string `xml:"Mode,omitempty"`
+}
+
 // NodeSmartCover TODO
 type NodeSmartCover struct {
 	Format           string `xml:"Format,omitempty"`
@@ -1573,10 +1608,12 @@ type NodeOperation struct {
 	HlsPackInfo          *NodeHlsPackInfo          `xml:"HlsPackInfo,omitempty" json:"HlsPackInfo,omitempty"`
 	TranscodeTemplateId  string                    `xml:"TranscodeTemplateId,omitempty" json:"TranscodeTemplateId,omitempty"`
 	SmartCover           *NodeSmartCover           `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
-	SegmentConfig        *NodeSegmentConfig        `xml:"SegmentConfig,omitempty" json:"SegmentConfig,omitempty"`
+	SegmentConfig        *NodeSegmentConfig        `xml:"Segment,omitempty" json:"Segment,omitempty"`
 	DigitalWatermark     *DigitalWatermark         `xml:"DigitalWatermark,omitempty" json:"DigitalWatermark,omitempty"`
-	StreamPackConfigInfo *NodeStreamPackConfigInfo `xml:"StreamPackConfigInfo,omitempty" json:"StreamPackConfigInfo,omitempty"`
+	StreamPackConfigInfo *NodeStreamPackConfigInfo `xml:"StreamPackConfig,omitempty" json:"StreamPackConfig,omitempty"`
 	StreamPackInfo       *NodeHlsPackInfo          `xml:"StreamPackInfo,omitempty" json:"StreamPackInfo,omitempty"`
+	Condition            *WorkflowNodeCondition    `xml:"Condition,omitempty" json:"Condition,omitempty"`
+	SegmentVideoBody     *SegmentVideoBody         `xml:"SegmentVideoBody,omitempty" json:"SegmentVideoBody,omitempty"`
 }
 
 // Node TODO
@@ -1744,12 +1781,22 @@ type SpeechRecognitionWords struct {
 	OffsetEndMs   string `xml:"OffsetEndMs,omitempty"`
 }
 
+// SoundHoundResult TODO
+type SoundHoundResult struct {
+	SongList struct {
+		Inlier     int    `xml:"Inlier,omitempty"`
+		SingerName string `xml:"SingerName,omitempty"`
+		SongName   string `xml:"SongName,omitempty"`
+	} `xml:"SongList,omitempty"`
+}
+
 // ASRJobOperation TODO
 type ASRJobOperation struct {
 	Tag                     string                   `xml:"Tag,omitempty"`
 	Output                  *JobOutput               `xml:"Output,omitempty"`
 	SpeechRecognition       *SpeechRecognition       `xml:"SpeechRecognition,omitempty"`
 	SpeechRecognitionResult *SpeechRecognitionResult `xml:"SpeechRecognitionResult,omitempty"`
+	SoundHoundResult        *SoundHoundResult        `xml:"SoundHoundResult,omitempty"`
 	TemplateId              string                   `xml:"TemplateId,omitempty"`
 	UserData                string                   `xml:"UserData,omitempty"`
 	JobLevel                int                      `xml:"JobLevel,omitempty"`
@@ -1937,6 +1984,7 @@ type CreateMediaVideoMontageTemplateOptions struct {
 	Tag           string     `xml:"Tag,omitempty"`
 	Name          string     `xml:"Name,omitempty"`
 	Duration      string     `xml:"Duration,omitempty"`
+	Scene         string     `xml:"Scene,omitempty"`
 	Container     *Container `xml:"Container,omitempty"`
 	Video         *Video     `xml:"Video,omitempty"`
 	Audio         *Audio     `xml:"Audio,omitempty"`
@@ -2034,6 +2082,87 @@ type NoiseReduction struct {
 	Samplerate string `xml:"Samplerate,omitempty"`
 }
 
+// CreateVideoEnhanceTemplateOptions TODO
+type CreateVideoEnhanceTemplateOptions struct {
+	XMLName      xml.Name      `xml:"Request"`
+	Tag          string        `xml:"Tag,omitempty"`
+	Name         string        `xml:"Name,omitempty"`
+	VideoEnhance *VideoEnhance `xml:"VideoEnhance,omitempty" json:"VideoEnhance,omitempty"`
+}
+
+// VideoEnhance TODO
+type VideoEnhance struct {
+	Transcode       *Transcode       `xml:"Transcode,omitempty"`
+	SuperResolution *SuperResolution `xml:"SuperResolution,omitempty"`
+	ColorEnhance    *ColorEnhance    `xml:"ColorEnhance,omitempty"`
+	MsSharpen       *MsSharpen       `xml:"MsSharpen,omitempty"`
+	SDRtoHDR        *SDRtoHDR        `xml:"SDRtoHDR,omitempty"`
+	FrameEnhance    *FrameEnhance    `xml:"FrameEnhance,omitempty"`
+}
+
+// FrameEnhance TODO
+type FrameEnhance struct {
+	FrameDoubling string `xml:"FrameDoubling,omitempty"`
+}
+
+// CreateVideoTargetRecTemplateOptions TODO
+type CreateVideoTargetRecTemplateOptions struct {
+	XMLName        xml.Name        `xml:"Request"`
+	Tag            string          `xml:"Tag,omitempty"`
+	Name           string          `xml:"Name,omitempty"`
+	VideoTargetRec *VideoTargetRec `xml:"VideoTargetRec,omitempty" json:"VideoTargetRec,omitempty"`
+}
+
+// VideoTargetRec TODO
+type VideoTargetRec struct {
+	Body string `xml:"Body,omitempty"`
+	Pet  string `xml:"Pet,omitempty"`
+	Car  string `xml:"Car,omitempty"`
+}
+
+// VideoTargetRecResult TODO
+type VideoTargetRecResult struct {
+	BodyRecognition []*BodyRecognition `xml:"BodyRecognition,omitempty"`
+	PetRecognition  []*PetRecognition  `xml:"PetRecognition,omitempty"`
+	CarRecognition  []*CarRecognition  `xml:"CarRecognition,omitempty"`
+}
+
+// BodyRecognition TODO
+type BodyRecognition struct {
+	Time     string                `xml:"Time,omitempty"`
+	Url      string                `xml:"Url,omitempty"`
+	BodyInfo []*VideoTargetRecInfo `xml:"BodyInfo,omitempty"`
+}
+
+// PetRecognition TODO
+type PetRecognition struct {
+	Time    string                `xml:"Time,omitempty"`
+	Url     string                `xml:"Url,omitempty"`
+	PetInfo []*VideoTargetRecInfo `xml:"PetInfo,omitempty"`
+}
+
+// CarRecognition TODO
+type CarRecognition struct {
+	Time    string                `xml:"Time,omitempty"`
+	Url     string                `xml:"Url,omitempty"`
+	CarInfo []*VideoTargetRecInfo `xml:"CarInfo,omitempty"`
+}
+
+// BodyInfo TODO
+type VideoTargetRecInfo struct {
+	Name     string                  `xml:"Name,omitempty"`
+	Score    string                  `xml:"Score,omitempty"`
+	Location *VideoTargetRecLocation `xml:"Location,omitempty"`
+}
+
+// VideoTargetRecLocation TODO
+type VideoTargetRecLocation struct {
+	X      string `xml:"X,omitempty"`
+	Y      string `xml:"Y,omitempty"`
+	Height string `xml:"Height,omitempty"`
+	Width  string `xml:"Width,omitempty"`
+}
+
 // SplitVideoParts TODO
 type SplitVideoParts struct {
 	Mode string `xml:"Mode,omitempty"`
@@ -2079,6 +2208,8 @@ type Template struct {
 	SmartCover        *NodeSmartCover    `xml:"SmartCover,omitempty" json:"SmartCover,omitempty"`
 	SpeechRecognition *SpeechRecognition `xml:"SpeechRecognition,omitempty" json:"SpeechRecognition,omitempty"`
 	NoiseReduction    *NoiseReduction    `xml:"NoiseReduction,omitempty" json:"NoiseReduction,omitempty"`
+	VideoEnhance      *VideoEnhance      `xml:"VideoEnhance,omitempty" json:"VideoEnhance,omitempty"`
+	VideoTargetRec    *VideoTargetRec    `xml:"VideoTargetRec,omitempty" json:"VideoTargetRec,omitempty"`
 }
 
 // CreateMediaSnapshotTemplate 创建截图模板
@@ -2489,6 +2620,62 @@ func (s *CIService) CreateNoiseReductionTemplate(ctx context.Context, opt *Creat
 
 // UpdateNoiseReductionTemplate 更新音频降噪模板
 func (s *CIService) UpdateNoiseReductionTemplate(ctx context.Context, opt *CreateNoiseReductionTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CreateVideoEnhanceTemplate 创建画质增强模板
+func (s *CIService) CreateVideoEnhanceTemplate(ctx context.Context, opt *CreateVideoEnhanceTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateVideoEnhanceTemplate 更新画质增强模板
+func (s *CIService) UpdateVideoEnhanceTemplate(ctx context.Context, opt *CreateVideoEnhanceTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CreateVideoTargetRecTemplate 创建移动物体检测模板
+func (s *CIService) CreateVideoTargetRecTemplate(ctx context.Context, opt *CreateVideoTargetRecTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateVideoTargetRecTemplate 更新移动物体检测模板
+func (s *CIService) UpdateVideoTargetRecTemplate(ctx context.Context, opt *CreateVideoTargetRecTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
 	var res CreateMediaTemplateResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
