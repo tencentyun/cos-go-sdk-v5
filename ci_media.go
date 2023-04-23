@@ -651,6 +651,12 @@ type PicProcessResult struct {
 	} `xml:"UploadResult"`
 }
 
+// PosterProduction TODO
+type PosterProduction struct {
+	TemplateId string      `xml:"TemplateId,omitempty"`
+	Info       interface{} `xml:"Info,omitempty"`
+}
+
 // PicProcessJobOperation TODO
 type PicProcessJobOperation struct {
 	TemplateId       string            `xml:"TemplateId,omitempty"`
@@ -659,6 +665,7 @@ type PicProcessJobOperation struct {
 	UserData         string            `xml:"UserData,omitempty"`
 	JobLevel         int               `xml:"JobLevel,omitempty"`
 	PicProcessResult *PicProcessResult `xml:"PicProcessResult,omitempty"`
+	PosterProduction *PosterProduction `xml:"PosterProduction,omitempty"`
 }
 
 // MediaProcessJobOperation TODO
