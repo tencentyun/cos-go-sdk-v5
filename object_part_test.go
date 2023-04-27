@@ -456,6 +456,10 @@ func TestObjectService_MultiCopy(t *testing.T) {
 		PartSize:       1,
 		ThreadPoolSize: 3,
 		useMulti:       true,
+		OptCopy: &ObjectCopyOptions{
+			&ObjectCopyHeaderOptions{},
+			&ACLHeaderOptions{},
+		},
 	}
 	uploadid := "test_uploadid"
 	optcom := &CompleteMultipartUploadOptions{}

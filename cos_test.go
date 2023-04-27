@@ -2,6 +2,7 @@ package cos
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"io/ioutil"
 	"net/http"
@@ -130,6 +131,14 @@ func TestNewBucketURL_secure_false(t *testing.T) {
 	if got != want {
 		t.Errorf("NewBucketURL is %v, want %v", got, want)
 	}
+	_, err := NewBucketURL("", "ap-guangzhou", false)
+	if err == nil {
+		t.Errorf("NewBucketURL should return error")
+	}
+	_, err = NewBucketURL("bname-idx", "", false)
+	if err == nil {
+		t.Errorf("NewBucketURL should return error")
+	}
 }
 
 func TestNewBucketURL_secure_true(t *testing.T) {
@@ -153,5 +162,20 @@ func TestNewAuthTime(t *testing.T) {
 		a.SignEndTime != a.SignEndTime ||
 		a.SignStartTime.Add(time.Hour) != a.SignEndTime {
 		t.Errorf("NewAuthTime request got %+v is not valid", a)
+	}
+}
+
+func Test_addHeaderOptions(t *testing.T) {
+	val := &XOptionalValue{
+		&http.Header{},
+	}
+	val.Header.Add("key", "value")
+	ctx := context.WithValue(context.Background(), XOptionalKey, val)
+	res, err := addHeaderOptions(ctx, http.Header{}, nil)
+	if err != nil {
+		t.Errorf("addHeaderOptions return failed: %v", err)
+	}
+	if res.Get("key") != "value" {
+		t.Errorf("addHeaderOptions failed")
 	}
 }

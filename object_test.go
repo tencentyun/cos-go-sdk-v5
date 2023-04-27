@@ -58,6 +58,7 @@ func TestObjectService_Get(t *testing.T) {
 		opt := &ObjectGetOptions{
 			ResponseContentType: "text/html",
 			Range:               fmt.Sprintf("bytes=%v-%v", rangeStart, rangeEnd),
+			Listener:            &DefaultProgressListener{},
 		}
 		resp, err := client.Object.Get(context.Background(), name, opt)
 		if err != nil {
@@ -877,6 +878,11 @@ func TestObjectService_Download(t *testing.T) {
 	opt := &MultiDownloadOptions{
 		ThreadPoolSize: 3,
 		PartSize:       1,
+		Opt: &ObjectGetOptions{
+			XCosSSECustomerAglo:   "AES256",
+			XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+			XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+		},
 	}
 	downPath := "down.file" + time.Now().Format(time.RFC3339)
 	defer os.Remove(downPath)
@@ -1439,5 +1445,161 @@ func TestObjectService_GetSignature(t *testing.T) {
 
 	if sign != wanted {
 		t.Errorf("GetSignature error, return: %+v, want: %+v\n", sign, wanted)
+	}
+}
+
+func TestObjectService_getResumableUploadID(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"prefix":        "Object",
+			"encoding-type": "url",
+			"uploads":       "",
+		}
+		testFormValues(t, r, vs)
+
+		fmt.Fprint(w, `<ListMultipartUploadsResult>
+    <Bucket>examplebucket-1250000000</Bucket>
+    <Encoding-Type/>
+    <KeyMarker/>
+    <UploadIdMarker/>
+    <MaxUploads>1000</MaxUploads>
+    <Prefix/>
+    <Delimiter>/</Delimiter>
+    <IsTruncated>false</IsTruncated>
+    <Upload>
+        <Key>Object</Key>
+        <UploadId>1484726657932bcb5b17f7a98a8cad9fc36a340ff204c79bd2f51e7dddf0b6d1da6220520c</UploadId>
+        <Initiator>
+            <ID>qcs::cam::uin/100000000001:uin/100000000001</ID>
+            <DisplayName>100000000001</DisplayName>
+        </Initiator>
+        <Owner>
+            <ID>qcs::cam::uin/100000000001:uin/100000000001</ID>
+            <DisplayName>100000000001</DisplayName>
+        </Owner>
+        <StorageClass>Standard</StorageClass>
+        <Initiated>Wed Jan 18 16:04:17 2017</Initiated>
+    </Upload>
+    <Upload>
+        <Key>Object</Key>
+        <UploadId>1484727158f2b8034e5407d18cbf28e84f754b791ecab607d25a2e52de9fee641e5f60707c</UploadId>
+        <Initiator>
+            <ID>qcs::cam::uin/100000000001:uin/100000000001</ID>
+            <DisplayName>100000000001</DisplayName>
+        </Initiator>
+        <Owner>
+            <ID>qcs::cam::uin/100000000001:uin/100000000001</ID>
+            <DisplayName>100000000001</DisplayName>
+        </Owner>
+        <StorageClass>Standard</StorageClass>
+        <Initiated>Wed Jan 18 16:12:38 2017</Initiated>
+    </Upload>
+</ListMultipartUploadsResult>`)
+	})
+
+	id, err := client.Object.getResumableUploadID(context.Background(), "Object")
+	if err != nil {
+		t.Errorf("getResumableUploadID failed: %v", err)
+	}
+	if id != "1484727158f2b8034e5407d18cbf28e84f754b791ecab607d25a2e52de9fee641e5f60707c" {
+		t.Errorf("getResumableUploadID failed: %v", id)
+	}
+}
+
+func TestObjectService_checkUploadedParts(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "test/hello.txt"
+	uploadID := "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+	bs := make([]byte, 2048)
+	rand.Read(bs)
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		v := new(BucketPutTaggingOptions)
+		xml.NewDecoder(r.Body).Decode(v)
+
+		testMethod(t, r, http.MethodGet)
+		vs := values{
+			"uploadId":      uploadID,
+			"encoding-type": "url",
+		}
+		testFormValues(t, r, vs)
+
+		fmt.Fprint(w, `<ListPartsResult>
+	<Bucket>test-1253846586</Bucket>
+	<Encoding-type/>
+	<Key>test/hello.txt</Key>
+	<UploadId>149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387</UploadId>
+	<Owner>
+		<ID>1253846586</ID>
+		<DisplayName>1253846586</DisplayName>
+	</Owner>
+	<PartNumberMarker>0</PartNumberMarker>
+	<Initiator>
+		<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+		<DisplayName>100000760461</DisplayName>
+	</Initiator>
+	<Part>
+		<PartNumber>1</PartNumber>
+		<LastModified>2017-06-20T09:45:49.000Z</LastModified>
+		<ETag>&quot;`+hex.EncodeToString(calMD5Digest(bs[:1024]))+`&quot;</ETag>
+		<Size>6291456</Size>
+	</Part>
+	<Part>
+		<PartNumber>2</PartNumber>
+		<LastModified>2017-06-20T09:45:50.000Z</LastModified>
+		<ETag>&quot;`+hex.EncodeToString(calMD5Digest(bs[1024:]))+`&quot;</ETag>
+		<Size>6391456</Size>
+	</Part>
+	<StorageClass>Standard</StorageClass>
+	<MaxParts>1000</MaxParts>
+	<IsTruncated>false</IsTruncated>
+	</ListPartsResult>`)
+	})
+	filePath := "test.file" + time.Now().Format(time.RFC3339)
+	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
+	defer os.Remove(filePath)
+	_, err = fd.Write(bs)
+	if err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+	fd.Close()
+
+	chunks := []Chunk{
+		{
+			OffSet: 0,
+			Size:   1024,
+		},
+		{
+			OffSet: 1024,
+			Size:   1024,
+		},
+	}
+	err = client.Object.checkUploadedParts(context.Background(),
+		name, uploadID, filePath, chunks, 2)
+	if err != nil {
+		t.Fatalf("Object.checkUploadedParts returned error: %v", err)
+	}
+	chunks = []Chunk{
+		{
+			OffSet: 0,
+			Size:   1024,
+		},
+		{
+			OffSet: 1024,
+			Size:   1023, // 特意校验失败
+		},
+	}
+	err = client.Object.checkUploadedParts(context.Background(),
+		name, uploadID, filePath, chunks, 2)
+	if err == nil {
+		t.Fatalf("Object.checkUploadedParts should return err: %v", err)
 	}
 }
