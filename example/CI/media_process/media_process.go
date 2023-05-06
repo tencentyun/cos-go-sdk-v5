@@ -1919,6 +1919,294 @@ func PostSnapshot() {
 	fmt.Printf("%+v\n", PostSnapshotRes)
 }
 
+func InvokeSplitVideoPartsJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateAIJobsOptions{
+		Tag: "SplitVideoParts",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			SplitVideoParts: &cos.SplitVideoParts{
+				Mode: "SHOTDETECT",
+			},
+			UserData: "This is my SplitVideoParts job",
+			JobLevel: 1,
+		},
+	}
+	// 注意这里是AI
+	createJobRes, _, err := c.CI.CreateAIJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeAIJob
+	DescribeJobRes, _, err := c.CI.DescribeAIJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+func InvokeVideoEnhanceJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateMediaJobsOptions{
+		Tag: "VideoEnhance",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			VideoEnhance: &cos.VideoEnhance{
+				Transcode: &cos.Transcode{
+					Container: &cos.Container{
+						Format: "mp4",
+					},
+					Video: &cos.Video{
+						Codec:   "H.264",
+						Bitrate: "1000",
+						Width:   "1280",
+						Fps:     "30",
+					},
+					Audio: &cos.Audio{
+						Codec:      "aac",
+						Bitrate:    "128",
+						Samplerate: "44100",
+						Channels:   "4",
+					},
+				},
+				SuperResolution: &cos.SuperResolution{
+					Resolution:    "sdtohd",
+					EnableScaleUp: "true",
+					Version:       "Enhance",
+				},
+				ColorEnhance: &cos.ColorEnhance{
+					Contrast:   "50",
+					Correction: "100",
+					Saturation: "100",
+				},
+				MsSharpen: &cos.MsSharpen{
+					SharpenLevel: "5",
+				},
+				SDRtoHDR: &cos.SDRtoHDR{
+					HdrMode: "HDR10",
+				},
+				FrameEnhance: &cos.FrameEnhance{
+					FrameDoubling: "true",
+				},
+			},
+			UserData: "This is my SplitVideoParts job",
+			JobLevel: 1,
+		},
+	}
+	createJobRes, _, err := c.CI.CreateMediaJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeAIJob
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+func InvokeVideoTargetRecJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateAIJobsOptions{
+		Tag: "VideoTargetRec",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			VideoTargetRec: &cos.VideoTargetRec{
+				Body: "true",
+				Pet:  "true",
+				Car:  "true",
+			},
+			UserData: "This is my VideoTargetRec job",
+			JobLevel: 1,
+		},
+	}
+	// 注意这里是AI
+	createJobRes, _, err := c.CI.CreateAIJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeAIJob
+	DescribeJobRes, _, err := c.CI.DescribeAIJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+func InvokeSegmentVideoBodyJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateAIJobsOptions{
+		Tag: "SegmentVideoBody",
+		Input: &cos.JobInput{
+			Object: "input/test.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			SegmentVideoBody: &cos.SegmentVideoBody{
+				Mode: "Mask",
+			},
+			UserData: "This is my SegmentVideoBody job",
+			JobLevel: 1,
+		},
+	}
+	// 注意这里是AI
+	createJobRes, _, err := c.CI.CreateAIJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeAIJob
+	DescribeJobRes, _, err := c.CI.DescribeAIJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+// InvokeSoundHoundJob TODO
+func InvokeSoundHoundJob() {
+	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreateMediaJobs
+	createJobOpt := &cos.CreateASRJobsOptions{
+		Tag: "SoundHound",
+		Operation: &cos.ASRJobOperation{
+			UserData: "This is my SoundHound job",
+			JobLevel: 1,
+		},
+	}
+	createJobRes, _, err := c.CI.CreateASRJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+
+	// DescribeMediaJobs
+	DescribeJobRes, _, err := c.CI.DescribeMediaJob(context.Background(), createJobRes.JobsDetail.JobId)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
+}
+
+func InvokePosterProductionJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			// todo 需要替换为自己的secretid  secretkey
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	// CreatePicProcessJobs
+	type autoInfo struct {
+		TextMain string `xml:"text_main,omitempty"`
+		TextSub  string `xml:"text_sub,omitempty"`
+	}
+	info := autoInfo{
+		TextMain: "父亲节快乐",
+		TextSub:  "献给最伟大的父亲!!!",
+	}
+	createJobOpt := &cos.CreatePicJobsOptions{
+		Tag: "PosterProduction",
+		Operation: &cos.PicProcessJobOperation{
+			PosterProduction: &cos.PosterProduction{
+				TemplateId: "6444f12ae24d596cdbd774fb",
+				Info:       info,
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-1234567890",
+				Object: "poster/PosterProduction2.jpg",
+			},
+		},
+		// todo 需要替换为自己的回调地址信息
+		CallBack: "https://demo.org/callback",
+	}
+	createJobRes, _, err := c.CI.CreatePicProcessJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
 func main() {
 	// InvokeAnimationJob()
 	// InvokeSnapshotJob()
@@ -1943,7 +2231,7 @@ func main() {
 	// InvokeASRJob()
 	// DescribeASRJob()
 	// DescribeJob()
-	DescribeJobs()
+	// DescribeJobs()
 	// GenerateMediaInfo()
 	// InvokeMediaInfoJob()
 	// InvokeStreamExtractJob()
@@ -1957,5 +2245,10 @@ func main() {
 	// InvokeTtsJob()
 	// InvokeTranslationJob()
 	// InvokeWordsGeneralizeJob()
-	PostSnapshot()
+	// PostSnapshot()
+	// InvokeVideoEnhanceJob()
+	// InvokeSplitVideoPartsJob()
+	// InvokeVideoTargetRecJob()
+	// InvokeSegmentVideoBodyJob()
+	InvokePosterProductionJob()
 }

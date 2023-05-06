@@ -1998,3 +1998,81 @@ func (s *CIService) AIBodyRecognition(ctx context.Context, key string, opt *AIBo
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
 }
+
+// 海报合成
+// PosterproductionInput TODO
+type PosterproductionInput struct {
+	Object string `xml:"Object,omitempty"`
+}
+
+// PosterproductionTemplateOptions TODO
+type PosterproductionTemplateOptions struct {
+	XMLName     xml.Name               `xml:"Request"`
+	Input       *PosterproductionInput `xml:"Input,omitempty"`
+	Name        string                 `xml:"Name,omitempty"`
+	CategoryIds string                 `xml:"CategoryIds,omitempty"`
+}
+
+// DescribePosterproductionTemplateOptions TODO
+type DescribePosterproductionTemplateOptions struct {
+	PageNumber  int    `url:"pageNumber,omitempty"`
+	PageSize    int    `url:"pageSize,omitempty"`
+	CategoryIds string `url:"categoryIds,omitempty"`
+	Type        string `url:"type,omitempty"`
+}
+
+// PosterproductionTemplateResult TODO
+type PosterproductionTemplateResult struct {
+	XMLName   xml.Name    `xml:"Response"`
+	RequestId string      `xml:"RequestId,omitempty"`
+	Template  interface{} `xml:"Template,omitempty"`
+}
+
+// PosterproductionTemplateResult TODO
+type PosterproductionTemplateResults struct {
+	XMLName      xml.Name    `xml:"Response"`
+	RequestId    string      `xml:"RequestId,omitempty"`
+	TotalCount   string      `xml:"TotalCount,omitempty"`
+	PageNumber   string      `xml:"PageNumber,omitempty"`
+	PageSize     string      `xml:"PageSize,omitempty"`
+	TemplateList interface{} `xml:"TemplateList,omitempty"`
+}
+
+func (s *CIService) PutPosterproductionTemplate(ctx context.Context, opt *PosterproductionTemplateOptions) (*PosterproductionTemplateResult, *Response, error) {
+	var res PosterproductionTemplateResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/posterproduction/template",
+		method:   http.MethodPost,
+		optQuery: nil,
+		body:     &opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) GetPosterproductionTemplate(ctx context.Context, tplId string) (*PosterproductionTemplateResult, *Response, error) {
+	var res PosterproductionTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/posterproduction/template/" + tplId,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) GetPosterproductionTemplates(ctx context.Context, opt *DescribePosterproductionTemplateOptions) (*PosterproductionTemplateResults, *Response, error) {
+	var res PosterproductionTemplateResults
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/posterproduction/template",
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}

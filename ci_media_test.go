@@ -2448,6 +2448,244 @@ func TestCIService_UpdateMediaSpeechRecognitionTemplate(t *testing.T) {
 	}
 }
 
+func TestCIService_CreateNoiseReductionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>NoiseReduction</Tag><Name>NoiseReduction-1</Name><NoiseReduction><Format>wav</Format><Samplerate>16000</Samplerate></NoiseReduction></Request>"
+
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateNoiseReductionTemplateOptions{
+		Tag:  "NoiseReduction",
+		Name: "NoiseReduction-1",
+		NoiseReduction: &NoiseReduction{
+			Format:     "wav",
+			Samplerate: "16000",
+		},
+	}
+
+	_, _, err := client.CI.CreateNoiseReductionTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateNoiseReductionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateNoiseReductionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>NoiseReduction</Tag><Name>NoiseReduction-1</Name><NoiseReduction><Format>mp3</Format><Samplerate>16000</Samplerate></NoiseReduction></Request>"
+
+	tplId := "t1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateNoiseReductionTemplateOptions{
+		Tag:  "NoiseReduction",
+		Name: "NoiseReduction-1",
+		NoiseReduction: &NoiseReduction{
+			Format:     "mp3",
+			Samplerate: "16000",
+		},
+	}
+
+	_, _, err := client.CI.UpdateNoiseReductionTemplate(context.Background(), opt, tplId)
+	if err != nil {
+		t.Fatalf("CI.UpdateNoiseReductionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateVideoEnhanceTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>VideoEnhance</Tag><Name>VideoEnhance-test1</Name><VideoEnhance>" +
+		"<Transcode><Container><Format>mp4</Format></Container>" +
+		"<Video><Codec>H.264</Codec><Width>1280</Width><Fps>30</Fps><Bitrate>1000</Bitrate></Video>" +
+		"<Audio><Codec>aac</Codec><Samplerate>44100</Samplerate><Bitrate>128</Bitrate><Channels>4</Channels></Audio></Transcode>" +
+		"<SuperResolution><Resolution>sdtohd</Resolution><EnableScaleUp>true</EnableScaleUp><Version>Enhance</Version></SuperResolution>" +
+		"<ColorEnhance><Contrast>50</Contrast><Correction>100</Correction><Saturation>100</Saturation></ColorEnhance>" +
+		"<MsSharpen><SharpenLevel>5</SharpenLevel></MsSharpen><SDRtoHDR><HdrMode>HDR10</HdrMode></SDRtoHDR><FrameEnhance><FrameDoubling>true</FrameDoubling></FrameEnhance></VideoEnhance></Request>"
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateVideoEnhanceTemplateOptions{
+		Tag:  "VideoEnhance",
+		Name: "VideoEnhance-test1",
+		VideoEnhance: &VideoEnhance{
+			Transcode: &Transcode{
+				Container: &Container{
+					Format: "mp4",
+				},
+				Video: &Video{
+					Codec:   "H.264",
+					Bitrate: "1000",
+					Width:   "1280",
+					Fps:     "30",
+				},
+				Audio: &Audio{
+					Codec:      "aac",
+					Bitrate:    "128",
+					Samplerate: "44100",
+					Channels:   "4",
+				},
+			},
+			SuperResolution: &SuperResolution{
+				Resolution:    "sdtohd",
+				EnableScaleUp: "true",
+				Version:       "Enhance",
+			},
+			ColorEnhance: &ColorEnhance{
+				Contrast:   "50",
+				Correction: "100",
+				Saturation: "100",
+			},
+			MsSharpen: &MsSharpen{
+				SharpenLevel: "5",
+			},
+			SDRtoHDR: &SDRtoHDR{
+				HdrMode: "HDR10",
+			},
+			FrameEnhance: &FrameEnhance{
+				FrameDoubling: "true",
+			},
+		},
+	}
+
+	_, _, err := client.CI.CreateVideoEnhanceTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateVideoEnhanceTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateVideoEnhanceTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>VideoEnhance</Tag><Name>VideoEnhance-test2</Name><VideoEnhance>" +
+		"<Transcode><Container><Format>mp4</Format></Container>" +
+		"<Video><Codec>H.264</Codec><Width>1280</Width><Fps>30</Fps><Bitrate>1000</Bitrate></Video>" +
+		"<Audio><Codec>aac</Codec><Samplerate>44100</Samplerate><Bitrate>128</Bitrate><Channels>4</Channels></Audio></Transcode>" +
+		"<SuperResolution><Resolution>sdtohd</Resolution><EnableScaleUp>true</EnableScaleUp><Version>Enhance</Version></SuperResolution>" +
+		"<ColorEnhance><Contrast>50</Contrast><Correction>100</Correction><Saturation>100</Saturation></ColorEnhance>" +
+		"<MsSharpen><SharpenLevel>5</SharpenLevel></MsSharpen><SDRtoHDR><HdrMode>HDR10</HdrMode></SDRtoHDR><FrameEnhance><FrameDoubling>true</FrameDoubling></FrameEnhance></VideoEnhance></Request>"
+	tplId := "t1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateVideoEnhanceTemplateOptions{
+		Tag:  "VideoEnhance",
+		Name: "VideoEnhance-test2",
+		VideoEnhance: &VideoEnhance{
+			Transcode: &Transcode{
+				Container: &Container{
+					Format: "mp4",
+				},
+				Video: &Video{
+					Codec:   "H.264",
+					Bitrate: "1000",
+					Width:   "1280",
+					Fps:     "30",
+				},
+				Audio: &Audio{
+					Codec:      "aac",
+					Bitrate:    "128",
+					Samplerate: "44100",
+					Channels:   "4",
+				},
+			},
+			SuperResolution: &SuperResolution{
+				Resolution:    "sdtohd",
+				EnableScaleUp: "true",
+				Version:       "Enhance",
+			},
+			ColorEnhance: &ColorEnhance{
+				Contrast:   "50",
+				Correction: "100",
+				Saturation: "100",
+			},
+			MsSharpen: &MsSharpen{
+				SharpenLevel: "5",
+			},
+			SDRtoHDR: &SDRtoHDR{
+				HdrMode: "HDR10",
+			},
+			FrameEnhance: &FrameEnhance{
+				FrameDoubling: "true",
+			},
+		},
+	}
+
+	_, _, err := client.CI.UpdateVideoEnhanceTemplate(context.Background(), opt, tplId)
+	if err != nil {
+		t.Fatalf("CI.UpdateVideoEnhanceTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateVideoTargetRecTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>VideoTargetRec</Tag><Name>VideoTargetRec-0</Name><VideoTargetRec><Body>true</Body><Pet>true</Pet><Car>true</Car></VideoTargetRec></Request>"
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateVideoTargetRecTemplateOptions{
+		Tag:  "VideoTargetRec",
+		Name: "VideoTargetRec-0",
+		VideoTargetRec: &VideoTargetRec{
+			Body: "true",
+			Pet:  "true",
+			Car:  "true",
+		},
+	}
+
+	_, _, err := client.CI.CreateVideoTargetRecTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateVideoTargetRecTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateVideoTargetRecTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>VideoTargetRec</Tag><Name>VideoTargetRec-1</Name><VideoTargetRec><Body>true</Body><Pet>true</Pet><Car>true</Car></VideoTargetRec></Request>"
+
+	tplId := "t1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateVideoTargetRecTemplateOptions{
+		Tag:  "VideoTargetRec",
+		Name: "VideoTargetRec-1",
+		VideoTargetRec: &VideoTargetRec{
+			Body: "true",
+			Pet:  "true",
+			Car:  "true",
+		},
+	}
+
+	_, _, err := client.CI.UpdateVideoTargetRecTemplate(context.Background(), opt, tplId)
+	if err != nil {
+		t.Fatalf("CI.UpdateVideoTargetRecTemplate returned error: %v", err)
+	}
+}
+
 func TestCIService_UnmarshalXML(t *testing.T) {
 	responseBody := "<Request><MediaWorkflow><Name>workflow-1</Name><State>Active</State><Topology><Dependencies>" +
 		"<Start>Transcode_1581665960537</Start><Transcode_1581665960537>Snapshot_1581665960536</Transcode_1581665960537>" +

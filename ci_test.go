@@ -2416,3 +2416,67 @@ func TestCIService_GoodsMattingWithOpt(t *testing.T) {
 		t.Fatalf("CI.GoodsMattingWithOpt returned error: %v", err)
 	}
 }
+
+func TestCIService_PutPosterproductionTemplatet(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Input><Object>input/sample.psd</Object></Input><Name>test</Name></Request>"
+
+	mux.HandleFunc("/posterproduction/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	PosterproductionTemplate := &PosterproductionTemplateOptions{
+		Input: &PosterproductionInput{
+			Object: "input/sample.psd",
+		},
+		Name: "test",
+	}
+
+	_, _, err := client.CI.PutPosterproductionTemplate(context.Background(), PosterproductionTemplate)
+	if err != nil {
+		t.Fatalf("CI.PutPosterproductionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_GetPosterproductionTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	tplId := "1234567890"
+
+	mux.HandleFunc("/posterproduction/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.GetPosterproductionTemplate(context.Background(), tplId)
+	if err != nil {
+		t.Fatalf("CI.GetPosterproductionTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_GetPosterproductionTemplates(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/posterproduction/template/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"pageNumber": "1",
+			"pageSize":   "10",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribePosterproductionTemplateOptions{
+		PageNumber: 1,
+		PageSize:   10,
+	}
+
+	_, _, err := client.CI.GetPosterproductionTemplates(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GetPosterproductionTemplates returned error: %v", err)
+	}
+}

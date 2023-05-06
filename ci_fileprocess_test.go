@@ -81,3 +81,22 @@ func TestCIService_GetFileHash(t *testing.T) {
 		t.Fatalf("CI.GetFileHash returned error: %v", err)
 	}
 }
+
+func TestCIService_ZipPreview(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "test.zip"
+	mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "zippreview",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, _, err := client.CI.ZipPreview(context.Background(), name)
+	if err != nil {
+		t.Fatalf("CI.ZipPreview returned error: %v", err)
+	}
+}
