@@ -130,3 +130,56 @@ func Test_CloneInitiateMultipartUploadOptions(t *testing.T) {
 		t.Errorf("CloneInitiateMultipartUploadOptions, returned:%+v,want:%+v", res, opt)
 	}
 }
+
+func Test_CloneObjectGetOptions(t *testing.T) {
+	opt := ObjectGetOptions{
+		Range: "bytes=1-100",
+	}
+	res := CloneObjectGetOptions(&opt)
+	if opt.Range != res.Range {
+		t.Errorf("CloneObjectGetOptions failed")
+	}
+	ro, _ := GetRangeOptions(&opt)
+	if FormatRangeOptions(ro) != "bytes=1-100" {
+		t.Errorf("FormatRangeOptions failed")
+	}
+	ro.HasStart = true
+	ro.HasEnd = false
+	if FormatRangeOptions(ro) != "bytes=1-" {
+		t.Errorf("FormatRangeOptions failed")
+	}
+	ro.HasStart = false
+	ro.HasEnd = true
+	if FormatRangeOptions(ro) != "bytes=-100" {
+		t.Errorf("FormatRangeOptions failed")
+	}
+	ro.HasStart = false
+	ro.HasEnd = false
+	if FormatRangeOptions(ro) != "" {
+		t.Errorf("FormatRangeOptions failed")
+	}
+}
+
+func Test_progress(t *testing.T) {
+	listener := &DefaultProgressListener{}
+	listener.ProgressChangedCallback(&ProgressEvent{
+		EventType:  ProgressStartedEvent,
+		TotalBytes: 1,
+	})
+	listener.ProgressChangedCallback(&ProgressEvent{
+		EventType:  ProgressDataEvent,
+		TotalBytes: 1,
+	})
+	listener.ProgressChangedCallback(&ProgressEvent{
+		EventType:  ProgressCompletedEvent,
+		TotalBytes: 1,
+	})
+	listener.ProgressChangedCallback(&ProgressEvent{
+		EventType:  ProgressFailedEvent,
+		TotalBytes: 1,
+	})
+	listener.ProgressChangedCallback(&ProgressEvent{
+		EventType:  -1,
+		TotalBytes: 1,
+	})
+}

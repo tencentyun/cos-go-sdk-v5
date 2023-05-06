@@ -1,8 +1,11 @@
 package cos
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -118,5 +121,40 @@ func Test_IsNotFoundError(t *testing.T) {
 	}
 	if e.Code != "NoSuchKey" {
 		t.Errorf("Expected NoSuchKey error, got %+v", e.Code)
+	}
+	_, ok = IsCOSError(nil)
+	if ok {
+		t.Errorf("IsCOSError Return Failed")
+	}
+	_, ok = IsCOSError(errors.New("test error"))
+	if ok {
+		t.Errorf("IsNotFoundError Return Failed")
+	}
+	ok = IsNotFoundError(nil)
+	if ok {
+		t.Errorf("IsNotFoundError Return Failed")
+	}
+	ok = IsNotFoundError(errors.New("test error"))
+	if ok {
+		t.Errorf("IsNotFoundError Return Failed")
+	}
+}
+
+func Test_CheckReponse(t *testing.T) {
+	setup()
+	defer teardown()
+	resp := &http.Response{
+		StatusCode: 404,
+		Header:     http.Header{},
+		Body: ioutil.NopCloser(strings.NewReader(`{
+			"code": 404,
+			"message": "404 NotFound",
+			"request_id": "requestid"}`)),
+	}
+	resp.Header.Add("Content-Type", "application/json")
+	err := checkResponse(resp)
+	e, _ := err.(*ErrorResponse)
+	if e.Code != "404" || e.Message != "404 NotFound" || e.RequestID != "requestid" {
+		t.Errorf("checkResponse failed: %v", e)
 	}
 }

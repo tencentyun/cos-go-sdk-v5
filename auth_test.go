@@ -49,12 +49,15 @@ func TestAuthorizationTransport(t *testing.T) {
 		}
 	})
 
-	client.client.Transport = &AuthorizationTransport{
+	auth := &AuthorizationTransport{
 		SecretID:  "test",
 		SecretKey: "test",
 	}
+	auth.SetCredential("ak", "sk", "token")
+	client.client.Transport = auth
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
+	client.GetCredential()
 }
 
 func TestCVMCredentialTransport(t *testing.T) {
@@ -122,6 +125,7 @@ func TestCVMCredentialTransport(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
+	client.GetCredential()
 }
 
 func TestDNSScatterTransport(t *testing.T) {
@@ -142,6 +146,7 @@ func TestDNSScatterTransport(t *testing.T) {
 	}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
+	client.GetCredential()
 }
 
 func TestCredentialTransport(t *testing.T) {
@@ -160,4 +165,5 @@ func TestCredentialTransport(t *testing.T) {
 	}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
+	client.GetCredential()
 }
