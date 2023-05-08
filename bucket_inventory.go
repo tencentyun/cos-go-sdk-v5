@@ -22,8 +22,10 @@ type BucketInventoryFilterPeriod struct {
 
 // BucketInventoryFilter ...
 type BucketInventoryFilter struct {
-	Prefix string                       `xml:"Prefix,omitempty"`
-	Period *BucketInventoryFilterPeriod `xml:"Period,omitempty"`
+	Prefix       string                       `xml:"And>Prefix,omitempty"`
+	Tags         []ObjectTaggingTag           `xml:"And>Tag,omitempty"`
+	StorageClass string                       `xml:"And>StorageClass,omitempty"`
+	Period       *BucketInventoryFilterPeriod `xml:"Period,omitempty"`
 }
 
 // BucketInventoryOptionalFields ...
