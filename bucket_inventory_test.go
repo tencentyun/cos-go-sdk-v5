@@ -17,7 +17,10 @@ func TestBucketService_PutInventory(t *testing.T) {
 		ID:                     "list1",
 		IsEnabled:              "True",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{"myPrefix", nil},
+		Filter:                 &BucketInventoryFilter{
+			Prefix: "myPrefix",
+			Period: nil,
+		},
 		Schedule:               &BucketInventorySchedule{"Daily"},
 		Destination: &BucketInventoryDestination{
 			Bucket:     "qcs::cos:ap-guangzhou::examplebucket-1250000000",
@@ -86,7 +89,9 @@ func TestBucketService_GetInventory(t *testing.T) {
         <Frequency>Daily</Frequency>
     </Schedule>
     <Filter>
-        <Prefix>myPrefix</Prefix>
+        <And>
+			<Prefix>myPrefix</Prefix>
+		</And>
     </Filter>
     <IncludedObjectVersions>All</IncludedObjectVersions>
     <OptionalFields>
@@ -108,7 +113,10 @@ func TestBucketService_GetInventory(t *testing.T) {
 		ID:                     "list1",
 		IsEnabled:              "True",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{"myPrefix", nil},
+		Filter:                 &BucketInventoryFilter{
+			Prefix: "myPrefix",
+			Period: nil,
+		},
 		Schedule:               &BucketInventorySchedule{"Daily"},
 		Destination: &BucketInventoryDestination{
 			Bucket:    "qcs::cos:ap-guangzhou::examplebucket-1250000000",
@@ -162,7 +170,9 @@ func TestBucketService_ListInventory(t *testing.T) {
             <Frequency>Daily</Frequency>
         </Schedule>
         <Filter>
-            <Prefix>myPrefix</Prefix>
+			<And>
+				<Prefix>myPrefix</Prefix>
+			</And>
         </Filter>
         <IncludedObjectVersions>All</IncludedObjectVersions>
         <OptionalFields>
@@ -189,7 +199,7 @@ func TestBucketService_ListInventory(t *testing.T) {
             <Frequency>Weekly</Frequency>
         </Schedule>
         <Filter>
-            <Prefix>myPrefix2</Prefix>
+            <And><Prefix>myPrefix2</Prefix></And>
         </Filter>
         <IncludedObjectVersions>All</IncludedObjectVersions>
         <OptionalFields>
@@ -221,7 +231,10 @@ func TestBucketService_ListInventory(t *testing.T) {
 				ID:                     "list1",
 				IsEnabled:              "True",
 				IncludedObjectVersions: "All",
-				Filter:                 &BucketInventoryFilter{"myPrefix", nil},
+				Filter:                 &BucketInventoryFilter{
+					Prefix: "myPrefix",
+					Period: nil,
+				},
 				Schedule:               &BucketInventorySchedule{"Daily"},
 				Destination: &BucketInventoryDestination{
 					Bucket:     "qcs::cos:ap-beijing::examplebucket-1250000000",
@@ -246,7 +259,10 @@ func TestBucketService_ListInventory(t *testing.T) {
 				ID:                     "list2",
 				IsEnabled:              "True",
 				IncludedObjectVersions: "All",
-				Filter:                 &BucketInventoryFilter{"myPrefix2", nil},
+				Filter:                 &BucketInventoryFilter{
+					Prefix:"myPrefix2",
+					Period: nil,
+				},
 				Schedule:               &BucketInventorySchedule{"Weekly"},
 				Destination: &BucketInventoryDestination{
 					Bucket:    "qcs::cos:ap-beijing::examplebucket-1250000000",
@@ -298,7 +314,10 @@ func TestBucketService_PostInventory(t *testing.T) {
 		XMLName:                xml.Name{Local: "InventoryConfiguration"},
 		ID:                     "list1",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{"myPrefix", nil},
+		Filter:                 &BucketInventoryFilter{
+			Prefix: "myPrefix",
+			Period: nil,
+		},
 		Destination: &BucketInventoryDestination{
 			Bucket:     "qcs::cos:ap-guangzhou::examplebucket-1250000000",
 			AccountId:  "100000000001",
