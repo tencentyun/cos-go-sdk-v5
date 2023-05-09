@@ -49,9 +49,7 @@ func main() {
 	})
 	opt := &cos.PutAudioAuditingJobOptions{
 		InputObject: "test.mp3",
-		Conf: &cos.AudioAuditingJobConf{
-			DetectType: "Porn,Terrorism,Politics,Ads",
-		},
+		Conf:        &cos.AudioAuditingJobConf{},
 	}
 
 	res, _, err := c.CI.PutAudioAuditingJob(context.Background(), opt)

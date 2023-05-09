@@ -169,10 +169,9 @@ type RecognitionInfo struct {
 }
 
 // 图片审核 https://cloud.tencent.com/document/product/460/37318
-func (s *CIService) ImageRecognition(ctx context.Context, name string, DetectType string) (*ImageRecognitionResult, *Response, error) {
+func (s *CIService) ImageRecognition(ctx context.Context, name string, reserved string) (*ImageRecognitionResult, *Response, error) {
 	opt := &ImageRecognitionOptions{
-		CIProcess:  "sensitive-content-recognition",
-		DetectType: DetectType,
+		CIProcess: "sensitive-content-recognition",
 	}
 	var res ImageRecognitionResult
 	sendOpt := sendOptions{
@@ -213,6 +212,15 @@ type UserExtraInfo struct {
 	Gender         string `xml:",omitempty"`
 	Level          string `xml:",omitempty"`
 	Role           string `xml:",omitempty"`
+}
+
+// Encryption is user defined information
+type Encryption struct {
+	Algorithm string `xml:",omitempty"`
+	Key       string `xml:",omitempty"`
+	IV        string `xml:",omitempty"`
+	KeyId     string `xml:",omitempty"`
+	KeyType   int    `xml:",omitempty"`
 }
 
 // FreezeConf is auto freeze options
@@ -276,6 +284,7 @@ type ImageAuditingResult struct {
 	TeenagerInfo      *RecognitionInfo `xml:",omitempty"`
 	CompressionResult int              `xml:",omitempty"`
 	UserInfo          *UserExtraInfo   `xml:",omitempty"`
+	Encryption        *Encryption      `xml:",omitempty"`
 	ListInfo          *UserListInfo    `xml:",omitempty"`
 	ForbidState       int              `xml:",omitempty"`
 }
@@ -328,6 +337,7 @@ type PutVideoAuditingJobOptions struct {
 	InputUrl      string                `xml:"Input>Url,omitempty"`
 	InputDataId   string                `xml:"Input>DataId,omitempty"`
 	InputUserInfo *UserExtraInfo        `xml:"Input>UserInfo,omitempty"`
+	Encryption    *Encryption           `xml:",omitempty"`
 	Conf          *VideoAuditingJobConf `xml:"Conf"`
 	Type          string                `xml:"Type,omitempty"`
 	StorageConf   *StorageConf          `xml:"StorageConf,omitempty"`
@@ -403,6 +413,7 @@ type AuditingJobDetail struct {
 	DataId        string                        `xml:",omitempty"`
 	SnapshotCount string                        `xml:",omitempty"`
 	Label         string                        `xml:",omitempty"`
+	SubLabel      string                        `xml:",omitempty"`
 	Result        int                           `xml:",omitempty"`
 	PornInfo      *RecognitionInfo              `xml:",omitempty"`
 	TerrorismInfo *RecognitionInfo              `xml:",omitempty"`
@@ -774,12 +785,14 @@ type DocumentPageSegmentResultResult struct {
 type OcrResult struct {
 	Text     string    `xml:"Text,omitempty"`
 	Keywords []string  `xml:"Keywords,omitempty"`
+	SubLabel string    `xml:"SubLabel,omitempty"`
 	Location *Location `xml:"Location,omitempty"`
 }
 
 // ObjectResult
 type ObjectResult struct {
 	Name     string    `xml:"Name,omitempty"`
+	SubLabel string    `xml:"SubLabel,omitempty"`
 	Location *Location `xml:"Location,omitempty"`
 }
 

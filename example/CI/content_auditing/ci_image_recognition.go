@@ -45,9 +45,8 @@ func main() {
 			},
 		},
 	})
-	DetectType := "porn,terrorist,politics"
 	name := "test.jpg"
-	res, _, err := c.CI.ImageRecognition(context.Background(), name, DetectType)
+	res, _, err := c.CI.ImageRecognition(context.Background(), name, "")
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
