@@ -149,7 +149,6 @@ func TestCIService_ImageRecognition(t *testing.T) {
 		testMethod(t, r, "GET")
 		vs := values{
 			"ci-process":  "sensitive-content-recognition",
-			"detect-type": "porn,terrorist,politics",
 		}
 		testFormValues(t, r, vs)
 		fmt.Fprint(w, `<RecognitionResult>
