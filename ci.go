@@ -2089,3 +2089,15 @@ func (s *CIService) GetPosterproductionTemplates(ctx context.Context, opt *Descr
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
 }
+
+// GetOriginImage https://cloud.tencent.com/document/product/460/90744
+func (s *CIService) GetOriginImage(ctx context.Context, name string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.CIURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=originImage",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
