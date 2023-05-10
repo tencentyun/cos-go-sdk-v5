@@ -710,6 +710,7 @@ type MediaProcessJobOperation struct {
 	VideoTargetRec          *VideoTargetRec          `xml:"VideoTargetRec,omitempty"`
 	VideoTargetRecResult    *VideoTargetRecResult    `xml:"VideoTargetRecResult,omitempty"`
 	SegmentVideoBody        *SegmentVideoBody        `xml:"SegmentVideoBody,omitempty"`
+	FreeTranscode           string                   `xml:"FreeTranscode,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
