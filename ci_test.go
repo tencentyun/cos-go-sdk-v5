@@ -148,7 +148,7 @@ func TestCIService_ImageRecognition(t *testing.T) {
 	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		vs := values{
-			"ci-process":  "sensitive-content-recognition",
+			"ci-process": "sensitive-content-recognition",
 		}
 		testFormValues(t, r, vs)
 		fmt.Fprint(w, `<RecognitionResult>
@@ -2477,5 +2477,24 @@ func TestCIService_GetPosterproductionTemplates(t *testing.T) {
 	_, _, err := client.CI.GetPosterproductionTemplates(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.GetPosterproductionTemplates returned error: %v", err)
+	}
+}
+
+func TestCIService_GetOriginImage(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "originImage",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.GetOriginImage(context.Background(), key)
+	if err != nil {
+		t.Fatalf("CI.GetOriginImage returned error: %v", err)
 	}
 }
