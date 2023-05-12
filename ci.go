@@ -2101,3 +2101,171 @@ func (s *CIService) GetOriginImage(ctx context.Context, name string) (*Response,
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
 }
+
+// GetAIImageColoring https://https://cloud.tencent.com/document/product/460/83794
+func (s *CIService) GetAIImageColoring(ctx context.Context, name string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AIImageColoring",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// GetAISuperResolution https://cloud.tencent.com/document/product/460/83793
+func (s *CIService) GetAISuperResolution(ctx context.Context, name string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AISuperResolution",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// GetAIEnhanceImage https://cloud.tencent.com/document/product/460/83792
+func (s *CIService) GetAIEnhanceImage(ctx context.Context, name string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AIEnhanceImage",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// AIImageCropOptions 图像智能裁剪选项
+type AIImageCropOptions struct {
+	DetectUrl   string `url:"detect-url,omitempty"`
+	Width       int    `url:"width,omitempty"`
+	Height      int    `url:"height,omitempty"`
+	Fixed       int    `url:"fixed,omitempty"`
+	IgnoreError string `url:"ignore-error,omitempty"`
+}
+
+// GetAIImageCrop https://cloud.tencent.com/document/product/460/83791
+func (s *CIService) GetAIImageCrop(ctx context.Context, name string, opt *AIImageCropOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AIImageCrop",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// AutoTranslationBlockOptions 实时文字翻译
+type AutoTranslationBlockOptions struct {
+	InputText  string `url:"InputText,omitempty"`
+	SourceLang string `url:"SourceLang,omitempty"`
+	TargetLang string `url:"TargetLang,omitempty"`
+	TextDomain string `url:"TextDomain,omitempty"`
+	TextStyle  string `url:"TextStyle,omitempty"`
+}
+
+// AutoTranslationBlockResults 实时文字翻译选项
+type AutoTranslationBlockResults struct {
+	XMLName           xml.Name `xml:"TranslationResult"`
+	TranslationResult string   `xml:",chardata"`
+}
+
+// GetAIImageCrop https://cloud.tencent.com/document/product/460/83547
+func (s *CIService) GetAutoTranslationBlock(ctx context.Context, opt *AutoTranslationBlockOptions) (*AutoTranslationBlockResults, *Response, error) {
+	var res AutoTranslationBlockResults
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/?ci-process=AutoTranslationBlock",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+		result:           &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// ImageRepairOptions 图像修复选项
+type ImageRepairOptions struct {
+	MaskPic  string `url:"MaskPic,omitempty"`
+	MaskPoly string `url:"MaskPoly,omitempty"`
+}
+
+// GetImageRepair https://cloud.tencent.com/document/product/460/79042
+func (s *CIService) GetImageRepair(ctx context.Context, name string, opt *ImageRepairOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=ImageRepair",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// RecognizeLogoOptions Logo识别选项
+type RecognizeLogoOptions struct {
+	DetectUrl   string `url:"detect-url,omitempty"`
+	IgnoreError string `url:"ignore-error,omitempty"`
+}
+
+// RecognizeLogoResults Logo识别结果
+type RecognizeLogoResults struct {
+	XMLName  xml.Name `xml:"RecognitionResult"`
+	Status   int      `xml:"Status"`
+	LogoInfo []struct {
+		Name     string `xml:"Name,omitempty"`
+		Sorce    string `xml:"Sorce,omitempty"`
+		Location struct {
+			Point []string `xml:"Point,omitempty"`
+		} `xml:"Location,omitempty"`
+	} `xml:"LogoInfo,omitempty"`
+}
+
+// GetRecognizeLogo https://cloud.tencent.com/document/product/460/79736
+func (s *CIService) GetRecognizeLogo(ctx context.Context, name string, opt *RecognizeLogoOptions) (*RecognizeLogoResults, *Response, error) {
+	var res RecognizeLogoResults
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=RecognizeLogo",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+		result:           &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// AssessQualityResults Logo识别结果
+type AssessQualityResults struct {
+	XMLName        xml.Name `xml:"Response"`
+	LongImage      bool     `xml:"LongImage"`
+	BlackAndWhite  bool     `xml:"BlackAndWhite"`
+	SmallImage     bool     `xml:"SmallImage"`
+	BigImage       bool     `xml:"BigImage"`
+	PureImage      bool     `xml:"PureImage"`
+	ClarityScore   int      `xml:"ClarityScore"`
+	AestheticScore int      `xml:"AestheticScore"`
+	RequestId      string   `xml:"RequestId"`
+}
+
+// GetAssessQuality https://cloud.tencent.com/document/product/460/63228
+func (s *CIService) GetAssessQuality(ctx context.Context, name string) (*AssessQualityResults, *Response, error) {
+	var res AssessQualityResults
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AssessQuality",
+		method:           http.MethodGet,
+		disableCloseBody: true,
+		result:           &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
