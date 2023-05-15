@@ -2144,7 +2144,7 @@ type AIImageCropOptions struct {
 	Width       int    `url:"width,omitempty"`
 	Height      int    `url:"height,omitempty"`
 	Fixed       int    `url:"fixed,omitempty"`
-	IgnoreError string `url:"ignore-error,omitempty"`
+	IgnoreError int    `url:"ignore-error,omitempty"`
 }
 
 // GetAIImageCrop https://cloud.tencent.com/document/product/460/83791
@@ -2212,7 +2212,7 @@ func (s *CIService) GetImageRepair(ctx context.Context, name string, opt *ImageR
 // RecognizeLogoOptions Logo识别选项
 type RecognizeLogoOptions struct {
 	DetectUrl   string `url:"detect-url,omitempty"`
-	IgnoreError string `url:"ignore-error,omitempty"`
+	IgnoreError int `url:"ignore-error,omitempty"`
 }
 
 // RecognizeLogoResults Logo识别结果

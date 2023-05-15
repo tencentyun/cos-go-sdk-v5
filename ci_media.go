@@ -3117,3 +3117,96 @@ func (s *CIService) CancelInventoryTriggerJob(ctx context.Context, jobId string)
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
 }
+
+// CreateImageSearchBucketOptions 开通以图搜图选项
+type CreateImageSearchBucketOptions struct {
+	XMLName     xml.Name `xml:"Request"`
+	MaxCapacity string   `xml:"MaxCapacity,omitempty"`
+	MaxQps      string   `xml:"MaxQps,omitempty"`
+}
+
+// CreateImageSearchBucket 开通以图搜图
+func (s *CIService) CreateImageSearchBucket(ctx context.Context, opt *CreateImageSearchBucketOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/ImageSearchBucket",
+		body:    opt,
+		method:  http.MethodPost,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// AddImageOptions 添加图库图片选项
+type AddImageOptions struct {
+	XMLName       xml.Name `xml:"Request"`
+	EntityId      string   `xml:"EntityId,omitempty"`
+	CustomContent string   `xml:"CustomContent,omitempty"`
+	Tags          string   `xml:"Tags,omitempty"`
+}
+
+// AddImage 添加图库图片
+func (s *CIService) AddImage(ctx context.Context, name string, opt *AddImageOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/" + encodeURIComponent(name) + "?ci-process=ImageSearch&action=AddImage",
+		body:    opt,
+		method:  http.MethodPost,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// ImageSearchOptions 图片搜索接口选项
+type ImageSearchOptions struct {
+	MatchThreshold int    `url:"MatchThreshold,omitempty"`
+	Offset         int    `url:"Offset,omitempty"`
+	Limit          int    `url:"Limit,omitempty"`
+	Filter         string `url:"Filter,omitempty"`
+}
+
+// ImageSearchResult 图片搜索接口结果
+type ImageSearchResult struct {
+	XMLName    xml.Name `xml:"Response"`
+	Count      int      `xml:"Count"`
+	RequestId  string   `xml:"RequestId"`
+	ImageInfos []*struct {
+		EntityId      string `xml:"EntityId"`
+		CustomContent string `xml:"CustomContent"`
+		Tags          string `xml:"Tags"`
+		PicName       string `xml:"PicName"`
+		Score         int    `xml:"Score"`
+	} `xml:"ImageInfos,omitempty"`
+}
+
+// ImageSearch 图片搜索接口
+func (s *CIService) ImageSearch(ctx context.Context, name string, opt *ImageSearchOptions) (*ImageSearchResult, *Response, error) {
+	var res ImageSearchResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(name) + "?ci-process=ImageSearch&action=SearchImage",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DelImageOptions 删除图库图片选项
+type DelImageOptions struct {
+	XMLName  xml.Name `xml:"Request"`
+	EntityId string   `xml:"EntityId,omitempty"`
+}
+
+// DelImage 删除图库图片
+func (s *CIService) DelImage(ctx context.Context, name string, opt *DelImageOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/" + encodeURIComponent(name) + "?ci-process=ImageSearch&action=DeleteImage",
+		body:    opt,
+		method:  http.MethodPost,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
