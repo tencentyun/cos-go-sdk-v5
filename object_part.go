@@ -248,6 +248,12 @@ type ObjectCopyPartOptions struct {
 	XCosCopySourceIfUnmodifiedSince string `header:"x-cos-copy-source-If-Unmodified-Since,omitempty" url:"-"`
 	XCosCopySourceIfMatch           string `header:"x-cos-copy-source-If-Match,omitempty" url:"-"`
 	XCosCopySourceIfNoneMatch       string `header:"x-cos-copy-source-If-None-Match,omitempty" url:"-"`
+	// SSE-C
+	XCosCopySourceSSECustomerAglo   string `header:"x-cos-copy-source-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
+	XCosCopySourceSSECustomerKey    string `header:"x-cos-copy-source-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`
+	XCosCopySourceSSECustomerKeyMD5 string `header:"x-cos-copy-source-server-side-encryption-customer-key-MD5,omitempty" url:"-" xml:"-"`
+	//兼容其他自定义头部
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 }
 
 // CopyPartResult is the result CopyPart
@@ -489,6 +495,9 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 				partOpt.XCosCopySourceIfUnmodifiedSince = opt.OptCopy.XCosCopySourceIfUnmodifiedSince
 				partOpt.XCosCopySourceIfMatch = opt.OptCopy.XCosCopySourceIfMatch
 				partOpt.XCosCopySourceIfNoneMatch = opt.OptCopy.XCosCopySourceIfNoneMatch
+				partOpt.XCosCopySourceSSECustomerAglo = opt.OptCopy.XCosCopySourceSSECustomerAglo
+				partOpt.XCosCopySourceSSECustomerKey = opt.OptCopy.XCosCopySourceSSECustomerKey
+				partOpt.XCosCopySourceSSECustomerKeyMD5 = opt.OptCopy.XCosCopySourceSSECustomerKeyMD5
 			}
 			job := &CopyJobs{
 				Name:       name,
