@@ -2975,3 +2975,106 @@ func TestCIService_CancelInventoryTriggerJob(t *testing.T) {
 		t.Fatalf("CI.CancelInventoryTriggerJob returned error: %v", err)
 	}
 }
+
+func TestCIService_CreateImageSearchBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><MaxCapacity>10000</MaxCapacity><MaxQps>10</MaxQps></Request>"
+	mux.HandleFunc("/ImageSearchBucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateImageSearchBucketOptions{
+		MaxCapacity: "10000",
+		MaxQps:      "10",
+	}
+
+	_, err := client.CI.CreateImageSearchBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateImageSearchBucket returned error: %v", err)
+	}
+}
+
+func TestCIService_AddImage(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><EntityId>car</EntityId><CustomContent>my car</CustomContent><Tags>{&#34;type&#34;: &#34;car&#34;}</Tags></Request>"
+	mux.HandleFunc("/pic/car.jpg", func(w http.ResponseWriter, r *http.Request) {
+		v := values{
+			"ci-process": "ImageSearch",
+			"action":     "AddImage",
+		}
+		testMethod(t, r, http.MethodGet)
+		testFormValues(t, r, v)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &AddImageOptions{
+		EntityId:      "car",
+		CustomContent: "my car",
+		Tags:          "{\"type\": \"car\"}",
+	}
+
+	_, err := client.CI.AddImage(context.Background(), "pic/car.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.AddImage returned error: %v", err)
+	}
+}
+
+func TestCIService_ImageSearch(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/pic/car.jpg", func(w http.ResponseWriter, r *http.Request) {
+		v := values{
+			"ci-process":     "ImageSearch",
+			"action":         "SearchImage",
+			"MatchThreshold": "60",
+			"Offset":         "1",
+			"Limit":          "5",
+			"Filter":         "{\"type\": \"car\"}",
+		}
+		testMethod(t, r, http.MethodGet)
+		testFormValues(t, r, v)
+	})
+
+	opt := &ImageSearchOptions{
+		MatchThreshold: 60,
+		Offset:         1,
+		Limit:          5,
+		Filter:         "{\"type\": \"car\"}",
+	}
+
+	_, _, err := client.CI.ImageSearch(context.Background(), "pic/car.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.ImageSearch returned error: %v", err)
+	}
+}
+
+func TestCIService_DelImage(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><EntityId>car</EntityId></Request>"
+	mux.HandleFunc("/pic/car.jpg", func(w http.ResponseWriter, r *http.Request) {
+		v := values{
+			"ci-process": "ImageSearch",
+			"action":     "DeleteImage",
+		}
+		testMethod(t, r, http.MethodPost)
+		testFormValues(t, r, v)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &DelImageOptions{
+		EntityId: "car",
+	}
+
+	_, err := client.CI.DelImage(context.Background(), "pic/car.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.DelImage returned error: %v", err)
+	}
+}

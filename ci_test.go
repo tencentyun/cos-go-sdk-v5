@@ -2498,3 +2498,184 @@ func TestCIService_GetOriginImage(t *testing.T) {
 		t.Fatalf("CI.GetOriginImage returned error: %v", err)
 	}
 }
+
+func TestCIService_GetAIImageColoring(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIImageColoring",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.GetAIImageColoring(context.Background(), key)
+	if err != nil {
+		t.Fatalf("CI.GetAIImageColoring returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAISuperResolution(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AISuperResolution",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.GetAISuperResolution(context.Background(), key)
+	if err != nil {
+		t.Fatalf("CI.GetAISuperResolution returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAIEnhanceImage(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIEnhanceImage",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.GetAIEnhanceImage(context.Background(), key)
+	if err != nil {
+		t.Fatalf("CI.GetAIEnhanceImage returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAIImageCrop(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "AIImageCrop",
+			"width":        "128",
+			"height":       "96",
+			"fixed":        "1",
+			"ignore-error": "1",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &AIImageCropOptions{
+		Width:       128,
+		Height:      96,
+		Fixed:       1,
+		IgnoreError: 1,
+	}
+	_, err := client.CI.GetAIImageCrop(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("CI.GetAIImageCrop returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAutoTranslationBlock(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AutoTranslationBlock",
+			"InputText":  "你好",
+			"SourceLang": "zh",
+			"TargetLang": "en",
+			"TextDomain": "ecommerce",
+			"TextStyle":  "sentence",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &AutoTranslationBlockOptions{
+		InputText:  "你好",
+		SourceLang: "zh",
+		TargetLang: "en",
+		TextDomain: "ecommerce",
+		TextStyle:  "sentence",
+	}
+	_, _, err := client.CI.GetAutoTranslationBlock(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GetAutoTranslationBlock returned error: %v", err)
+	}
+}
+
+func TestCIService_GetImageRepair(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "ImageRepair",
+			"MaskPic":    "xxx",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &ImageRepairOptions{
+		MaskPic: "xxx",
+	}
+	_, err := client.CI.GetImageRepair(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("CI.GetImageRepair returned error: %v", err)
+	}
+}
+
+func TestCIService_GetRecognizeLogo(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":   "RecognizeLogo",
+			"ignore-error": "1",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &RecognizeLogoOptions{
+		IgnoreError: 1,
+	}
+	_, _, err := client.CI.GetRecognizeLogo(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("CI.GetRecognizeLogo returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAssessQuality(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AssessQuality",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, _, err := client.CI.GetAssessQuality(context.Background(), key)
+	if err != nil {
+		t.Fatalf("CI.GetAssessQuality returned error: %v", err)
+	}
+}
