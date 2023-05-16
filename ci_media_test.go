@@ -3007,7 +3007,7 @@ func TestCIService_AddImage(t *testing.T) {
 			"ci-process": "ImageSearch",
 			"action":     "AddImage",
 		}
-		testMethod(t, r, http.MethodGet)
+		testMethod(t, r, http.MethodPost)
 		testFormValues(t, r, v)
 		testBody(t, r, wantBody)
 	})
