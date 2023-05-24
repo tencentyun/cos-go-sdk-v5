@@ -556,8 +556,15 @@ type ObjectRestoreOptions struct {
 // PutRestore API can recover an object of type archived by COS archive.
 //
 // https://cloud.tencent.com/document/product/436/12633
-func (s *ObjectService) PostRestore(ctx context.Context, name string, opt *ObjectRestoreOptions) (*Response, error) {
-	u := fmt.Sprintf("/%s?restore", encodeURIComponent(name))
+func (s *ObjectService) PostRestore(ctx context.Context, name string, opt *ObjectRestoreOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?restore&versionId=%s", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?restore", encodeURIComponent(name))
+	} else {
+		return nil, errors.New("wrong params")
+	}
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       u,
