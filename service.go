@@ -16,19 +16,33 @@ type ServiceGetResult struct {
 	Buckets []Bucket `xml:"Buckets>Bucket,omitempty"`
 }
 
+type ServiceGetOptions struct {
+	TagKey     string `url:"tagkey,omitempty"`
+	TagValue   string `url:"tagvalue,omitempty"`
+	MaxKeys    int64  `url:"max-keys,omitempty"`
+	Marker     string `url:"marker,omitempty"`
+	Range      string `url:"range,omitempty"`
+	CreateTime int64  `url:"create-time,omitempty"`
+}
+
 // Get Service 接口实现获取该用户下所有Bucket列表。
 //
 // 该API接口需要使用Authorization签名认证，
 // 且只能获取签名中AccessID所属账户的Bucket列表。
 //
 // https://www.qcloud.com/document/product/436/8291
-func (s *ServiceService) Get(ctx context.Context) (*ServiceGetResult, *Response, error) {
+func (s *ServiceService) Get(ctx context.Context, opt ...*ServiceGetOptions) (*ServiceGetResult, *Response, error) {
+	var sopt *ServiceGetOptions
+	if len(opt) > 0 {
+		sopt = opt[0]
+	}
 	var res ServiceGetResult
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.ServiceURL,
-		uri:     "/",
-		method:  http.MethodGet,
-		result:  &res,
+		baseURL:  s.client.BaseURL.ServiceURL,
+		uri:      "/",
+		method:   http.MethodGet,
+		optQuery: sopt,
+		result:   &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
