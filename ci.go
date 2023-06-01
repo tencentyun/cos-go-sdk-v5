@@ -2212,7 +2212,7 @@ func (s *CIService) GetImageRepair(ctx context.Context, name string, opt *ImageR
 // RecognizeLogoOptions Logo识别选项
 type RecognizeLogoOptions struct {
 	DetectUrl   string `url:"detect-url,omitempty"`
-	IgnoreError int `url:"ignore-error,omitempty"`
+	IgnoreError int    `url:"ignore-error,omitempty"`
 }
 
 // RecognizeLogoResults Logo识别结果
@@ -2268,4 +2268,15 @@ func (s *CIService) GetAssessQuality(ctx context.Context, name string) (*AssessQ
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+func (s *CIService) TDCRefresh(ctx context.Context, name string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.CIURL,
+		uri:              "/" + encodeURIComponent(name) + "?TDCRefresh",
+		method:           http.MethodPost,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
 }
