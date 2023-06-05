@@ -2679,3 +2679,22 @@ func TestCIService_GetAssessQuality(t *testing.T) {
 		t.Fatalf("CI.GetAssessQuality returned error: %v", err)
 	}
 }
+
+func TestCIService_TDCRefresh(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		v := values{
+			"TDCRefresh": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.TDCRefresh(context.Background(), key)
+	if err != nil {
+		t.Fatalf("CI.TDCRefresh returned error: %v", err)
+	}
+}
