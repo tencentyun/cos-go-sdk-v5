@@ -365,6 +365,52 @@ func PausedWorkflow() {
 	fmt.Printf("%+v\n", DescribeWorkflowRes)
 }
 
+
+// WorkflowExecutionNotifyCallback TODO
+func WorkflowExecutionNotifyCallback() {
+	workflowExecutionBody := "<Response><EventName>WorkflowFinish</EventName><WorkflowExecution><RunId>i70ae991a152911ecb184525400a8700f</RunId><BucketId></BucketId><Object>62ddbc1245.mp4</Object><CosHeaders><Key>x-cos-meta-id</Key><Value>62ddbc1245</Value></CosHeaders><CosHeaders><Key>Content-Type</Key><Value>video/mp4</Value></CosHeaders><WorkflowId>w29ba54d02b7340dd9fb44eb5beb786b9</WorkflowId><WorkflowName></WorkflowName><CreateTime>2021-09-14 15:00:26+0800</CreateTime><State>Success</State><Tasks><Type>Transcode</Type><CreateTime>2021-09-14 15:00:27+0800</CreateTime><EndTime>2021-09-14 15:00:42+0800</EndTime><State>Success</State><JobId>j70bab192152911ecab79bba409874f7f</JobId><Name>Transcode_1607323983818</Name><TemplateId>t088613dea8d564a9ba7e6b02cbd5de877</TemplateId><TemplateName>HLS-FHD</TemplateName></Tasks></WorkflowExecution></Response>"
+	var body cos.WorkflowExecutionNotifyBody
+	err := xml.Unmarshal([]byte(workflowExecutionBody), &body)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("err:%v", err))
+	} else {
+		fmt.Println(fmt.Sprintf("body:%v", body))
+	}
+}
+
+/ TriggerWorkflow TODO
+func TriggerWorkflow() {
+	c := getClient()
+	triggerWorkflowOpt := &cos.TriggerWorkflowOptions{
+		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
+		Object:     "100986-2999.mp4",
+	}
+	triggerWorkflowRes, _, err := c.CI.TriggerWorkflow(context.Background(), triggerWorkflowOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", triggerWorkflowRes)
+}
+
+// DescribeWorkflowExecutions TODO
+func DescribeWorkflowExecutions() {
+	c := getClient()
+	describeWorkflowExecutionsOpt := &cos.DescribeWorkflowExecutionsOptions{
+		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
+	}
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecutions(context.Background(), describeWorkflowExecutionsOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
+}
+
+// DescribeMultiWorkflowExecution TODO
+func DescribeMultiWorkflowExecution() {
+	c := getClient()
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecution(context.Background(), "i00689df860ad11ec9c5952540019ee59")
+	log_status(err)
+	a, _ := json.Marshal(describeWorkflowExecutionsRes)
+	fmt.Println(string(a))
+	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
+}
+
 func main() {
 	// DescribeWorkflow()
 	// DeleteWorkflow()

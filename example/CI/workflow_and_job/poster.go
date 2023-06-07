@@ -109,8 +109,55 @@ func GetPosterproductionTemplates() {
 	fmt.Printf("%+v\n", &PutPosterproductionRes.TemplateList)
 }
 
+func InvokePosterProductionJob() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	type autoInfo struct {
+		TextMain string `xml:"text_main,omitempty"`
+		TextSub  string `xml:"text_sub,omitempty"`
+	}
+	info := autoInfo{
+		TextMain: "父亲节快乐",
+		TextSub:  "献给最伟大的父亲!!!",
+	}
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "PosterProduction",
+		Operation: &cos.MediaProcessJobOperation{
+			PosterProduction: &cos.PosterProduction{
+				TemplateId: "6444f12ae24d596cdbd774fb",
+				Info:       info,
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "lilang-12539604540",
+				Object: "poster/PosterProduction2.jpg",
+			},
+		},
+		// todo 需要替换为自己的回调地址信息
+		CallBack: "https://demo.org/callback",
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
 func main() {
 	// PutPosterproductionTemplate()
 	// GetPosterproductionTemplate()
 	// GetPosterproductionTemplates()
+	// InvokePosterProductionJob()
 }
