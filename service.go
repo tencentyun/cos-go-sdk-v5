@@ -11,9 +11,12 @@ type ServiceService service
 
 // ServiceGetResult is the result of Get Service
 type ServiceGetResult struct {
-	XMLName xml.Name `xml:"ListAllMyBucketsResult"`
-	Owner   *Owner   `xml:"Owner"`
-	Buckets []Bucket `xml:"Buckets>Bucket,omitempty"`
+	XMLName     xml.Name `xml:"ListAllMyBucketsResult"`
+	Owner       *Owner   `xml:"Owner"`
+	Buckets     []Bucket `xml:"Buckets>Bucket,omitempty"`
+	Marker      string   `xml:"Marker"`
+	NextMarker  string   `xml:"NextMarker"`
+	IsTruncated bool     `xml:"IsTruncated"`
 }
 
 type ServiceGetOptions struct {
