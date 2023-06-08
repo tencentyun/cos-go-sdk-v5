@@ -908,26 +908,46 @@ func pipe() {
 	}
 }
 
+func commonProcess() {
+	rawurl := "https://test-1234567890.cos.ap-chongqing.myqcloud.com"
+	// 下载时处理
+	{
+		obj := "pic/deer.jpg"
+		filepath := "./deer.jpg"
+		operation := "imageMogr2/xxx"
+		processWhenDownload(context.Background(), rawurl, obj, filepath, operation, nil)
+	}
+	// 上传时处理
+	{
+		obj := "pic/pipe/deer.jpg"
+		filepath := "./deer.jpg"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "pipe.jpg",
+					Rule:   "imageMogr2/xxx",
+				},
+			},
+		}
+		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
+	}
+	// 云上数据处理
+	{
+		obj := "pic/deer.jpg"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "pipe/pipe_80%.jpg",
+					Rule:   "imageMogr2/xxx",
+				},
+			},
+		}
+		processWhenCloud(context.Background(), rawurl, obj, pic)
+	}
+}
+
 func main() {
-	// blindWatermark()
-	// extractBlindWatermark()
-	// thumbnail()
-	// tailor()
-	// rotate()
-	// format()
-	// quality()
-	// blur()
-	// bright()
-	// contrast()
-	// sharpen()
-	// grayscale()
-	// picWatermark()
-	// textWatermark()
-	getImageInfoBase()
-	getImageInfoExif()
-	getImageInfoImageAve()
-	// strip()
-	// thumbnailTemplate()
-	// limit()
-	// pipe()
+	commonProcess()
 }

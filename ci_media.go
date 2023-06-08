@@ -15,10 +15,14 @@ import (
 
 // JobInput TODO
 type JobInput struct {
-	Object    string `xml:"Object,omitempty"`
-	Lang      string `xml:"Lang,omitempty"`
-	Type      string `xml:"Type,omitempty"`
-	BasicType string `xml:"BasicType,omitempty"`
+	Object     string `xml:"Object,omitempty"`
+	Lang       string `xml:"Lang,omitempty"`
+	Type       string `xml:"Type,omitempty"`
+	BasicType  string `xml:"BasicType,omitempty"`
+	CosHeaders []struct {
+		Key   string `xml:"Key"`
+		Value string `xml:"Value"`
+	} `xml:"CosHeaders"`
 }
 
 // StreamExtract TODO
@@ -128,12 +132,13 @@ type TransConfig struct {
 
 // Transcode TODO
 type Transcode struct {
-	Container    *Container    `xml:"Container,omitempty"`
-	Video        *Video        `xml:"Video,omitempty"`
-	TimeInterval *TimeInterval `xml:"TimeInterval,omitempty"`
-	Audio        *Audio        `xml:"Audio,omitempty"`
-	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
-	AudioMix     *AudioMix     `xml:"AudioMix,omitempty"`
+	Container     *Container    `xml:"Container,omitempty"`
+	Video         *Video        `xml:"Video,omitempty"`
+	TimeInterval  *TimeInterval `xml:"TimeInterval,omitempty"`
+	Audio         *Audio        `xml:"Audio,omitempty"`
+	TransConfig   *TransConfig  `xml:"TransConfig,omitempty"`
+	AudioMix      *AudioMix     `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix    `xml:"AudioMixArray,omitempty"`
 }
 
 // TranscodePro TODO
@@ -711,6 +716,12 @@ type MediaProcessJobOperation struct {
 	VideoTargetRecResult    *VideoTargetRecResult    `xml:"VideoTargetRecResult,omitempty"`
 	SegmentVideoBody        *SegmentVideoBody        `xml:"SegmentVideoBody,omitempty"`
 	FreeTranscode           string                   `xml:"FreeTranscode,omitempty"`
+	PicProcess              *PicProcess              `xml:"PicProcess,omitempty"`
+	PicProcessResult        *PicProcessResult        `xml:"PicProcessResult,omitempty"`
+	PosterProduction        *PosterProduction        `xml:"PosterProduction,omitempty"`
+	SpeechRecognition       *SpeechRecognition       `xml:"SpeechRecognition,omitempty"`
+	SpeechRecognitionResult *SpeechRecognitionResult `xml:"SpeechRecognitionResult,omitempty"`
+	SoundHoundResult        *SoundHoundResult        `xml:"SoundHoundResult,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
@@ -765,6 +776,13 @@ type MediaProcessJobDetail struct {
 	QueueId      string                    `xml:"QueueId,omitempty"`
 	Input        *JobInput                 `xml:"Input,omitempty"`
 	Operation    *MediaProcessJobOperation `xml:"Operation,omitempty"`
+	SubTag       string                    `xml:"SubTag,omitempty"`
+	Workflow     []struct {
+		Name         string `xml:"Name,omitempty"`
+		RunId        string `xml:"RunId,omitempty"`
+		WorkflowId   string `xml:"WorkflowId,omitempty"`
+		WorkflowName string `xml:"WorkflowName,omitempty"`
+	} `xml:"Workflow"`
 }
 
 // CreatePicJobsResult TODO
@@ -1173,6 +1191,9 @@ type DescribeAIProcessBucketsOptions DescribeMediaProcessBucketsOptions
 // DescribeASRProcessBucketsOptions TODO
 type DescribeASRProcessBucketsOptions DescribeMediaProcessBucketsOptions
 
+// DescribeFileProcessBucketsOptions TODO
+type DescribeFileProcessBucketsOptions DescribeMediaProcessBucketsOptions
+
 // DescribeMediaProcessBucketsOptions TODO
 type DescribeMediaProcessBucketsOptions struct {
 	Regions     string `url:"regions,omitempty"`
@@ -1220,6 +1241,16 @@ type DescribeASRProcessBucketsResult struct {
 	PageNumber      int                  `xml:"PageNumber,omitempty"`
 	PageSize        int                  `xml:"PageSize,omitempty"`
 	MediaBucketList []MediaProcessBucket `xml:"AsrBucketList,omitempty"`
+}
+
+// DescribeFileProcessBucketsResult TODO
+type DescribeFileProcessBucketsResult struct {
+	XMLName        xml.Name             `xml:"Response"`
+	RequestId      string               `xml:"RequestId,omitempty"`
+	TotalCount     int                  `xml:"TotalCount,omitempty"`
+	PageNumber     int                  `xml:"PageNumber,omitempty"`
+	PageSize       int                  `xml:"PageSize,omitempty"`
+	FileBucketList []MediaProcessBucket `xml:"FileBucketList,omitempty"`
 }
 
 // MediaProcessBucket TODO
@@ -1287,6 +1318,20 @@ func (s *CIService) DescribeASRProcessBuckets(ctx context.Context, opt *Describe
 	return &res, resp, err
 }
 
+// DescribeFileProcessBuckets TODO
+func (s *CIService) DescribeFileProcessBuckets(ctx context.Context, opt *DescribeFileProcessBucketsOptions) (*DescribeFileProcessBucketsResult, *Response, error) {
+	var res DescribeFileProcessBucketsResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/file_bucket",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // GetMediaInfoResult TODO
 type GetMediaInfoResult struct {
 	XMLName   xml.Name   `xml:"Response"`
@@ -1327,7 +1372,6 @@ type GenerateMediaInfoOptions struct {
 // GenerateMediaInfo TODO
 // 生成媒体信息接口，支持大文件，耗时较大请求
 func (s *CIService) GenerateMediaInfo(ctx context.Context, opt *GenerateMediaInfoOptions) (*GetMediaInfoResult, *Response, error) {
-
 	var res GetMediaInfoResult
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
@@ -1580,7 +1624,12 @@ type WorkflowNodeCondition struct {
 
 // SegmentVideoBody TODO
 type SegmentVideoBody struct {
-	Mode string `xml:"Mode,omitempty"`
+	Mode              string `xml:"Mode,omitempty"`
+	SegmentType       string `xml:"SegmentType,omitempty"`
+	BackgroundBlue    string `xml:"BackgroundBlue,omitempty"`
+	BackgroundRed     string `xml:"BackgroundRed,omitempty"`
+	BackgroundGreen   string `xml:"BackgroundGreen,omitempty"`
+	BackgroundLogoUrl string `xml:"BackgroundLogoUrl,omitempty"`
 }
 
 // NodeSmartCover TODO
@@ -3209,4 +3258,138 @@ func (s *CIService) DelImage(ctx context.Context, name string, opt *DelImageOpti
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+// CreateJobsOptions 提交任务的公用结构体
+type CreateJobsOptions CreateMediaJobsOptions
+
+// CreateJobsOptions 任务结果的公用结构体
+type CreateJobsResult CreateMediaJobsResult
+
+// CreateJobsOptions 提交任务的公用方法
+func (s *CIService) CreateJob(ctx context.Context, opt *CreateJobsOptions) (*CreateJobsResult, *Response, error) {
+	var res CreateJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// CreateJobsOptions 提交任务的公用方法
+func (s *CIService) CancelJob(ctx context.Context, jobId string) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs/" + jobId + "?cancel",
+		method:  http.MethodPut,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// DescribeJobsOptions 查询任务的公用选项
+type DescribeJobsOptions DescribeMediaJobsOptions
+
+// DescribeJobsResult 查询任务结果的公用结构体
+type DescribeJobsResult DescribeMediaJobsResult
+
+// DescribeJobs 查询任务列表的公用方法
+func (s *CIService) DescribeJobs(ctx context.Context, opt *DescribeJobsOptions) (*DescribeJobsResult, *Response, error) {
+	var res DescribeJobsResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/jobs",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeJobs 查询指定任务的公用方法
+func (s *CIService) DescribeJob(ctx context.Context, jobid string) (*DescribeJobsResult, *Response, error) {
+	var res DescribeJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs/" + jobid,
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// JobsNotifyBody TODO
+type JobsNotifyBody struct {
+	XMLName    xml.Name                `xml:"Response"`
+	EventName  string                  `xml:"EventName"`
+	JobsDetail []MediaProcessJobDetail `xml:"JobsDetail,omitempty"`
+}
+
+// ModifyM3U8TokenOptions TODO
+type ModifyM3U8TokenOptions struct {
+	Token string `url:"token"`
+}
+
+// ModifyM3U8Token TODO
+func (s *CIService) ModifyM3U8Token(ctx context.Context, name string, opt *ModifyM3U8TokenOptions, id ...string) (*Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=modifym3u8token", encodeURIComponent(name), id[0])
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?ci-process=modifym3u8token", encodeURIComponent(name))
+	} else {
+		return nil, fmt.Errorf("wrong params")
+	}
+
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              u,
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// DescribeJobsOptions 查询模板的公用选项
+type DescribeTemplateOptions DescribeMediaTemplateOptions
+
+// DescribeJobsResult 查询模板结果的公用结构体
+type DescribeTemplateResult DescribeMediaTemplateResult
+
+// DescribeTemplate 搜索模板的公用方法
+func (s *CIService) DescribeTemplate(ctx context.Context, opt *DescribeTemplateOptions) (*DescribeTemplateResult, *Response, error) {
+	var res DescribeTemplateResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/template",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeJobsResult 删除模板结果的公用结构体
+type DeleteTemplateResult DeleteMediaTemplateResult
+
+// DeleteTemplate 删除模板的公用方法
+func (s *CIService) DeleteTemplate(ctx context.Context, tempalteId string) (*DeleteTemplateResult, *Response, error) {
+	var res DeleteTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + tempalteId,
+		method:  http.MethodDelete,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
