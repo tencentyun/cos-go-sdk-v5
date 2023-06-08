@@ -120,6 +120,30 @@ type UserListInfo struct {
 	ListResults []UserListResults `xml:",omitempty"`
 }
 
+// AuditingMaskInfo 审核马赛克信息
+type AuditingMaskInfo struct {
+	RecordInfo *AuditingMaskRecordInfo `xml:",omitempty"`
+	LiveInfo   *AuditingMaskLiveInfo   `xml:",omitempty"`
+}
+
+// AuditingMaskInfo 审核马赛克信息
+type AuditingMaskRecordInfo struct {
+	Code    string `xml:"Code,omitempty"`
+	Message string `xml:"Message,omitempty"`
+	Output  *struct {
+		Region string `xml:"Region,omitempty"`
+		Bucket string `xml:"Bucket,omitempty"`
+		Object string `xml:"Object,omitempty"`
+	} `xml:"Output,omitempty"`
+}
+
+// AuditingMaskInfo 审核马赛克信息
+type AuditingMaskLiveInfo struct {
+	StartTime string `xml:"StartTime,omitempty"`
+	EndTime   string `xml:"EndTime,omitempty"`
+	Output    string `xml:"Output,omitempty"`
+}
+
 //UserListResults 命中账号黑白名单信息
 type UserListResults struct {
 	ListType *int   `xml:",omitempty"`
@@ -232,6 +256,41 @@ type FreezeConf struct {
 	AdsScore       string `xml:",omitempty"`
 	AbuseScore     string `xml:",omitempty"`
 	TeenagerScore  string `xml:",omitempty"`
+}
+
+// AuditingMask is auto Mask options
+type AuditingMask struct {
+	Images     []AuditingMaskImages    `xml:",omitempty"`
+	Audios     []AuditingMaskAudios    `xml:",omitempty"`
+	CosOutput  *AuditingMaskCosOutput  `xml:",omitempty"`
+	LiveOutput *AuditingMaskLiveOutput `xml:",omitempty"`
+}
+
+// AuditingMaskImages 审核马赛克相关参数
+type AuditingMaskImages struct {
+	Label string `xml:",omitempty"`
+	Type  string `xml:",omitempty"`
+	Url   string `xml:",omitempty"`
+}
+
+// AuditingMaskAudios 审核马赛克相关参数
+type AuditingMaskAudios struct {
+	Label string `xml:",omitempty"`
+	Type  string `xml:",omitempty"`
+}
+
+// AuditingMaskCosOutput 审核马赛克相关参数
+type AuditingMaskCosOutput struct {
+	Region    string     `xml:"Region,omitempty"`
+	Bucket    string     `xml:"Bucket,omitempty"`
+	Object    string     `xml:"Object,omitempty"`
+	Transcode *Transcode `xml:",omitempty"`
+}
+
+// AuditingMaskLiveOutput 审核马赛克相关参数
+type AuditingMaskLiveOutput struct {
+	Url       string     `xml:"Url,omitempty"`
+	Transcode *Transcode `xml:",omitempty"`
 }
 
 // ImageAuditingInputOptions is the option of BatchImageAuditingOptions
@@ -353,6 +412,7 @@ type VideoAuditingJobConf struct {
 	BizType         string                       `xml:",omitempty"`
 	DetectContent   int                          `xml:",omitempty"`
 	Freeze          *FreezeConf                  `xml:",omitempty"`
+	Mask            *AuditingMask                `xml:",omitempty"`
 }
 
 // PutVideoAuditingJobSnapshot is the snapshot config of VideoAuditingJobConf
@@ -426,6 +486,7 @@ type AuditingJobDetail struct {
 	Type          string                        `xml:",omitempty"`
 	ListInfo      *UserListInfo                 `xml:",omitempty"`
 	ForbidState   int                           `xml:",omitempty"`
+	MaskInfo      *AuditingMaskInfo             `xml:",omitempty"`
 }
 
 // GetVideoAuditingJobSnapshot is the snapshot result of AuditingJobDetail

@@ -519,6 +519,32 @@ func TestCIService_DescribeASRProcessBuckets(t *testing.T) {
 	}
 }
 
+func TestCIService_DescribeFileProcessBuckets(t *testing.T) {
+	setup()
+	defer teardown()
+
+	regions := "ap-shanghai,ap-gaungzhou"
+	bucketName := "testbucket-1250000000"
+	mux.HandleFunc("/file_bucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"regions":    regions,
+			"bucketName": bucketName,
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribeFileProcessBucketsOptions{
+		Regions:    regions,
+		BucketName: bucketName,
+	}
+
+	_, _, err := client.CI.DescribeFileProcessBuckets(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeFileProcessBuckets returned error: %v", err)
+	}
+}
+
 func TestCIService_GetMediaInfo(t *testing.T) {
 	res_xml := `<Response>
 	<MediaInfo>
@@ -3076,5 +3102,221 @@ func TestCIService_DelImage(t *testing.T) {
 	_, err := client.CI.DelImage(context.Background(), "pic/car.jpg", opt)
 	if err != nil {
 		t.Fatalf("CI.DelImage returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>Animation</Tag><Input><Object>test.mp4</Object></Input>" +
+		"<Operation><Output><Region>ap-beijing</Region><Bucket>abc-1250000000</Bucket>" +
+		"<Object>test-trans.gif</Object></Output>" +
+		"<TemplateId>t1460606b9752148c4ab182f55163ba7cd</TemplateId>" +
+		"</Operation><QueueId>p893bcda225bf4945a378da6662e81a89</QueueId>" +
+		"<CallBack>https://www.callback.com</CallBack></Request>"
+
+	mux.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateJobsOptions{
+		Tag: "Animation",
+		Input: &JobInput{
+			Object: "test.mp4",
+		},
+		Operation: &MediaProcessJobOperation{
+			Output: &JobOutput{
+				Region: "ap-beijing",
+				Bucket: "abc-1250000000",
+				Object: "test-trans.gif",
+			},
+			TemplateId: "t1460606b9752148c4ab182f55163ba7cd",
+		},
+		QueueId:  "p893bcda225bf4945a378da6662e81a89",
+		CallBack: "https://www.callback.com",
+	}
+
+	_, _, err := client.CI.CreateJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateJob returned errors: %v", err)
+	}
+}
+
+func TestCIService_CancelJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	jobId := "j1460606b9752148c4ab182f55163ba7cd"
+	mux.HandleFunc("/jobs/"+jobId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+	})
+
+	_, err := client.CI.CancelJob(context.Background(), jobId)
+	if err != nil {
+		t.Fatalf("CI.CancelJob returned errors: %v", err)
+	}
+}
+
+func TestCIService_DescribeJobs(t *testing.T) {
+	setup()
+	defer teardown()
+
+	queueId := "aaaaaaaaaaa"
+	tag := "Animation"
+
+	mux.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"queueId": queueId,
+			"tag":     tag,
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribeJobsOptions{
+		QueueId: queueId,
+		Tag:     tag,
+	}
+
+	_, _, err := client.CI.DescribeJobs(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeJobs returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	jobID := "jabcsdssfeipplsdfwe"
+	mux.HandleFunc("/jobs/"+jobID, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.DescribeJob(context.Background(), jobID)
+	if err != nil {
+		t.Fatalf("CI.DescribeJobs returned error: %v", err)
+	}
+}
+
+func TestCIService_ModifyM3U8Token(t *testing.T) {
+	name := "test.m3u8"
+	{
+		setup()
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "modifym3u8token",
+				"token":      "abc",
+			}
+			testFormValues(t, r, v)
+		})
+
+		opt := &ModifyM3U8TokenOptions{
+			Token: "abc",
+		}
+
+		_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt)
+		if err != nil {
+			t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		}
+		teardown()
+	}
+	{
+		setup()
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "modifym3u8token",
+				"token":      "abc",
+				"versionId":  "1",
+			}
+			testFormValues(t, r, v)
+		})
+
+		opt := &ModifyM3U8TokenOptions{
+			Token: "abc",
+		}
+
+		_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt, "1")
+		if err != nil {
+			t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		}
+		teardown()
+	}
+	{
+		setup()
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "modifym3u8token",
+				"token":      "abc",
+				"versionId":  "1",
+			}
+			testFormValues(t, r, v)
+		})
+
+		opt := &ModifyM3U8TokenOptions{
+			Token: "abc",
+		}
+
+		_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt, "1", "2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		}
+		teardown()
+	}
+}
+
+func TestCIService_DescribeTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"tag":        "All",
+			"category":   "Custom",
+			"ids":        "t123456798",
+			"name":       "test",
+			"pageNumber": "1",
+			"pageSize":   "20",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribeTemplateOptions{
+		Tag:        "All",
+		Category:   "Custom",
+		Ids:        "t123456798",
+		Name:       "test",
+		PageNumber: 1,
+		PageSize:   20,
+	}
+
+	_, _, err := client.CI.DescribeTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_DeleteTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	tplId := "tc7c990a00bf211ed946af9e0691f2b7a"
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+	})
+
+	_, _, err := client.CI.DeleteTemplate(context.Background(), tplId)
+	if err != nil {
+		t.Fatalf("CI.DeleteTemplate returned error: %v", err)
 	}
 }

@@ -30,9 +30,8 @@ func log_status(err error) {
 	}
 }
 
-func describeMediaBucket() {
+func PutPosterproductionTemplate() {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	// DescirbeMediaBuckets 需要设置 CIURL 为 ci.<Region>.myqcloud.com
 	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
@@ -48,18 +47,20 @@ func describeMediaBucket() {
 			},
 		},
 	})
-
-	opt := &cos.DescribeMediaProcessBucketsOptions{
-		Regions: "ap-chongqing",
+	PosterproductionTemplate := &cos.PosterproductionTemplateOptions{
+		Input: &cos.PosterproductionInput{
+			Object: "input/sample.psd",
+		},
+		Name: "test",
 	}
-	res, _, err := c.CI.DescribeMediaProcessBuckets(context.Background(), opt)
+	PutPosterproductionRes, _, err := c.CI.PutPosterproductionTemplate(context.Background(), PosterproductionTemplate)
 	log_status(err)
-	fmt.Printf("res: %+v\n", res)
+	fmt.Printf("%+v\n", PutPosterproductionRes)
+	fmt.Printf("%+v\n", &PutPosterproductionRes.Template)
 }
 
-func describePicBucket() {
+func GetPosterproductionTemplate() {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	// DescirbeMediaBuckets 需要设置 CIURL 为 ci.<Region>.myqcloud.com
 	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
@@ -75,18 +76,14 @@ func describePicBucket() {
 			},
 		},
 	})
-
-	opt := &cos.DescribePicProcessBucketsOptions{
-		Regions: "ap-chongqing",
-	}
-	res, _, err := c.CI.DescribePicProcessBuckets(context.Background(), opt)
+	PutPosterproductionRes, _, err := c.CI.GetPosterproductionTemplate(context.Background(), "6444f12ae24d596cdbd774fb")
 	log_status(err)
-	fmt.Printf("res: %+v\n", res)
+	fmt.Printf("%+v\n", PutPosterproductionRes)
+	fmt.Printf("%+v\n", &PutPosterproductionRes.Template)
 }
 
-func describeAIBucket() {
+func GetPosterproductionTemplates() {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	// DescirbeMediaBuckets 需要设置 CIURL 为 ci.<Region>.myqcloud.com
 	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
@@ -102,18 +99,18 @@ func describeAIBucket() {
 			},
 		},
 	})
-
-	opt := &cos.DescribeAIProcessBucketsOptions{
-		Regions: "ap-chongqing",
+	opt := &cos.DescribePosterproductionTemplateOptions{
+		PageNumber: 1,
+		PageSize:   10,
 	}
-	res, _, err := c.CI.DescribeAIProcessBuckets(context.Background(), opt)
+	PutPosterproductionRes, _, err := c.CI.GetPosterproductionTemplates(context.Background(), opt)
 	log_status(err)
-	fmt.Printf("res: %+v\n", res)
+	fmt.Printf("%+v\n", PutPosterproductionRes)
+	fmt.Printf("%+v\n", &PutPosterproductionRes.TemplateList)
 }
 
-func describeASRBucket() {
+func InvokePosterProductionJob() {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
-	// DescirbeMediaBuckets 需要设置 CIURL 为 ci.<Region>.myqcloud.com
 	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
@@ -129,18 +126,34 @@ func describeASRBucket() {
 			},
 		},
 	})
-
-	opt := &cos.DescribeASRProcessBucketsOptions{
-		Regions: "ap-chongqing",
+	type autoInfo struct {
+		TextMain string `xml:"text_main,omitempty"`
+		TextSub  string `xml:"text_sub,omitempty"`
 	}
-	res, _, err := c.CI.DescribeASRProcessBuckets(context.Background(), opt)
+	info := autoInfo{
+		TextMain: "父亲节快乐",
+		TextSub:  "献给最伟大的父亲!!!",
+	}
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "PosterProduction",
+		Operation: &cos.MediaProcessJobOperation{
+			PosterProduction: &cos.PosterProduction{
+				TemplateId: "6444f12ae24d596cdbd774fb",
+				Info:       info,
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-1234567890",
+				Object: "poster/PosterProduction2.jpg",
+			},
+		},
+		// todo 需要替换为自己的回调地址信息
+		CallBack: "https://demo.org/callback",
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
 	log_status(err)
-	fmt.Printf("res: %+v\n", res)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 }
 
 func main() {
-	describeMediaBucket()
-	describePicBucket()
-	describeAIBucket()
-	describeASRBucket()
 }
