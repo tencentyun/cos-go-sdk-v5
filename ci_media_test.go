@@ -3203,27 +3203,74 @@ func TestCIService_DescribeJob(t *testing.T) {
 }
 
 func TestCIService_ModifyM3U8Token(t *testing.T) {
-	setup()
-	defer teardown()
-
 	name := "test.m3u8"
-	mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		testMethod(t, r, http.MethodGet)
-		v := values{
-			"ci-process": "modifym3u8token",
-			"token":      "abc",
+	{
+		setup()
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "modifym3u8token",
+				"token":      "abc",
+			}
+			testFormValues(t, r, v)
+		})
+
+		opt := &ModifyM3U8TokenOptions{
+			Token: "abc",
 		}
-		testFormValues(t, r, v)
-	})
 
-	opt := &ModifyM3U8TokenOptions{
-		Token: "abc",
+		_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt)
+		if err != nil {
+			t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		}
+		teardown()
 	}
+	{
+		setup()
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "modifym3u8token",
+				"token":      "abc",
+				"versionId":  "1",
+			}
+			testFormValues(t, r, v)
+		})
 
-	_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt)
-	if err != nil {
-		t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		opt := &ModifyM3U8TokenOptions{
+			Token: "abc",
+		}
+
+		_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt, "1")
+		if err != nil {
+			t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		}
+		teardown()
+	}
+	{
+		setup()
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			testMethod(t, r, http.MethodGet)
+			v := values{
+				"ci-process": "modifym3u8token",
+				"token":      "abc",
+				"versionId":  "1",
+			}
+			testFormValues(t, r, v)
+		})
+
+		opt := &ModifyM3U8TokenOptions{
+			Token: "abc",
+		}
+
+		_, err := client.CI.ModifyM3U8Token(context.Background(), name, opt, "1", "2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.ModifyM3U8Token returned error: %v", err)
+		}
+		teardown()
 	}
 }
 
