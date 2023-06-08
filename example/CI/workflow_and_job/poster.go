@@ -143,7 +143,7 @@ func InvokePosterProductionJob() {
 			},
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "lilang-12539604540",
+				Bucket: "test-1234567890",
 				Object: "poster/PosterProduction2.jpg",
 			},
 		},
@@ -156,8 +156,4 @@ func InvokePosterProductionJob() {
 }
 
 func main() {
-	// PutPosterproductionTemplate()
-	// GetPosterproductionTemplate()
-	// GetPosterproductionTemplates()
-	// InvokePosterProductionJob()
 }

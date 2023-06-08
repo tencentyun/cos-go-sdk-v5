@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -33,10 +35,9 @@ func log_status(err error) {
 	}
 }
 
-// DescribeWorkflow 查询工作流
-func DescribeWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
+func getClient() *cos.Client {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -51,6 +52,13 @@ func DescribeWorkflow() {
 			},
 		},
 	})
+	return c
+}
+
+// DescribeWorkflow 查询工作流
+// https://cloud.tencent.com/document/product/460/76857
+func DescribeWorkflow() {
+	c := getClient()
 	opt := &cos.DescribeMediaWorkflowOptions{
 		Ids:        "w93aa43ba105347169fa093ed857b2a90,abc,123",
 		PageNumber: 1,
@@ -62,46 +70,18 @@ func DescribeWorkflow() {
 }
 
 // DeleteWorkflow 删除工作流
+// https://cloud.tencent.com/document/product/460/76860
 func DeleteWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	DescribeWorkflowRes, _, err := c.CI.DeleteMediaWorkflow(context.Background(), "w843779f0b22f49bbb7a189778d865059")
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeWorkflowRes)
 }
 
 // CreateWorkflow 创建工作流
+// https://cloud.tencent.com/document/product/460/76856
 func CreateWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	// CreateMediaWorkflow
 	rand.Seed(time.Now().UnixNano())
 	createWorkflowOpt := &cos.CreateMediaWorkflowOptions{
@@ -124,36 +104,12 @@ func CreateWorkflow() {
 	createWorkflowRes, _, err := c.CI.CreateMediaWorkflow(context.Background(), createWorkflowOpt)
 	log_status(err)
 	fmt.Printf("%+v\n", createWorkflowRes.MediaWorkflow)
-
-	// DescribeMediaWorkflow
-	if createWorkflowRes.MediaWorkflow != nil {
-		opt := &cos.DescribeMediaWorkflowOptions{
-			Ids: createWorkflowRes.MediaWorkflow.WorkflowId,
-		}
-		DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
-		log_status(err)
-		fmt.Printf("%+v\n", DescribeWorkflowRes)
-	}
 }
 
-// UpdateWorkflow TODO
+// UpdateWorkflow 更新工作流
+// https://cloud.tencent.com/document/product/460/76861
 func UpdateWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	// UpdateMediaWorkflow
 	rand.Seed(time.Now().UnixNano())
 	updateWorkflowOpt := &cos.CreateMediaWorkflowOptions{
@@ -187,23 +143,9 @@ func UpdateWorkflow() {
 }
 
 // CreateStreamWorkflow 创建自适应码流工作流
+// https://cloud.tencent.com/document/product/460/76856
 func CreateStreamWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	// CreateMediaWorkflow
 	rand.Seed(time.Now().UnixNano())
 	hpi := &cos.NodeHlsPackInfo{}
@@ -235,36 +177,12 @@ func CreateStreamWorkflow() {
 	createWorkflowRes, _, err := c.CI.CreateMediaWorkflow(context.Background(), createWorkflowOpt)
 	log_status(err)
 	fmt.Printf("%+v\n", createWorkflowRes.MediaWorkflow)
-
-	// DescribeMediaWorkflow
-	if createWorkflowRes.MediaWorkflow != nil {
-		opt := &cos.DescribeMediaWorkflowOptions{
-			Ids: createWorkflowRes.MediaWorkflow.WorkflowId,
-		}
-		DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
-		log_status(err)
-		fmt.Printf("%+v\n", DescribeWorkflowRes)
-	}
 }
 
 // UpdatStreamWorkflow 更新自适应码流工作流
+// https://cloud.tencent.com/document/product/460/76861
 func UpdatStreamWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-chongqing.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	// UpdateMediaWorkflow
 	rand.Seed(time.Now().UnixNano())
 	hpi := &cos.NodeHlsPackInfo{}
@@ -297,74 +215,59 @@ func UpdatStreamWorkflow() {
 	updateWorkflowRes, _, err := c.CI.UpdateMediaWorkflow(context.Background(), updateWorkflowOpt, WorkflowId)
 	log_status(err)
 	fmt.Printf("%+v\n", updateWorkflowRes.MediaWorkflow)
-
-	opt := &cos.DescribeMediaWorkflowOptions{
-		Ids: WorkflowId,
-	}
-	DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
-	log_status(err)
-	fmt.Printf("%+v\n", DescribeWorkflowRes)
 }
 
 // 启用工作流
 func ActiveWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-jakarta.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-jakarta.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	WorkflowId := "w8d1f24d05b434b17b491555496acf11d"
 	_, err := c.CI.ActiveMediaWorkflow(context.Background(), WorkflowId)
 	log_status(err)
-
-	opt := &cos.DescribeMediaWorkflowOptions{
-		Ids: WorkflowId,
-	}
-	DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
-	log_status(err)
-	fmt.Printf("%+v\n", DescribeWorkflowRes)
 }
+
 // 停用工作流
 func PausedWorkflow() {
-	u, _ := url.Parse("https://test-123456789.cos.ap-jakarta.myqcloud.com")
-	cu, _ := url.Parse("https://test-123456789.ci.ap-jakarta.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
-	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
-		},
-	})
+	c := getClient()
 	WorkflowId := "w8d1f24d05b434b17b491555496acf11d"
 	_, err := c.CI.PausedMediaWorkflow(context.Background(), WorkflowId)
 	log_status(err)
-
-	opt := &cos.DescribeMediaWorkflowOptions{
-		Ids: WorkflowId,
-	}
-	DescribeWorkflowRes, _, err := c.CI.DescribeMediaWorkflow(context.Background(), opt)
-	log_status(err)
-	fmt.Printf("%+v\n", DescribeWorkflowRes)
 }
 
+// TriggerWorkflow 测试工作流
+// https://cloud.tencent.com/document/product/460/76864
+func TriggerWorkflow() {
+	c := getClient()
+	triggerWorkflowOpt := &cos.TriggerWorkflowOptions{
+		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
+		Object:     "100986-2999.mp4",
+	}
+	triggerWorkflowRes, _, err := c.CI.TriggerWorkflow(context.Background(), triggerWorkflowOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", triggerWorkflowRes)
+}
+
+// DescribeWorkflowExecutions 获取工作流实例详情列表
+// https://cloud.tencent.com/document/product/460/80050
+func DescribeWorkflowExecutions() {
+	c := getClient()
+	describeWorkflowExecutionsOpt := &cos.DescribeWorkflowExecutionsOptions{
+		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
+	}
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecutions(context.Background(), describeWorkflowExecutionsOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
+}
+
+// DescribeMultiWorkflowExecution 获取工作流实例详情
+// https://cloud.tencent.com/document/product/460/80044
+func DescribeMultiWorkflowExecution() {
+	c := getClient()
+	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecution(context.Background(), "i00689df860ad11ec9c5952540019ee59")
+	log_status(err)
+	a, _ := json.Marshal(describeWorkflowExecutionsRes)
+	fmt.Println(string(a))
+	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
+}
 
 // WorkflowExecutionNotifyCallback TODO
 func WorkflowExecutionNotifyCallback() {
@@ -378,46 +281,5 @@ func WorkflowExecutionNotifyCallback() {
 	}
 }
 
-/ TriggerWorkflow TODO
-func TriggerWorkflow() {
-	c := getClient()
-	triggerWorkflowOpt := &cos.TriggerWorkflowOptions{
-		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
-		Object:     "100986-2999.mp4",
-	}
-	triggerWorkflowRes, _, err := c.CI.TriggerWorkflow(context.Background(), triggerWorkflowOpt)
-	log_status(err)
-	fmt.Printf("%+v\n", triggerWorkflowRes)
-}
-
-// DescribeWorkflowExecutions TODO
-func DescribeWorkflowExecutions() {
-	c := getClient()
-	describeWorkflowExecutionsOpt := &cos.DescribeWorkflowExecutionsOptions{
-		WorkflowId: "w18fd791485904afba3ab07ed57d9cf1e",
-	}
-	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecutions(context.Background(), describeWorkflowExecutionsOpt)
-	log_status(err)
-	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
-}
-
-// DescribeMultiWorkflowExecution TODO
-func DescribeMultiWorkflowExecution() {
-	c := getClient()
-	describeWorkflowExecutionsRes, _, err := c.CI.DescribeWorkflowExecution(context.Background(), "i00689df860ad11ec9c5952540019ee59")
-	log_status(err)
-	a, _ := json.Marshal(describeWorkflowExecutionsRes)
-	fmt.Println(string(a))
-	fmt.Printf("%+v\n", describeWorkflowExecutionsRes)
-}
-
 func main() {
-	// DescribeWorkflow()
-	// DeleteWorkflow()
-	// CreateWorkflow()
-	// UpdateWorkflow()
-	// CreateStreamWorkflow()
-	// UpdatStreamWorkflow()
-	ActiveWorkflow()
-	//PausedWorkflow()
 }

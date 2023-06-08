@@ -33,8 +33,8 @@ func log_status(err error) {
 }
 
 func getClient() *cos.Client {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -66,7 +66,7 @@ func PostSnapshot() {
 		Format: "png",
 		Output: &cos.JobOutput{
 			Region: "ap-chongqing",
-			Bucket: "lilang-1253960454",
+			Bucket: "test-1234567890",
 			Object: "test.mp4.png",
 		},
 	}

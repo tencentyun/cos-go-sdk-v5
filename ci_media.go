@@ -132,12 +132,13 @@ type TransConfig struct {
 
 // Transcode TODO
 type Transcode struct {
-	Container    *Container    `xml:"Container,omitempty"`
-	Video        *Video        `xml:"Video,omitempty"`
-	TimeInterval *TimeInterval `xml:"TimeInterval,omitempty"`
-	Audio        *Audio        `xml:"Audio,omitempty"`
-	TransConfig  *TransConfig  `xml:"TransConfig,omitempty"`
-	AudioMix     *AudioMix     `xml:"AudioMix,omitempty"`
+	Container     *Container    `xml:"Container,omitempty"`
+	Video         *Video        `xml:"Video,omitempty"`
+	TimeInterval  *TimeInterval `xml:"TimeInterval,omitempty"`
+	Audio         *Audio        `xml:"Audio,omitempty"`
+	TransConfig   *TransConfig  `xml:"TransConfig,omitempty"`
+	AudioMix      *AudioMix     `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix    `xml:"AudioMixArray,omitempty"`
 }
 
 // TranscodePro TODO
@@ -1190,6 +1191,9 @@ type DescribeAIProcessBucketsOptions DescribeMediaProcessBucketsOptions
 // DescribeASRProcessBucketsOptions TODO
 type DescribeASRProcessBucketsOptions DescribeMediaProcessBucketsOptions
 
+// DescribeFileProcessBucketsOptions TODO
+type DescribeFileProcessBucketsOptions DescribeMediaProcessBucketsOptions
+
 // DescribeMediaProcessBucketsOptions TODO
 type DescribeMediaProcessBucketsOptions struct {
 	Regions     string `url:"regions,omitempty"`
@@ -1237,6 +1241,16 @@ type DescribeASRProcessBucketsResult struct {
 	PageNumber      int                  `xml:"PageNumber,omitempty"`
 	PageSize        int                  `xml:"PageSize,omitempty"`
 	MediaBucketList []MediaProcessBucket `xml:"AsrBucketList,omitempty"`
+}
+
+// DescribeFileProcessBucketsResult TODO
+type DescribeFileProcessBucketsResult struct {
+	XMLName        xml.Name             `xml:"Response"`
+	RequestId      string               `xml:"RequestId,omitempty"`
+	TotalCount     int                  `xml:"TotalCount,omitempty"`
+	PageNumber     int                  `xml:"PageNumber,omitempty"`
+	PageSize       int                  `xml:"PageSize,omitempty"`
+	FileBucketList []MediaProcessBucket `xml:"FileBucketList,omitempty"`
 }
 
 // MediaProcessBucket TODO
@@ -1296,6 +1310,20 @@ func (s *CIService) DescribeASRProcessBuckets(ctx context.Context, opt *Describe
 	sendOpt := sendOptions{
 		baseURL:  s.client.BaseURL.CIURL,
 		uri:      "/asrbucket",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeFileProcessBuckets TODO
+func (s *CIService) DescribeFileProcessBuckets(ctx context.Context, opt *DescribeFileProcessBucketsOptions) (*DescribeFileProcessBucketsResult, *Response, error) {
+	var res DescribeFileProcessBucketsResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/file_bucket",
 		optQuery: opt,
 		method:   http.MethodGet,
 		result:   &res,
@@ -3328,4 +3356,40 @@ func (s *CIService) ModifyM3U8Token(ctx context.Context, name string, opt *Modif
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+// DescribeJobsOptions 查询模板的公用选项
+type DescribeTemplateOptions DescribeMediaTemplateOptions
+
+// DescribeJobsResult 查询模板结果的公用结构体
+type DescribeTemplateResult DescribeMediaTemplateResult
+
+// DescribeTemplate 搜索模板的公用方法
+func (s *CIService) DescribeTemplate(ctx context.Context, opt *DescribeTemplateOptions) (*DescribeTemplateResult, *Response, error) {
+	var res DescribeTemplateResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/template",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// DescribeJobsResult 删除模板结果的公用结构体
+type DeleteTemplateResult DeleteMediaTemplateResult
+
+// DeleteTemplate 删除模板的公用方法
+func (s *CIService) DeleteTemplate(ctx context.Context, tempalteId string) (*DeleteTemplateResult, *Response, error) {
+	var res DeleteTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + tempalteId,
+		method:  http.MethodDelete,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }

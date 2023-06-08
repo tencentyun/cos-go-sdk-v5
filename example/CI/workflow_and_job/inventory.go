@@ -193,9 +193,4 @@ func CancelInventoryTriggerJobs() {
 }
 
 func main() {
-	// DescribeInventoryTriggerJob()
-	// DescribeInventoryTriggerJobs()
-	// CreateInventoryTriggerJob()
-	CreateInventoryTriggerJobByParam()
-	// CancelInventoryTriggerJobs()
 }

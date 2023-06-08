@@ -32,8 +32,8 @@ func log_status(err error) {
 }
 
 func getClient() *cos.Client {
-	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -94,7 +94,7 @@ func InvokeTranscodeJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/test.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			Transcode: &cos.Transcode{
 				Container: &cos.Container{
@@ -131,7 +131,7 @@ func InvokeVideoEnhanceJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/test.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			VideoEnhance: &cos.VideoEnhance{
 				Transcode: &cos.Transcode{
@@ -208,7 +208,7 @@ func InvokeVideoMontageJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/test.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			VideoMontage: &cos.VideoMontage{
 				Container: &cos.Container{
@@ -261,7 +261,7 @@ func InvokeSnapshotJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/abc-${Number}.jpg",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			Snapshot: &cos.Snapshot{
 				Mode:  "Interval",
@@ -288,7 +288,7 @@ func InvokeSpriteSnapshotJob() {
 			Output: &cos.JobOutput{
 				Region:       "ap-chongqing",
 				Object:       "output/abc-${Number}.jpg",
-				Bucket:       "lilang-1253960454",
+				Bucket:       "test-1234567890",
 				SpriteObject: "output/sprite-${Number}.jpg",
 			},
 			Snapshot: &cos.Snapshot{
@@ -343,7 +343,7 @@ func InvokeWatermarkJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/test.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			Watermark: ws,
 		},
@@ -388,7 +388,7 @@ func InvokeAnimationJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/game.jpg",
-				Bucket: "lilang-12539604540",
+				Bucket: "test-12345678900",
 			},
 			Animation: &cos.Animation{
 				Container: &cos.Container{
@@ -423,7 +423,7 @@ func InvokeDigitalWatermarkJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/test.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			DigitalWatermark: &cos.DigitalWatermark{
 				Message: "HelloWorld",
@@ -476,7 +476,7 @@ func InvokeStreamExtractJob() {
 		Operation: &cos.MediaProcessJobOperation{
 			Output: &cos.JobOutput{
 				Region:        "ap-chongqing",
-				Bucket:        "lilang-1253960454",
+				Bucket:        "test-1234567890",
 				StreamExtract: streamEtract,
 			},
 		},
@@ -492,13 +492,13 @@ func InvokeConcatJob() {
 	c := getClient()
 	concatFragment := make([]cos.ConcatFragment, 0)
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url:           "https://lilang-1253960454.cos.ap-beijing.myqcloud.com/input/test1.mp4",
+		Url:           "https://test-1234567890.cos.ap-beijing.myqcloud.com/input/test1.mp4",
 		StartTime:     "0",
 		EndTime:       "10",
 		FragmentIndex: "0",
 	})
 	concatFragment = append(concatFragment, cos.ConcatFragment{
-		Url:           "https://lilang-1253960454.cos.ap-beijing.myqcloud.com/input/test2.mp4",
+		Url:           "https://test-1234567890.cos.ap-beijing.myqcloud.com/input/test2.mp4",
 		StartTime:     "20",
 		EndTime:       "30",
 		FragmentIndex: "1",
@@ -509,7 +509,7 @@ func InvokeConcatJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-beijing",
 				Object: "output/go_test.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			ConcatTemplate: &cos.ConcatTemplate{
 				Container: &cos.Container{
@@ -543,7 +543,7 @@ func InvokeSegmentJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/m3u8/a",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			Segment: &cos.Segment{
 				Format:   "hls",
@@ -580,7 +580,7 @@ func InvokeSmartCoverJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "output/mc-${number}.jpg",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 		},
 	}
@@ -605,7 +605,7 @@ func InvokePicProcessJob() {
 			},
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 				Object: "test.jpg",
 			},
 		},
@@ -635,7 +635,7 @@ func InvokeTranslationJob() {
 			},
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 				Object: "output/out.txt",
 			},
 			UserData: "This is my Translation job",
@@ -663,7 +663,7 @@ func InvokeWordsGeneralizeJob() {
 			},
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 				Object: "output/out.txt",
 			},
 			UserData: "This is my WordsGeneralize job",
@@ -759,7 +759,7 @@ func InvokeVoiceSeparateJob() {
 				Region:   "ap-chongqing",
 				Object:   "output/voice.mp3",
 				AuObject: "output/au.mp4",
-				Bucket:   "lilang-1253960454",
+				Bucket:   "test-1234567890",
 			},
 			VoiceSeparate: &cos.VoiceSeparate{
 				AudioMode: "AudioAndBackground",
@@ -802,7 +802,7 @@ func InvokeNoiseReductionJob() {
 		Operation: &cos.MediaProcessJobOperation{
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 				Object: "output/out.mp3",
 			},
 			UserData: "This is my NoiseReduction job",
@@ -834,7 +834,7 @@ func InvokeTtsJob() {
 			},
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 				Object: "output/out.mp3",
 			},
 			UserData: "This is my Tts job",
@@ -859,7 +859,7 @@ func InvokeSpeechRecognitionJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "music.txt",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 			SpeechRecognition: &cos.SpeechRecognition{
 				ChannelNum:      "1",
@@ -886,7 +886,7 @@ func InvokeMultiJobs() {
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
 					Object: "output/go_${Number}.mp4",
-					Bucket: "lilang-1253960454",
+					Bucket: "test-1234567890",
 				},
 				Snapshot: &cos.Snapshot{
 					Mode:  "Interval",
@@ -899,7 +899,7 @@ func InvokeMultiJobs() {
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
 					Object: "output/go_test.mp4",
-					Bucket: "lilang-1253960454",
+					Bucket: "test-1234567890",
 				},
 				Transcode: &cos.Transcode{
 					Container: &cos.Container{
@@ -922,7 +922,7 @@ func InvokeMultiJobs() {
 				Output: &cos.JobOutput{
 					Region: "ap-chongqing",
 					Object: "output/go_117374C.gif",
-					Bucket: "lilang-1253960454",
+					Bucket: "test-1234567890",
 				},
 				Animation: &cos.Animation{
 					Container: &cos.Container{
