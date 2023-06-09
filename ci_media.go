@@ -266,13 +266,20 @@ type ConcatFragment struct {
 
 // ConcatTemplate TODO
 type ConcatTemplate struct {
-	ConcatFragment []ConcatFragment `xml:"ConcatFragment,omitempty"`
-	Audio          *Audio           `xml:"Audio,omitempty"`
-	Video          *Video           `xml:"Video,omitempty"`
-	Container      *Container       `xml:"Container,omitempty"`
-	Index          string           `xml:"Index,omitempty"`
-	AudioMix       *AudioMix        `xml:"AudioMix,omitempty"`
-	AudioMixArray  []AudioMix       `xml:"AudioMixArray,omitempty"`
+	ConcatFragment  []ConcatFragment `xml:"ConcatFragment,omitempty"`
+	Audio           *Audio           `xml:"Audio,omitempty"`
+	Video           *Video           `xml:"Video,omitempty"`
+	Container       *Container       `xml:"Container,omitempty"`
+	Index           string           `xml:"Index,omitempty"`
+	AudioMix        *AudioMix        `xml:"AudioMix,omitempty"`
+	AudioMixArray   []AudioMix       `xml:"AudioMixArray,omitempty"`
+	SceneChangeInfo *SceneChangeInfo `xml:"SceneChangeInfo,omitempty"`
+}
+
+// SceneChangeInfo 转场参数
+type SceneChangeInfo struct {
+	Mode string `xml:"Mode,omitempty"`
+	Time string `xml:"Time,omitempty"`
 }
 
 // SpriteSnapshotConfig TODO
