@@ -120,6 +120,7 @@ func InvokeTranscodeJob() {
 }
 
 // InvokeVideoEnhanceJob 提交一个画质增强任务
+// https://cloud.tencent.com/document/product/460/84775
 func InvokeVideoEnhanceJob() {
 	c := getClient()
 	createJobOpt := &cos.CreateJobsOptions{
@@ -180,7 +181,7 @@ func InvokeVideoEnhanceJob() {
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 }
 
-// InvokeMediaInfoJob 提交一个获取媒体信息
+// InvokeMediaInfoJob 提交一个获取媒体信息任务
 // https://cloud.tencent.com/document/product/460/84776
 func InvokeMediaInfoJob() {
 	c := getClient()
@@ -522,6 +523,10 @@ func InvokeConcatJob() {
 					Codec: "AAC",
 				},
 				ConcatFragment: concatFragment,
+				SceneChangeInfo: &cos.SceneChangeInfo{
+					Mode: "GRADIENT", // Default：不添加转场特效; FADE：淡入淡出; GRADIENT：渐变
+					Time: "4.5",      // 取值范围：(0, 5], 支持小数, 默认值3
+				},
 			},
 		},
 	}
