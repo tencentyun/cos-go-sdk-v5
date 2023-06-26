@@ -957,13 +957,13 @@ func InvokeFillConcatJob() {
 	c := getClient()
 	FillConcat := make([]cos.FillConcatInput, 0)
 	FillConcat = append(FillConcat, cos.FillConcatInput{
-		Url: "https://lilang-1253960454.cos.ap-chongqing.myqcloud.com/input/car.mp4",
+		Url: "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/car.mp4",
 	})
 	FillConcat = append(FillConcat, cos.FillConcatInput{
 		FillTime: "5.5",
 	})
 	FillConcat = append(FillConcat, cos.FillConcatInput{
-		Url: "https://lilang-1253960454.cos.ap-chongqing.myqcloud.com/input/game.mp4",
+		Url: "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/game.mp4",
 	})
 	createJobOpt := &cos.CreateJobsOptions{
 		Tag: "FillConcat",
@@ -975,7 +975,7 @@ func InvokeFillConcatJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "fill_concat.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 		},
 	}
@@ -989,11 +989,11 @@ func InvokeVideoSynthesisJob() {
 	c := getClient()
 	SpliceInfo := make([]cos.VideoSynthesisSpliceInfo, 0)
 	SpliceInfo = append(SpliceInfo, cos.VideoSynthesisSpliceInfo{
-		Url:   "https://lilang-1253960454.cos.ap-chongqing.myqcloud.com/input/car.mp4",
+		Url:   "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/car.mp4",
 		Width: "640",
 	})
 	SpliceInfo = append(SpliceInfo, cos.VideoSynthesisSpliceInfo{
-		Url:   "https://lilang-1253960454.cos.ap-chongqing.myqcloud.com/input/game.mp4",
+		Url:   "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/game.mp4",
 		X:     "640",
 		Width: "640",
 	})
@@ -1036,7 +1036,7 @@ func InvokeVideoSynthesisJob() {
 			Output: &cos.JobOutput{
 				Region: "ap-chongqing",
 				Object: "video_synthesis.mp4",
-				Bucket: "lilang-1253960454",
+				Bucket: "test-1234567890",
 			},
 		},
 	}
