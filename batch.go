@@ -33,6 +33,14 @@ type BatchJobReport struct {
 }
 
 // BatchJobOperationCopy
+type BatchCOSTag struct {
+	Key   string `xml:"Key,omitempty" header:"-" url:"-"`
+	Value string `xml:"Value,omitempty" header:"-" url:"-"`
+}
+type BatchNewObjectTagging struct {
+	COSTag []BatchCOSTag `xml:"COSTag,omitempty" header:"-" url:"-"`
+}
+
 type BatchMetadata struct {
 	Key   string `xml:"Key" header:"-" url:"-"`
 	Value string `xml:"Value" header:"-" url:"-"`
@@ -59,12 +67,18 @@ type BatchAccessControlGrants struct {
 	COSGrants *BatchCOSGrant `xml:"COSGrant,omitempty" header:"-" url:"-"`
 }
 type BatchJobOperationCopy struct {
+	AccessControlDirective    string                    `xml:"AccessControlDirective,omitempty" header:"-" url:"-"`
 	AccessControlGrants       *BatchAccessControlGrants `xml:"AccessControlGrants,omitempty" header:"-" url:"-"`
 	CannedAccessControlList   string                    `xml:"CannedAccessControlList,omitempty" header:"-" url:"-"`
+	PrefixReplace             bool                      `xml:"PrefixReplace,omitempty" header:"-" url:"-"`
+	ResourcesPrefix           string                    `xml:"ResourcesPrefix,omitempty" header:"-" url:"-"`
+	TargetKeyPrefix           string                    `xml:"TargetKeyPrefix,omitempty" header:"-" url:"-"`
 	MetadataDirective         string                    `xml:"MetadataDirective,omitempty" header:"-" url:"-"`
 	ModifiedSinceConstraint   int64                     `xml:"ModifiedSinceConstraint,omitempty" header:"-" url:"-"`
 	UnModifiedSinceConstraint int64                     `xml:"UnModifiedSinceConstraint,omitempty" header:"-" url:"-"`
 	NewObjectMetadata         *BatchNewObjectMetadata   `xml:"NewObjectMetadata,omitempty" header:"-" url:"-"`
+	TaggingDirective          string                    `xml:"TaggingDirective,omitempty" header:"-" url:"-"`
+	NewObjectTagging          *BatchNewObjectTagging    `xml:"NewObjectTagging,omitempty" header:"-" url:"-"`
 	StorageClass              string                    `xml:"StorageClass,omitempty" header:"-" url:"-"`
 	TargetResource            string                    `xml:"TargetResource" header:"-" url:"-"`
 }
