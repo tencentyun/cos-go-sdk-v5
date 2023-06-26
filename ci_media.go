@@ -729,6 +729,8 @@ type MediaProcessJobOperation struct {
 	SpeechRecognition       *SpeechRecognition       `xml:"SpeechRecognition,omitempty"`
 	SpeechRecognitionResult *SpeechRecognitionResult `xml:"SpeechRecognitionResult,omitempty"`
 	SoundHoundResult        *SoundHoundResult        `xml:"SoundHoundResult,omitempty"`
+	FillConcat              *FillConcat              `xml:"FillConcat,omitempty"`
+	VideoSynthesis          *VideoSynthesis          `xml:"VideoSynthesis,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
@@ -3399,4 +3401,31 @@ func (s *CIService) DeleteTemplate(ctx context.Context, tempalteId string) (*Del
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+// FillConcat 填充拼接
+type FillConcat struct {
+	Format    string            `xml:"Format,omitempty"`
+	FillInput []FillConcatInput `xml:"FillInput,omitempty"`
+}
+
+// FillConcatInput 填充拼接输入
+type FillConcatInput struct {
+	Url      string `xml:"Url,omitempty"`
+	FillTime string `xml:"FillTime,omitempty"`
+}
+
+// VideoSynthesis 视频合成
+type VideoSynthesis struct {
+	KeepAudioTrack string                     `xml:"KeepAudioTrack,omitempty"`
+	SpliceInfo     []VideoSynthesisSpliceInfo `xml:"SpliceInfo,omitempty"`
+}
+
+// VideoSynthesisSpliceInfo 视频合成输入
+type VideoSynthesisSpliceInfo struct {
+	Url    string `xml:"Url,omitempty"`
+	X      string `xml:"X,omitempty"`
+	Y      string `xml:"Y,omitempty"`
+	Width  string `xml:"Width,omitempty"`
+	Height string `xml:"Height,omitempty"`
 }
