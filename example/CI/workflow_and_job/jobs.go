@@ -76,7 +76,7 @@ func DescribeJobs() {
 // https://cloud.tencent.com/document/product/460/84765
 func DescribeJob() {
 	c := getClient()
-	DescribeJobRes, _, err := c.CI.DescribeJob(context.Background(), "j5c6b2d1e044e11ee8b23bda0f853af96")
+	DescribeJobRes, _, err := c.CI.DescribeJob(context.Background(), "ja507fb3413f711eebccc9dd62ab48c0e")
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
@@ -120,6 +120,7 @@ func InvokeTranscodeJob() {
 }
 
 // InvokeVideoEnhanceJob 提交一个画质增强任务
+// https://cloud.tencent.com/document/product/460/84775
 func InvokeVideoEnhanceJob() {
 	c := getClient()
 	createJobOpt := &cos.CreateJobsOptions{
@@ -180,7 +181,7 @@ func InvokeVideoEnhanceJob() {
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 }
 
-// InvokeMediaInfoJob 提交一个获取媒体信息
+// InvokeMediaInfoJob 提交一个获取媒体信息任务
 // https://cloud.tencent.com/document/product/460/84776
 func InvokeMediaInfoJob() {
 	c := getClient()
@@ -522,6 +523,10 @@ func InvokeConcatJob() {
 					Codec: "AAC",
 				},
 				ConcatFragment: concatFragment,
+				SceneChangeInfo: &cos.SceneChangeInfo{
+					Mode: "GRADIENT", // Default：不添加转场特效; FADE：淡入淡出; GRADIENT：渐变
+					Time: "4.5",      // 取值范围：(0, 5], 支持小数, 默认值3
+				},
 			},
 		},
 	}
@@ -945,6 +950,99 @@ func InvokeMultiJobs() {
 	for k, job := range createJobRes.JobsDetail {
 		fmt.Printf("job:%d, %+v\n", k, job)
 	}
+}
+
+// InvokeFillConcatJob 提交一个填充拼接任务
+func InvokeFillConcatJob() {
+	c := getClient()
+	FillConcat := make([]cos.FillConcatInput, 0)
+	FillConcat = append(FillConcat, cos.FillConcatInput{
+		Url: "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/car.mp4",
+	})
+	FillConcat = append(FillConcat, cos.FillConcatInput{
+		FillTime: "5.5",
+	})
+	FillConcat = append(FillConcat, cos.FillConcatInput{
+		Url: "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/game.mp4",
+	})
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "FillConcat",
+		Operation: &cos.MediaProcessJobOperation{
+			FillConcat: &cos.FillConcat{
+				Format:    "mp4",
+				FillInput: FillConcat,
+			},
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "fill_concat.mp4",
+				Bucket: "test-1234567890",
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
+// InvokeVideoSynthesisJob 提交一个视频合成任务
+func InvokeVideoSynthesisJob() {
+	c := getClient()
+	SpliceInfo := make([]cos.VideoSynthesisSpliceInfo, 0)
+	SpliceInfo = append(SpliceInfo, cos.VideoSynthesisSpliceInfo{
+		Url:   "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/car.mp4",
+		Width: "640",
+	})
+	SpliceInfo = append(SpliceInfo, cos.VideoSynthesisSpliceInfo{
+		Url:   "https://test-1234567890.cos.ap-chongqing.myqcloud.com/input/game.mp4",
+		X:     "640",
+		Width: "640",
+	})
+	w := cos.Watermark{
+		Type:    "Text",
+		LocMode: "Absolute",
+		Dx:      "640",
+		Pos:     "TopLeft",
+		Text: &cos.Text{
+			Text:         "helloworld",
+			FontSize:     "25",
+			FontType:     "simfang.ttf",
+			FontColor:    "0xff0000",
+			Transparency: "100",
+		},
+	}
+	ws := []cos.Watermark{}
+	ws = append(ws, w)
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "VideoSynthesis",
+		Operation: &cos.MediaProcessJobOperation{
+			VideoSynthesis: &cos.VideoSynthesis{
+				KeepAudioTrack: "false",
+				SpliceInfo:     SpliceInfo,
+			},
+			Transcode: &cos.Transcode{
+				Container: &cos.Container{
+					Format: "mp4",
+				},
+				Video: &cos.Video{
+					Codec:  "H.264",
+					Width:  "1280",
+					Height: "960",
+				},
+				Audio: &cos.Audio{
+					Codec: "AAC",
+				},
+			},
+			Watermark: ws,
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "video_synthesis.mp4",
+				Bucket: "test-1234567890",
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 }
 
 // JobNotifyCallback 解析任务回调

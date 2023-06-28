@@ -82,7 +82,6 @@ func DeleteWorkflow() {
 // https://cloud.tencent.com/document/product/460/76856
 func CreateWorkflow() {
 	c := getClient()
-	// CreateMediaWorkflow
 	rand.Seed(time.Now().UnixNano())
 	createWorkflowOpt := &cos.CreateMediaWorkflowOptions{
 		MediaWorkflow: &cos.MediaWorkflow{
@@ -110,7 +109,6 @@ func CreateWorkflow() {
 // https://cloud.tencent.com/document/product/460/76861
 func UpdateWorkflow() {
 	c := getClient()
-	// UpdateMediaWorkflow
 	rand.Seed(time.Now().UnixNano())
 	updateWorkflowOpt := &cos.CreateMediaWorkflowOptions{
 		MediaWorkflow: &cos.MediaWorkflow{
