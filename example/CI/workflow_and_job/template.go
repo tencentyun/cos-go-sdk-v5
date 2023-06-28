@@ -779,7 +779,7 @@ func CreateVideoTargetRecTemplate() {
 }
 
 // UpdateVideoTargetRecTemplate 更新视频目标检测模板
-// https://cloud.tencent.com/document/product/460/84760
+// https://cloud.tencent.com/document/product/460/84756
 func UpdateVideoTargetRecTemplate() {
 	c := getClient()
 	rand.Seed(time.Now().UnixNano())
