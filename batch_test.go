@@ -194,7 +194,6 @@ func TestBatchService_DescribeJob(t *testing.T) {
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Batch.DescribeJob returned %+v, want %+v", ref, want)
 	}
-
 }
 
 func TestBatchService_ListJobs(t *testing.T) {
@@ -385,5 +384,23 @@ func TestBatchService_UpdateJobsStatus(t *testing.T) {
 	}
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Batch.UpdateJobsStatus returned %+v, want %+v", ref, want)
+	}
+}
+
+func TestBatchService_DeleteJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/jobs/53dc6228-c50b-46f7-8ad7-65e7159f1aae", func(w http.ResponseWriter, r *http.Request) {
+		testHeader(t, r, "x-cos-appid", "1250000000")
+		testMethod(t, r, http.MethodDelete)
+	})
+
+	headers := &BatchRequestHeaders{
+		XCosAppid: 1250000000,
+	}
+	_, err := client.Batch.DeleteJob(context.Background(), "53dc6228-c50b-46f7-8ad7-65e7159f1aae", headers)
+	if err != nil {
+		t.Fatalf("Batch.DescribeJob returned error: %v", err)
 	}
 }
