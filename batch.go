@@ -274,3 +274,18 @@ func (s *BatchService) UpdateJobStatus(ctx context.Context, opt *BatchUpdateStat
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
 }
+
+func (s *BatchService) DeleteJob(ctx context.Context, id string, headers *BatchRequestHeaders) (*Response, error) {
+	if len(id) == 0 {
+		return nil, fmt.Errorf("Id is invalid")
+	}
+	u := fmt.Sprintf("/jobs/%s", id)
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BatchURL,
+		uri:       u,
+		method:    http.MethodDelete,
+		optHeader: headers,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
