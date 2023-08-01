@@ -146,7 +146,6 @@ func CreateInventoryTriggerJobByParam() {
 		},
 		Type: "Job",
 		Operation: &cos.InventoryTriggerJobOperation{
-			QueueId: "pa27b2bd96bef43b6baba820175485532",
 			TimeInterval: cos.InventoryTriggerJobOperationTimeInterval{
 				Start: "2002-02-16T10:45:12+0800",
 				End:   "2023-05-16T10:45:12+0800",

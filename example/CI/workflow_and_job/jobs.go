@@ -64,7 +64,6 @@ func CancelJob() {
 func DescribeJobs() {
 	c := getClient()
 	opt := &cos.DescribeJobsOptions{
-		QueueId: "pa27b2bd96bef43b6baba820175485532",
 		Tag:     "Transcode",
 	}
 	DescribeJobRes, _, err := c.CI.DescribeJobs(context.Background(), opt)
