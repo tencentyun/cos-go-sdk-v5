@@ -60,6 +60,13 @@ func main() {
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 
+	ropt := &cos.ObjectPutRetentionOptions{
+		RetainUntilDate: "2022-12-10T08:34:48.000Z",
+		Mode: "COMPLIANCE",
+	}
+	_, err = c.Object.PutRetention(context.Background(), "test", ropt)
+	log_status(err)
+
 	r, _, err := c.Object.GetRetention(context.Background(), "test", nil)
 	log_status(err)
 	fmt.Printf("%+v\n", r)

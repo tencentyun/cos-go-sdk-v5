@@ -110,3 +110,34 @@ func TestBucketService_GetRetention(t *testing.T) {
 		t.Errorf("Object.GetRetention returned %+v, want %+v", res, want)
 	}
 }
+
+func TestBucketService_PutRetention(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &ObjectPutRetentionOptions{
+		RetainUntilDate: "2022-12-10T08:34:48.000Z",
+		Mode:            "COMPLIANCE",
+	}
+
+	key := "example"
+	mux.HandleFunc("/example", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "PUT")
+		vs := values{
+			"retention": "",
+		}
+		testFormValues(t, r, vs)
+		body := new(ObjectPutRetentionOptions)
+		xml.NewDecoder(r.Body).Decode(body)
+		want := opt
+		want.XMLName = xml.Name{Local: "Retention"}
+		if !reflect.DeepEqual(body, want) {
+			t.Errorf("Object.PutRetention request\n body: %+v\nwant %+v\n", body, want)
+		}
+	})
+
+	_, err := client.Object.PutRetention(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("Object.GetRetention returned error: %v", err)
+	}
+}

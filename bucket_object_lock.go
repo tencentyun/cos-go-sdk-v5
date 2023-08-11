@@ -48,6 +48,7 @@ type ObjectGetRetentionOptions struct {
 type ObjectGetRetentionResult struct {
 	XMLName         xml.Name `xml:"Retention"`
 	RetainUntilDate string   `xml:"RetainUntilDate,omitempty"`
+	Mode            string   `xml:"Mode,omitempty"`
 }
 
 func (s *ObjectService) GetRetention(ctx context.Context, key string, opt *ObjectGetRetentionOptions) (*ObjectGetRetentionResult, *Response, error) {
@@ -61,4 +62,21 @@ func (s *ObjectService) GetRetention(ctx context.Context, key string, opt *Objec
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+type ObjectPutRetentionOptions struct {
+	XMLName         xml.Name `xml:"Retention"`
+	RetainUntilDate string   `xml:"RetainUntilDate,omitempty"`
+	Mode            string   `xml:"Mode,omitempty"`
+}
+
+func (s *ObjectService) PutRetention(ctx context.Context, key string, opt *ObjectPutRetentionOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/" + encodeURIComponent(key) + "?retention",
+		method:  http.MethodPut,
+		body:    opt,
+	}
+	resp, err := s.client.doRetry(ctx, &sendOpt)
+	return resp, err
 }
