@@ -38,6 +38,8 @@ type JobOutput struct {
 	Object        string          `xml:"Object,omitempty"`
 	SpriteObject  string          `xml:"SpriteObject,omitempty"`
 	AuObject      string          `xml:"AuObject,omitempty"`
+	BassObject    string          `xml:"BassObject,omitempty"`
+	DrumObject    string          `xml:"DrumObject,omitempty"`
 	StreamExtract []StreamExtract `xml:"StreamExtract,omitempty"`
 }
 
@@ -339,9 +341,12 @@ type HlsEncrypt struct {
 
 // Segment TODO
 type Segment struct {
-	Format     string      `xml:"Format,omitempty"`
-	Duration   string      `xml:"Duration,omitempty"`
-	HlsEncrypt *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
+	Format         string      `xml:"Format,omitempty"`
+	Duration       string      `xml:"Duration,omitempty"`
+	TranscodeIndex string      `xml:"TranscodeIndex,omitempty"`
+	HlsEncrypt     *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
+	StartTime      string      `xml:"StartTime,omitempty"`
+	EndTime        string      `xml:"EndTime,omitempty"`
 }
 
 // VideoMontageVideo TODO
@@ -1639,6 +1644,10 @@ type SegmentVideoBody struct {
 	BackgroundRed     string `xml:"BackgroundRed,omitempty"`
 	BackgroundGreen   string `xml:"BackgroundGreen,omitempty"`
 	BackgroundLogoUrl string `xml:"BackgroundLogoUrl,omitempty"`
+	BinaryThreshold   string `xml:"BinaryThreshold,omitempty"`
+	RemoveRed         string `xml:"RemoveRed,omitempty"`
+	RemoveGreen       string `xml:"RemoveGreen,omitempty"`
+	RemoveBlue        string `xml:"RemoveBlue,omitempty"`
 }
 
 // NodeSmartCover TODO
