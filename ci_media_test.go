@@ -3320,3 +3320,49 @@ func TestCIService_DeleteTemplate(t *testing.T) {
 		t.Fatalf("CI.DeleteTemplate returned error: %v", err)
 	}
 }
+
+func TestCIService_GetDnaDb(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/dnadb", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"pageNumber": "2",
+			"pageSize":   "10",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &GetDnaDbOptions{
+		PageNumber: "2",
+		PageSize:   "10",
+	}
+
+	_, _, err := client.CI.GetDnaDb(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GetDnaDb returned error: %v", err)
+	}
+}
+
+func TestCIService_GetDnaDbFiles(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/dnadb_files", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"pageNumber": "2",
+			"pageSize":   "10",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &GetDnaDbFilesOptions{
+		PageNumber: "2",
+		PageSize:   "10",
+	}
+
+	_, _, err := client.CI.GetDnaDbFiles(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GetDnaDbFiles returned error: %v", err)
+	}
+}
