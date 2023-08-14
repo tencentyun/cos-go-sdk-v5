@@ -90,7 +90,7 @@ func CreateWorkflow() {
 			Topology: &cos.Topology{
 				Dependencies: map[string]string{"Start": "Transcode_1581665960537", "Transcode_1581665960537": "Snapshot_1581665960536",
 					"Snapshot_1581665960536": "End"},
-				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
+				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"Transcode_1581665960537": cos.Node{Type: "Transcode", Operation: &cos.NodeOperation{TemplateId: "t01e57db1c2d154d2fb57aa5de9313a897",
 						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "trans1.mp4"}}},
@@ -117,7 +117,7 @@ func UpdateWorkflow() {
 			Topology: &cos.Topology{
 				Dependencies: map[string]string{"Start": "Transcode_1581665960537", "Transcode_1581665960537": "Snapshot_1581665960536",
 					"Snapshot_1581665960536": "End"},
-				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
+				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"Transcode_1581665960537": cos.Node{Type: "Transcode", Operation: &cos.NodeOperation{TemplateId: "t01e57db1c2d154d2fb57aa5de9313a897",
 						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "trans1.mp4"}}},
@@ -158,7 +158,7 @@ func CreateStreamWorkflow() {
 				Dependencies: map[string]string{"Start": "StreamPackConfig_1581665960532", "StreamPackConfig_1581665960532": "VideoStream_1581665960536,VideoStream_1581665960537",
 					"VideoStream_1581665960536": "StreamPack_1581665960538", "VideoStream_1581665960537": "StreamPack_1581665960538",
 					"StreamPack_1581665960538": "End"},
-				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
+				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"StreamPackConfig_1581665960532": cos.Node{Type: "StreamPackConfig", Operation: &cos.NodeOperation{
 						Output:               &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${InputPath}/${InputName}._${RunId}.${ext}"},
@@ -195,7 +195,7 @@ func UpdatStreamWorkflow() {
 				Dependencies: map[string]string{"Start": "StreamPackConfig_1581665960532", "StreamPackConfig_1581665960532": "VideoStream_1581665960536,VideoStream_1581665960537",
 					"VideoStream_1581665960536": "StreamPack_1581665960538", "VideoStream_1581665960537": "StreamPack_1581665960538",
 					"StreamPack_1581665960538": "End"},
-				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{QueueId: "p09d709939fef48a0a5c247ef39d90cec",
+				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{
 					ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
 					"StreamPackConfig_1581665960532": cos.Node{Type: "StreamPackConfig", Operation: &cos.NodeOperation{
 						Output:               &cos.NodeOutput{Region: "ap-chongqing", Bucket: "test-123456789", Object: "${InputPath}/${InputName}._${RunId}.${ext}"},

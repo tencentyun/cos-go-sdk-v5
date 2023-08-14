@@ -64,8 +64,7 @@ func CancelJob() {
 func DescribeJobs() {
 	c := getClient()
 	opt := &cos.DescribeJobsOptions{
-		QueueId: "pa27b2bd96bef43b6baba820175485532",
-		Tag:     "Transcode",
+		Tag: "Transcode",
 	}
 	DescribeJobRes, _, err := c.CI.DescribeJobs(context.Background(), opt)
 	log_status(err)
@@ -1038,6 +1037,41 @@ func InvokeVideoSynthesisJob() {
 				Object: "video_synthesis.mp4",
 				Bucket: "test-1234567890",
 			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
+// InvokeVocalScoreJob 提交一个音乐评分任务
+// https://cloud.tencent.com/document/product/460/96095
+func InvokeVocalScoreJob() {
+	c := getClient()
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "VocalScore",
+		Input: &cos.JobInput{
+			Object: "input/test.mp3",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			VocalScore: &cos.VocalScore{
+				StandardObject: "input/base.mp3",
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
+// InvokeImageInspectJob 提交一个黑产检测任务
+// https://cloud.tencent.com/document/product/460/96095
+func InvokeImageInspectJob() {
+	c := getClient()
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "ImageInspect",
+		Input: &cos.JobInput{
+			Object: "input/test.jpg",
 		},
 	}
 	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
