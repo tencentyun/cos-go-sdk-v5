@@ -23,6 +23,7 @@ type JobInput struct {
 		Key   string `xml:"Key"`
 		Value string `xml:"Value"`
 	} `xml:"CosHeaders"`
+	Url string `xml:"Url,omitempty"`
 }
 
 // StreamExtract TODO
@@ -1598,11 +1599,14 @@ type NodeInput struct {
 
 // NodeOutput TODO
 type NodeOutput struct {
-	Region       string `xml:"Region,omitempty"`
-	Bucket       string `xml:"Bucket,omitempty"`
-	Object       string `xml:"Object,omitempty"`
-	AuObject     string `xml:"AuObject,omitempty"`
-	SpriteObject string `xml:"SpriteObject,omitempty"`
+	Region        string          `xml:"Region,omitempty"`
+	Bucket        string          `xml:"Bucket,omitempty"`
+	Object        string          `xml:"Object,omitempty"`
+	AuObject      string          `xml:"AuObject,omitempty"`
+	SpriteObject  string          `xml:"SpriteObject,omitempty"`
+	BassObject    string          `xml:"BassObject,omitempty"`
+	DrumObject    string          `xml:"DrumObject,omitempty"`
+	StreamExtract []StreamExtract `xml:"StreamExtract,omitempty"`
 }
 
 // DelogoParam TODO
