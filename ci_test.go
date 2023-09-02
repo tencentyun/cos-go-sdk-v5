@@ -2051,6 +2051,46 @@ func TestCIService_FaceEffect(t *testing.T) {
 	}
 }
 
+func TestCIService_EffectPet(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "detect-pet",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, _, err := client.CI.EffectPet(context.Background(), "test.jpg")
+	if err != nil {
+		t.Fatalf("CI.EffectPet returned error: %v", err)
+	}
+}
+
+func TestCIService_AILicenseRec(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AILicenseRec",
+			"CardType":   "DriverLicense",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AILicenseRecOptions{
+		CardType: "DriverLicense",
+	}
+
+	_, _, err := client.CI.AILicenseRec(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.EffectPet returned error: %v", err)
+	}
+}
+
 func TestCIService_IdCardOCRWhenCloud(t *testing.T) {
 	setup()
 	defer teardown()
