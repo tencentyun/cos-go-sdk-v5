@@ -106,6 +106,7 @@ func TestBucketService_PutWebsite(t *testing.T) {
 		},
 		Error: &ErrorDocument{
 			"Error.html",
+			"Enabled",
 		},
 		RoutingRules: &WebsiteRoutingRules{
 			[]WebsiteRoutingRule{

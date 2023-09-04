@@ -19,8 +19,13 @@ type WebsiteRoutingRules struct {
 	Rules []WebsiteRoutingRule `xml:"RoutingRule,omitempty"`
 }
 
+type AutoAddressing struct {
+	Status string `xml:"Status,omitempty"`
+}
+
 type ErrorDocument struct {
-	Key string `xml:"Key,omitempty"`
+	Key                string `xml:"Key,omitempty"`
+	OriginalHttpStatus string `xml:"OriginalHttpStatus,omitempty"`
 }
 
 type RedirectRequestsProtocol struct {
@@ -31,6 +36,7 @@ type BucketPutWebsiteOptions struct {
 	XMLName          xml.Name                  `xml:"WebsiteConfiguration"`
 	Index            string                    `xml:"IndexDocument>Suffix"`
 	RedirectProtocol *RedirectRequestsProtocol `xml:"RedirectAllRequestsTo,omitempty"`
+	AutoAddressing   *AutoAddressing           `xml:"AutoAddressing,omitempty"`
 	Error            *ErrorDocument            `xml:"ErrorDocument,omitempty"`
 	RoutingRules     *WebsiteRoutingRules      `xml:"RoutingRules,omitempty"`
 }
