@@ -1831,6 +1831,38 @@ func (s *CIService) AILicenseRec(ctx context.Context, obj string, opt *AILicense
 	return &res, resp, err
 }
 
+type AIObjectDetectOptions struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+type AIObjectDetectResult struct {
+	XMLName        xml.Name `xml:"RecognitionResult"`
+	Status         int      `xml:"Status,omitempty"`
+	DetectMultiObj []struct {
+		Name       string `xml:"Name,omitempty"`
+		Confidence int    `xml:"Confidence,omitempty"`
+		Location   struct {
+			X      int `xml:"X,omitempty"`
+			Y      int `xml:"Y,omitempty"`
+			Width  int `xml:"Width,omitempty"`
+			Height int `xml:"Height,omitempty"`
+		} `xml:"Location,omitempty"`
+	} `xml:"DetectMultiObj,omitempty"`
+}
+
+func (s *CIService) AIObjectDetect(ctx context.Context, obj string, opt *AIObjectDetectOptions) (*AIObjectDetectResult, *Response, error) {
+	var res AIObjectDetectResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=AIObjectDetect",
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
 type IdCardOCROptions struct {
 	CardSide string                  `url:"CardSide,omitempty"`
 	Config   *IdCardOCROptionsConfig `url:"Config,omitempty"`

@@ -2087,7 +2087,26 @@ func TestCIService_AILicenseRec(t *testing.T) {
 
 	_, _, err := client.CI.AILicenseRec(context.Background(), "test.jpg", opt)
 	if err != nil {
-		t.Fatalf("CI.EffectPet returned error: %v", err)
+		t.Fatalf("CI.AILicenseRec returned error: %v", err)
+	}
+}
+
+func TestCIService_AIObjectDetect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIObjectDetect",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AIObjectDetectOptions{}
+
+	_, _, err := client.CI.AIObjectDetect(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.AIObjectDetect returned error: %v", err)
 	}
 }
 
