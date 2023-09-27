@@ -3366,3 +3366,19 @@ func TestCIService_GetDnaDbFiles(t *testing.T) {
 		t.Fatalf("CI.GetDnaDbFiles returned error: %v", err)
 	}
 }
+
+func TestCIService_CosImageInspect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "/test.jpg"
+	mux.HandleFunc(name, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+	opt := &CosImageInspectOptions{}
+
+	_, _, err := client.CI.CosImageInspect(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("CI.CosImageInspect returned error: %v", err)
+	}
+}

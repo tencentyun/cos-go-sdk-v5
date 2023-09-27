@@ -2,6 +2,7 @@ package cos
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -3653,4 +3654,41 @@ type ImageInspectProcessResult struct {
 type ImageInspectAutoProcessResult struct {
 	Code    string `xml:"Code,omitempty"`
 	Message string `xml:"Message,omitempty"`
+}
+
+type CosImageInspectOptions struct {
+}
+
+// CosImageInspectProcessResult 黑产检测同步接口结果
+type CosImageInspectProcessResult struct {
+	PicSize             int    `json:"picSize,omitempty"`
+	PicType             string `json:"picType,omitempty"`
+	Suspicious          bool   `json:"suspicious,omitempty"`
+	SuspiciousBeginByte int    `json:"suspiciousBeginByte,omitempty"`
+	SuspiciousEndByte   int    `json:"suspiciousEndByte,omitempty"`
+	SuspiciousSize      int    `json:"suspiciousSize,omitempty"`
+	SuspiciousType      string `json:"suspiciousType,omitempty"`
+}
+
+// Write 回包是json格式序列化
+func (w *CosImageInspectProcessResult) Write(p []byte) (n int, err error) {
+	err = json.Unmarshal(p, w)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+// ImageInspect 黑产检查同步接口
+func (s *CIService) CosImageInspect(ctx context.Context, name string, opt *CosImageInspectOptions) (*CosImageInspectProcessResult, *Response, error) {
+	var res CosImageInspectProcessResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(name) + "?ci-process=ImageInspect",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
