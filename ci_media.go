@@ -1183,6 +1183,23 @@ func (s *CIService) DescribeASRProcessQueues(ctx context.Context, opt *DescribeM
 	return &res, resp, err
 }
 
+type DescribeFielProcessQueuesOptions DescribeMediaProcessQueuesOptions
+type DescribeFileProcessQueuesResult DescribeMediaProcessQueuesResult
+
+// DescribeFileProcessQueues TODO
+func (s *CIService) DescribeFileProcessQueues(ctx context.Context, opt *DescribeFielProcessQueuesOptions) (*DescribeFileProcessQueuesResult, *Response, error) {
+	var res DescribeFileProcessQueuesResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/file_queue",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // UpdateMediaProcessQueueOptions TODO
 type UpdateMediaProcessQueueOptions struct {
 	XMLName      xml.Name                       `xml:"Request"`

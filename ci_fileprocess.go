@@ -40,29 +40,14 @@ type FileUncompressResult struct {
 }
 
 type FileCompressConfig struct {
-	Flatten      string                     `xml:",omitempty"`
-	Format       string                     `xml:",omitempty"`
-	UrlList      string                     `xml:",omitempty"`
-	PrefixConfig []FileCompressPrefixConfig `xml:",omitempty"`
-	Prefix       string                     `xml:",omitempty"`
-	KeyConfig    []FileCompressKeyConfig    `xml:",omitempty"`
-	Key          []string                   `xml:",omitempty"`
-	Type         string                     `xml:",omitempty"`
-	CompressKey  string                     `xml:",omitempty"`
-	IgnoreError  string                     `xml:",omitempty"`
-}
-
-type FileCompressPrefixConfig struct {
-	Prefix      string `xml:",omitempty"`
-	Folder      string `xml:",omitempty"`
-	ImageParams string `xml:",omitempty"`
-}
-
-type FileCompressKeyConfig struct {
-	Key         string `xml:",omitempty"`
-	Folder      string `xml:",omitempty"`
-	Rename      string `xml:",omitempty"`
-	ImageParams string `xml:",omitempty"`
+	Flatten     string   `xml:",omitempty"`
+	Format      string   `xml:",omitempty"`
+	UrlList     string   `xml:",omitempty"`
+	Prefix      string   `xml:",omitempty"`
+	Key         []string `xml:",omitempty"`
+	Type        string   `xml:",omitempty"`
+	CompressKey string   `xml:",omitempty"`
+	IgnoreError string   `xml:",omitempty"`
 }
 
 type FileCompressResult struct {
