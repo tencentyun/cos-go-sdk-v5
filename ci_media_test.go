@@ -383,6 +383,29 @@ func TestCIService_DescribeASRProcessQueues(t *testing.T) {
 	}
 }
 
+func TestCIService_DescribeFileProcessQueues(t *testing.T) {
+	setup()
+	defer teardown()
+
+	queueIds := "A,B,C"
+	mux.HandleFunc("/file_queue", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"queueIds": queueIds,
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &DescribeFielProcessQueuesOptions{
+		QueueIds: queueIds,
+	}
+
+	_, _, err := client.CI.DescribeFileProcessQueues(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeFileProcessQueues returned error: %v", err)
+	}
+}
+
 func TestCIService_UpdateMediaProcessQueue(t *testing.T) {
 	setup()
 	defer teardown()
@@ -3364,5 +3387,25 @@ func TestCIService_GetDnaDbFiles(t *testing.T) {
 	_, _, err := client.CI.GetDnaDbFiles(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.GetDnaDbFiles returned error: %v", err)
+	}
+}
+
+func TestCIService_CosImageInspect(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "/test.jpg"
+	mux.HandleFunc(name, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "ImageInspect",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &CosImageInspectOptions{}
+
+	_, _, err := client.CI.CosImageInspect(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("CI.CosImageInspect returned error: %v", err)
 	}
 }

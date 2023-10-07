@@ -21,9 +21,16 @@ type FileHashCodeResult struct {
 }
 
 type FileUncompressConfig struct {
-	Prefix         string `xml:",omitempty"`
-	PrefixReplaced string `xml:",omitempty"`
-	UnCompressKey  string `xml:",omitempty"`
+	Prefix         string                        `xml:",omitempty"`
+	PrefixReplaced string                        `xml:",omitempty"`
+	UnCompressKey  string                        `xml:",omitempty"`
+	Mode           string                        `xml:",omitempty"`
+	DownloadConfig *FileUncompressDownloadConfig `xml:",omitempty"`
+}
+
+type FileUncompressDownloadConfig struct {
+	Prefix string   `xml:",omitempty"`
+	Key    []string `xml:",omitempty"`
 }
 
 type FileUncompressResult struct {
@@ -40,12 +47,15 @@ type FileCompressConfig struct {
 	Key         []string `xml:",omitempty"`
 	Type        string   `xml:",omitempty"`
 	CompressKey string   `xml:",omitempty"`
+	IgnoreError string   `xml:",omitempty"`
 }
 
 type FileCompressResult struct {
-	Region string `xml:",omitempty"`
-	Bucket string `xml:",omitempty"`
-	Object string `xml:",omitempty"`
+	Region            string `xml:",omitempty"`
+	Bucket            string `xml:",omitempty"`
+	Object            string `xml:",omitempty"`
+	CompressFileCount int    `xml:",omitempty"`
+	ErrorCount        int    `xml:",omitempty"`
 }
 
 type FileProcessInput FileCompressResult
@@ -154,9 +164,10 @@ func (s *CIService) GetFileHash(ctx context.Context, name string, opt *GetFileHa
 
 // ZipPreviewResult 压缩包预览结果
 type ZipPreviewResult struct {
-	XMLName    xml.Name `xml:"Response"`
-	FileNumber int      `xml:"FileNumber,omitempty"`
-	Contents   []*struct {
+	XMLName     xml.Name `xml:"Response"`
+	FileNumber  int      `xml:"FileNumber,omitempty"`
+	IsTruncated bool     `xml:"IsTruncated,omitempty"`
+	Contents    []*struct {
 		Key              string `xml:"Key,omitempty"`
 		LastModified     string `xml:"LastModified,omitempty"`
 		UncompressedSize int    `xml:"UncompressedSize,omitempty"`

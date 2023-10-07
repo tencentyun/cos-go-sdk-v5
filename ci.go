@@ -144,7 +144,7 @@ type AuditingMaskLiveInfo struct {
 	Output    string `xml:"Output,omitempty"`
 }
 
-//UserListResults 命中账号黑白名单信息
+// UserListResults 命中账号黑白名单信息
 type UserListResults struct {
 	ListType *int   `xml:",omitempty"`
 	ListName string `xml:",omitempty"`
@@ -1767,6 +1767,95 @@ func (s *CIService) FaceEffect(ctx context.Context, obj string, opt *FaceEffectO
 		baseURL:  s.client.BaseURL.BucketURL,
 		method:   http.MethodGet,
 		uri:      "/" + encodeURIComponent(obj) + "?ci-process=face-effect",
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type PetEffectResult struct {
+	XMLName    xml.Name `xml:"Response"`
+	ResultInfo []struct {
+		Score    int    `xml:"Score,omitempty"`
+		Name     string `xml:"Name,omitempty"`
+		Location struct {
+			X      int `xml:"X,omitempty"`
+			Y      int `xml:"Y,omitempty"`
+			Height int `xml:"Height,omitempty"`
+			Width  int `xml:"Width,omitempty"`
+		} `xml:"Location,omitempty"`
+	} `xml:"ResultInfo,omitempty"`
+}
+
+func (s *CIService) EffectPet(ctx context.Context, obj string) (*PetEffectResult, *Response, error) {
+	var res PetEffectResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		method:  http.MethodGet,
+		uri:     "/" + encodeURIComponent(obj) + "?ci-process=detect-pet",
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type AILicenseRecOptions struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+	CardType  string `url:"CardType,omitempty"`
+}
+
+type AILicenseRecResult struct {
+	XMLName xml.Name `xml:"Response"`
+	Status  int      `xml:"Status,omitempty"`
+	IdInfo  []struct {
+		Name         string `xml:"Name,omitempty"`
+		DetectedText string `xml:"DetectedText,omitempty"`
+		Score        int    `xml:"Score,omitempty"`
+		Location     struct {
+			Point []string `xml:"Point,omitempty"`
+		} `xml:"Location,omitempty"`
+	} `xml:"IdInfo,omitempty"`
+}
+
+func (s *CIService) AILicenseRec(ctx context.Context, obj string, opt *AILicenseRecOptions) (*AILicenseRecResult, *Response, error) {
+	var res AILicenseRecResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=AILicenseRec",
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+type AIObjectDetectOptions struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+type AIObjectDetectResult struct {
+	XMLName        xml.Name `xml:"RecognitionResult"`
+	Status         int      `xml:"Status,omitempty"`
+	DetectMultiObj []struct {
+		Name       string `xml:"Name,omitempty"`
+		Confidence int    `xml:"Confidence,omitempty"`
+		Location   struct {
+			X      int `xml:"X,omitempty"`
+			Y      int `xml:"Y,omitempty"`
+			Width  int `xml:"Width,omitempty"`
+			Height int `xml:"Height,omitempty"`
+		} `xml:"Location,omitempty"`
+	} `xml:"DetectMultiObj,omitempty"`
+}
+
+func (s *CIService) AIObjectDetect(ctx context.Context, obj string, opt *AIObjectDetectOptions) (*AIObjectDetectResult, *Response, error) {
+	var res AIObjectDetectResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=AIObjectDetect",
 		optQuery: opt,
 		result:   &res,
 	}
