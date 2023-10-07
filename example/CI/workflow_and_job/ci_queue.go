@@ -142,6 +142,34 @@ func GetASRQueue() {
 	fmt.Printf("%+v\n", DescribeQueueRes)
 }
 
+// GetFileQueue 获取文件处理队列
+func GetFileQueue() {
+	u, _ := url.Parse("https://lilang-1253960454.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://lilang-1253960454.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	DescribeQueueOpt := &cos.DescribeFielProcessQueuesOptions{
+		PageNumber: 1,
+		PageSize:   2,
+		Category:   "CateAll",
+	}
+	DescribeQueueRes, _, err := c.CI.DescribeFileProcessQueues(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+}
+
 func UpdateMediaQueue() {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
@@ -278,13 +306,48 @@ func UpdateASRQueue() {
 	fmt.Printf("%+v\n", DescribeQueueRes)
 }
 
+func UpdateFileQueue() {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	DescribeQueueOpt := &cos.UpdateMediaProcessQueueOptions{
+		Name:    "queue-asr",
+		QueueID: "pe91d0af11fc14337987ff0c34f8b0886",
+		State:   "Active",
+		NotifyConfig: &cos.MediaProcessQueueNotifyConfig{
+			State:        "On",
+			Url:          "http://www.callback.com",
+			Event:        "TaskFinish",
+			Type:         "Url",
+			ResultFormat: "JSON",
+		},
+	}
+	DescribeQueueRes, _, err := c.CI.UpdateMediaProcessQueue(context.Background(), DescribeQueueOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", DescribeQueueRes)
+}
+
 func main() {
 	// UpdateMediaQueue()
 	// UpdatePicQueue()
 	// UpdateAIQueue()
 	// UpdateASRQueue()
-	GetMediaQueue()
-	GetPicQueue()
-	GetAIQueue()
-	GetASRQueue()
+	// GetMediaQueue()
+	// GetPicQueue()
+	// GetAIQueue()
+	// GetASRQueue()
+	// GetFileQueue()
 }

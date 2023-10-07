@@ -2,6 +2,7 @@ package cos
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -57,30 +58,38 @@ type Container struct {
 
 // Video TODO
 type Video struct {
-	Codec                      string `xml:"Codec"`
-	Width                      string `xml:"Width,omitempty"`
-	Height                     string `xml:"Height,omitempty"`
-	Fps                        string `xml:"Fps,omitempty"`
-	Remove                     string `xml:"Remove,omitempty"`
-	Profile                    string `xml:"Profile,omitempty"`
-	Bitrate                    string `xml:"Bitrate,omitempty"`
-	Crf                        string `xml:"Crf,omitempty"`
-	Gop                        string `xml:"Gop,omitempty"`
-	Preset                     string `xml:"Preset,omitempty"`
-	Bufsize                    string `xml:"Bufsize,omitempty"`
-	Maxrate                    string `xml:"Maxrate,omitempty"`
-	HlsTsTime                  string `xml:"HlsTsTime,omitempty"`
-	DashSegment                string `xml:"DashSegment,omitempty"`
-	Pixfmt                     string `xml:"Pixfmt,omitempty"`
-	LongShortMode              string `xml:"LongShortMode,omitempty"`
-	Rotate                     string `xml:"Rotate,omitempty"`
-	AnimateOnlyKeepKeyFrame    string `xml:"AnimateOnlyKeepKeyFrame,omitempty"`
-	AnimateTimeIntervalOfFrame string `xml:"AnimateTimeIntervalOfFrame,omitempty"`
-	AnimateFramesPerSecond     string `xml:"AnimateFramesPerSecond,omitempty"`
-	Quality                    string `xml:"Quality,omitempty"`
-	Roi                        string `xml:"Roi,omitempty"`
-	Crop                       string `xml:"Crop,omitempty"`
-	Interlaced                 string `xml:"Interlaced,omitempty"`
+	Codec                      string           `xml:"Codec"`
+	Width                      string           `xml:"Width,omitempty"`
+	Height                     string           `xml:"Height,omitempty"`
+	Fps                        string           `xml:"Fps,omitempty"`
+	Remove                     string           `xml:"Remove,omitempty"`
+	Profile                    string           `xml:"Profile,omitempty"`
+	Bitrate                    string           `xml:"Bitrate,omitempty"`
+	Crf                        string           `xml:"Crf,omitempty"`
+	Gop                        string           `xml:"Gop,omitempty"`
+	Preset                     string           `xml:"Preset,omitempty"`
+	Bufsize                    string           `xml:"Bufsize,omitempty"`
+	Maxrate                    string           `xml:"Maxrate,omitempty"`
+	HlsTsTime                  string           `xml:"HlsTsTime,omitempty"`
+	DashSegment                string           `xml:"DashSegment,omitempty"`
+	Pixfmt                     string           `xml:"Pixfmt,omitempty"`
+	LongShortMode              string           `xml:"LongShortMode,omitempty"`
+	Rotate                     string           `xml:"Rotate,omitempty"`
+	AnimateOnlyKeepKeyFrame    string           `xml:"AnimateOnlyKeepKeyFrame,omitempty"`
+	AnimateTimeIntervalOfFrame string           `xml:"AnimateTimeIntervalOfFrame,omitempty"`
+	AnimateFramesPerSecond     string           `xml:"AnimateFramesPerSecond,omitempty"`
+	Quality                    string           `xml:"Quality,omitempty"`
+	Roi                        string           `xml:"Roi,omitempty"`
+	Crop                       string           `xml:"Crop,omitempty"`
+	Interlaced                 string           `xml:"Interlaced,omitempty"`
+	ColorParam                 *VideoColorParam `xml:"ColorParam,omitempty"`
+}
+
+type VideoColorParam struct {
+	ColorRange     string `xml:"ColorRange,omitempty"`
+	ColorSpace     string `xml:"ColorSpace,omitempty"`
+	ColorTrc       string `xml:"ColorTrc,omitempty"`
+	ColorPrimaries string `xml:"ColorPrimaries,omitempty"`
 }
 
 // TranscodeProVideo TODO
@@ -265,6 +274,7 @@ type ConcatFragment struct {
 	StartTime     string `xml:"StartTime,omitempty"`
 	EndTime       string `xml:"EndTime,omitempty"`
 	FragmentIndex string `xml:"FragmentIndex,omitempty"`
+	Duration      string `xml:"Duration,omitempty"`
 }
 
 // ConcatTemplate TODO
@@ -1173,6 +1183,23 @@ func (s *CIService) DescribeASRProcessQueues(ctx context.Context, opt *DescribeM
 	return &res, resp, err
 }
 
+type DescribeFielProcessQueuesOptions DescribeMediaProcessQueuesOptions
+type DescribeFileProcessQueuesResult DescribeMediaProcessQueuesResult
+
+// DescribeFileProcessQueues TODO
+func (s *CIService) DescribeFileProcessQueues(ctx context.Context, opt *DescribeFielProcessQueuesOptions) (*DescribeFileProcessQueuesResult, *Response, error) {
+	var res DescribeFileProcessQueuesResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/file_queue",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // UpdateMediaProcessQueueOptions TODO
 type UpdateMediaProcessQueueOptions struct {
 	XMLName      xml.Name                       `xml:"Request"`
@@ -1582,11 +1609,15 @@ type NotifyConfig struct {
 
 // ExtFilter TODO
 type ExtFilter struct {
-	State      string `xml:"State,omitempty"`
-	Audio      string `xml:"Audio,omitempty"`
-	Custom     string `xml:"Custom,omitempty"`
-	CustomExts string `xml:"CustomExts,omitempty"`
-	AllFile    string `xml:"AllFile,omitempty"`
+	State           string   `xml:"State,omitempty"`
+	Video           string   `xml:"Video,omitempty"`
+	Audio           string   `xml:"Audio,omitempty"`
+	Image           string   `xml:"Image,omitempty"`
+	ContentType     string   `xml:"ContentType,omitempty"`
+	Custom          string   `xml:"Custom,omitempty"`
+	CustomExts      string   `xml:"CustomExts,omitempty"`
+	AllFile         string   `xml:"AllFile,omitempty"`
+	AutoContentType []string `xml:"AutoContentType,omitempty"`
 }
 
 // NodeInput TODO
@@ -3640,4 +3671,41 @@ type ImageInspectProcessResult struct {
 type ImageInspectAutoProcessResult struct {
 	Code    string `xml:"Code,omitempty"`
 	Message string `xml:"Message,omitempty"`
+}
+
+type CosImageInspectOptions struct {
+}
+
+// CosImageInspectProcessResult 黑产检测同步接口结果
+type CosImageInspectProcessResult struct {
+	PicSize             int    `json:"picSize,omitempty"`
+	PicType             string `json:"picType,omitempty"`
+	Suspicious          bool   `json:"suspicious,omitempty"`
+	SuspiciousBeginByte int    `json:"suspiciousBeginByte,omitempty"`
+	SuspiciousEndByte   int    `json:"suspiciousEndByte,omitempty"`
+	SuspiciousSize      int    `json:"suspiciousSize,omitempty"`
+	SuspiciousType      string `json:"suspiciousType,omitempty"`
+}
+
+// Write 回包是json格式序列化
+func (w *CosImageInspectProcessResult) Write(p []byte) (n int, err error) {
+	err = json.Unmarshal(p, w)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+// ImageInspect 黑产检查同步接口
+func (s *CIService) CosImageInspect(ctx context.Context, name string, opt *CosImageInspectOptions) (*CosImageInspectProcessResult, *Response, error) {
+	var res CosImageInspectProcessResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(name) + "?ci-process=ImageInspect",
+		optQuery: opt,
+		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
