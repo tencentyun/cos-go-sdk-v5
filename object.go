@@ -187,6 +187,81 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 	return req.URL, nil
 }
 
+func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
+	// 兼容 name 以 / 开头的情况
+	if strings.HasPrefix(name, "/") {
+		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	} else {
+		name = encodeURIComponent(name, []byte{'/'})
+	}
+
+	cred := s.client.GetCredential()
+	if cred == nil {
+		return nil, fmt.Errorf("GetCredential failed")
+	}
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + name,
+		method:    httpMethod,
+		optQuery:  opt,
+		optHeader: opt,
+	}
+	mark := "?"
+	if popt, ok := opt.(*PresignedURLOptions); ok {
+		if popt != nil && popt.Query != nil {
+			qs := popt.Query.Encode()
+			if qs != "" {
+				sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+				mark = "&"
+			}
+		}
+	}
+	if cred.SessionToken != "" {
+		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
+	}
+
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	var authTime *AuthTime
+	if opt != nil {
+		if opt, ok := opt.(*presignedURLTestingOptions); ok {
+			authTime = opt.authTime
+		}
+	}
+	if authTime == nil {
+		authTime = NewAuthTime(expired)
+	}
+	signedHost := true
+	if len(signHost) > 0 {
+		signedHost = signHost[0]
+	}
+	authorization := newAuthorization(cred.SecretID, cred.SecretKey, req, authTime, signedHost)
+	if opt != nil {
+		if opt, ok := opt.(*PresignedURLOptions); ok {
+			if opt.SignMerged {
+				sign := encodeURIComponent(authorization)
+				if req.URL.RawQuery == "" {
+					req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
+				} else {
+					req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
+				}
+				return req.URL, nil
+			}
+		}
+	}
+	sign := encodeURIComponent(authorization, []byte{'&', '='})
+
+	if req.URL.RawQuery == "" {
+		req.URL.RawQuery = fmt.Sprintf("%s", sign)
+	} else {
+		req.URL.RawQuery = fmt.Sprintf("%s&%s", req.URL.RawQuery, sign)
+	}
+	return req.URL, nil
+}
+
 func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt *PresignedURLOptions, signHost ...bool) string {
 	// 兼容 name 以 / 开头的情况
 	if strings.HasPrefix(name, "/") {
