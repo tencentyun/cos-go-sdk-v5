@@ -18,9 +18,8 @@ type JwtTokens struct {
 	BucketId string `json:"BucketId"`
 	Issuer   string `json:"Issuer"`
 	// time info
-	IssuedTimeStamp    int64 `json:"IssuedTimeStamp"`
-	NotBeforeTimeStamp int64 `json:"NotBeforeTimeStamp"`
-	ExpireTimeStamp    int64 `json:"ExpireTimeStamp"`
+	IssuedTimeStamp int64 `json:"IssuedTimeStamp"`
+	ExpireTimeStamp int64 `json:"ExpireTimeStamp"`
 	// other info
 	Random int64 `json:"Random"`
 	// times info
@@ -55,8 +54,6 @@ func GenerateToken() (string, error) {
 		Issuer: "client",
 		// token颁发时间戳，必填参数
 		IssuedTimeStamp: now,
-		// token可用时间戳，必填参数
-		NotBeforeTimeStamp: now,
 		// token过期时间戳，非必填参数，默认1天过期
 		ExpireTimeStamp: t.Add(time.Hour * 24 * 6).Unix(),
 		// token使用次数限制，非必填参数，默认限制100次
