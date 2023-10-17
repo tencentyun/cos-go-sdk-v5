@@ -24,7 +24,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.44"
+	Version               = "0.7.45"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -317,7 +317,10 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 
 	if result != nil {
 		if w, ok := result.(io.Writer); ok {
-			io.Copy(w, resp.Body)
+			_, err = io.Copy(w, resp.Body)
+			if err != nil { // read body failed
+				return response, err
+			}
 		} else {
 			err = xml.NewDecoder(resp.Body).Decode(result)
 			if err == io.EOF {

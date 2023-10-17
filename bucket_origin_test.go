@@ -90,7 +90,9 @@ func TestBucketService_GetOrigin(t *testing.T) {
 					HttpRedirectCode:  "302",
 				},
 				OriginInfo: &BucketOriginInfo{
-					HostInfo: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+					HostInfo: &BucketOriginHostInfo{
+						HostName: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+					},
 				},
 			},
 		},
@@ -134,7 +136,9 @@ func TestBucketService_PutOrigin(t *testing.T) {
 					HttpRedirectCode:  "302",
 				},
 				OriginInfo: &BucketOriginInfo{
-					HostInfo: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+					HostInfo: &BucketOriginHostInfo{
+						HostName: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+					},
 				},
 			},
 		},
