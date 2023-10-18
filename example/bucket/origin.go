@@ -62,7 +62,7 @@ func main() {
 					HttpHeader: &cos.BucketOriginHttpHeader{
 						NewHttpHeaders: []cos.OriginHttpHeader{
 							{
-								Key:   "x-cos-ContentType",
+								Key:   "Content-Type",
 								Value: "csv",
 							},
 						},
@@ -75,7 +75,10 @@ func main() {
 					FollowRedirection: true,
 				},
 				OriginInfo: &cos.BucketOriginInfo{
-					HostInfo: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+					HostInfo: &cos.BucketOriginHostInfo{
+						HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+						StandbyHostName_N: []string{"www.qq.com", "www.myqlcoud.com"},
+					},
 				},
 			},
 		},
@@ -87,6 +90,9 @@ func main() {
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 	fmt.Printf("%+v\n", res.Rule)
+	for _, rule := range res.Rule {
+		fmt.Printf("%+v\n", rule.OriginInfo.HostInfo)
+	}
 	_, err = c.Bucket.DeleteOrigin(context.Background())
 	log_status(err)
 }

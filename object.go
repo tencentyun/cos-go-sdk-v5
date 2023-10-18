@@ -494,9 +494,6 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 
 	if err == nil { // 请求正常
 		err = xml.Unmarshal(bs.Bytes(), &res) // body 正常返回
-		if err == io.EOF {
-			err = nil
-		}
 		// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
 		if resp != nil && resp.StatusCode == 200 {
 			if err != nil {
