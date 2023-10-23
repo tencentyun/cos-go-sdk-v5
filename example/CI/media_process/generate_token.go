@@ -16,6 +16,7 @@ type JwtTokens struct {
 	Type     string `json:"Type"`
 	AppId    string `json:"AppId"`
 	BucketId string `json:"BucketId"`
+	Object   string `json:"Object"`
 	Issuer   string `json:"Issuer"`
 	// time info
 	IssuedTimeStamp int64 `json:"IssuedTimeStamp"`
@@ -28,8 +29,6 @@ type JwtTokens struct {
 	ProtectSchema     string `json:"ProtectSchema"`
 	PublicKey         string `json:"PublicKey"`
 	ProtectContentKey int    `json:"ProtectContentKey"`
-	RequestAppId      string `json:"RequestAppId"`
-	RequestBucket     string `json:"RequestBucket"`
 }
 
 // 定义secret
@@ -50,6 +49,8 @@ func GenerateToken() (string, error) {
 		AppId: "1234567890",
 		// 播放文件所在的BucketId， 必填参数
 		BucketId: "test-1234567890",
+		// 播放文件名
+		Object: "hls_test/no_uri_key.m3u8",
 		// 固定为client，必填参数
 		Issuer: "client",
 		// token颁发时间戳，必填参数
