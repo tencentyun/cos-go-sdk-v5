@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -305,17 +304,17 @@ type CIDocCompareOptions struct {
 }
 
 type CIDocCompareResult struct {
-	Code       string `xml:"Code,omitempty" json:"code,omitempty"`
-	ETag       string `xml:"ETag,omitempty" json:"eTag,omitempty"`
-	Msg        string `xml:"Msg,omitempty" json:"msg,omitempty"`
-	ResultPath string `xml:"ResultPath,omitempty" json:"resultPath,omitempty"`
+	XMLName    xml.Name `xml:"Response"`
+	Code       string   `xml:"Code,omitempty" json:"code,omitempty"`
+	ETag       string   `xml:"ETag,omitempty" json:"eTag,omitempty"`
+	Msg        string   `xml:"Msg,omitempty" json:"msg,omitempty"`
+	ResultPath string   `xml:"ResultPath,omitempty" json:"resultPath,omitempty"`
 }
 
 // 优先 json
 func (w *CIDocCompareResult) Write(p []byte) (n int, err error) {
 	err = json.Unmarshal(p, w)
 	if err != nil {
-		fmt.Println(err.Error())
 		err = xml.NewDecoder(bytes.NewReader(p)).Decode(w)
 		if err == nil {
 			return len(p), nil
