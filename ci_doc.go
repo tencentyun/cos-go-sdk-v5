@@ -1,9 +1,11 @@
 package cos
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -291,6 +293,53 @@ func (s *CIService) DocPreview(ctx context.Context, name string, opt *DocPreview
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+type CIDocCompareOptions struct {
+	Object      string `url:"object,omitempty"`
+	ComparePath string `url:"comparePath,omitempty"`
+	CompareUrl  string `url:"compareUrl,omitempty"`
+	SrcType     string `url:"srcType,omitempty"`
+	TgtUri      string `url:"tgtUri,omitempty"`
+}
+
+type CIDocCompareResult struct {
+	XMLName    xml.Name `xml:"Response"`
+	Code       string   `xml:"Code,omitempty" json:"code,omitempty"`
+	ETag       string   `xml:"ETag,omitempty" json:"eTag,omitempty"`
+	Msg        string   `xml:"Msg,omitempty" json:"msg,omitempty"`
+	ResultPath string   `xml:"ResultPath,omitempty" json:"resultPath,omitempty"`
+}
+
+// 优先 json
+func (w *CIDocCompareResult) Write(p []byte) (n int, err error) {
+	err = json.Unmarshal(p, w)
+	if err != nil {
+		err = xml.NewDecoder(bytes.NewReader(p)).Decode(w)
+		if err == nil {
+			return len(p), nil
+		}
+		if err == io.EOF {
+			err = nil // ignore EOF errors caused by empty response body
+		}
+		return 0, err
+	}
+	return len(p), nil
+}
+
+// DocCompare TODO
+func (s *CIService) CIDocCompare(ctx context.Context, opt *CIDocCompareOptions) (*Response, *CIDocCompareResult, error) {
+	var res CIDocCompareResult
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/doccompare",
+		optQuery:         opt,
+		method:           http.MethodGet,
+		disableCloseBody: true,
+		result:           &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, &res, err
 }
 
 type DocPreviewHTMLOptions struct {

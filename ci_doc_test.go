@@ -202,6 +202,30 @@ func TestCIService_DocPreview(t *testing.T) {
 	}
 }
 
+func TestCIService_CIDocCompare(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/doccompare", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"object":      "doc/1.docx",
+			"comparePath": "doc/2.docx",
+		}
+		testFormValues(t, r, v)
+	})
+
+	opt := &CIDocCompareOptions{
+		Object:      "doc/1.docx",
+		ComparePath: "doc/2.docx",
+	}
+
+	_, _, err := client.CI.CIDocCompare(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DocPreview returned error: %v", err)
+	}
+}
+
 func TestCIService_DocPreviewHTML(t *testing.T) {
 	setup()
 	defer teardown()
