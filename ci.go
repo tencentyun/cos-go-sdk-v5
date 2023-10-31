@@ -2100,6 +2100,7 @@ func (s *CIService) LivenessRecognitionWhenUpload(ctx context.Context, obj, file
 type GoodsMattingptions struct {
 	CenterLayout  string `url:"center-layout,omitempty"`
 	PaddingLayout string `url:"padding-layout,omitempty"`
+	DetectUrl     string `url:"detect-url,omitempty"`
 }
 
 // GoodsMatting 商品抠图
