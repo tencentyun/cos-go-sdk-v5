@@ -1706,3 +1706,39 @@ func (s *ObjectService) GetFetchTask(ctx context.Context, bucket string, taskid 
 	}
 	return &res, resp, err
 }
+
+type ObjectPutSymlinkOptions struct {
+	SymlinkTarget string       `header:"x-cos-symlink-target" url:"-"`
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
+type ObjectGetSymlinkOptions struct {
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
+func (s *ObjectService) PutSymlink(ctx context.Context, name string, opt *ObjectPutSymlinkOptions) (*Response, error) {
+	if opt == nil || opt.SymlinkTarget == "" {
+		return nil, errors.New("SymlinkTarget is empty")
+	}
+	sendOpt := &sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(name) + "?symlink",
+		method:    http.MethodPut,
+		optHeader: opt,
+	}
+	resp, err := s.client.doRetry(ctx, sendOpt)
+	return resp, err
+}
+
+func (s *ObjectService) GetSymlink(ctx context.Context, name string, opt *ObjectGetSymlinkOptions) (string, *Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/" + encodeURIComponent(name) + "?symlink",
+		method:  http.MethodGet,
+	}
+	resp, err := s.client.doRetry(ctx, sendOpt)
+	if err != nil || resp == nil {
+		return "", resp, err
+	}
+	return resp.Header.Get("x-cos-symlink-target"), resp, err
+}
