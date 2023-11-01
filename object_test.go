@@ -1646,3 +1646,50 @@ func TestObjectService_checkUploadedParts(t *testing.T) {
 		t.Fatalf("Object.checkUploadedParts should return err: %v", err)
 	}
 }
+
+func TestObjectService_PutSymlink(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "symlink"
+	mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "PUT")
+		vs := values{
+			"symlink": "",
+		}
+		testFormValues(t, r, vs)
+		testHeader(t, r, "x-cos-symlink-target", "target")
+	})
+
+	opt := &ObjectPutSymlinkOptions{
+		SymlinkTarget: "target",
+	}
+	_, err := client.Object.PutSymlink(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("Object.PutSymlink  returned error %v", err)
+	}
+}
+
+func TestObjectService_GetSymlink(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "symlink"
+	want := "target"
+	mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"symlink": "",
+		}
+		testFormValues(t, r, vs)
+		w.Header().Set("x-cos-symlink-target", want)
+	})
+
+	res, _, err := client.Object.GetSymlink(context.Background(), name, nil)
+	if err != nil {
+		t.Fatalf("Object.GetSymlink returned error %v", err)
+	}
+	if res != want {
+		t.Fatalf("Object.GetSymlink, target is invalid, return: %v, want: %v", res, want)
+	}
+}
