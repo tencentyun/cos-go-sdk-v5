@@ -3464,6 +3464,8 @@ func (s *CIService) DeleteTemplate(ctx context.Context, tempalteId string) (*Del
 type FillConcat struct {
 	Format    string            `xml:"Format,omitempty"`
 	FillInput []FillConcatInput `xml:"FillInput,omitempty"`
+	RefMode   string            `xml:"RefMode,omitempty"`
+	RefIndex  string            `xml:"RefIndex,omitempty"`
 }
 
 // FillConcatInput 填充拼接输入
