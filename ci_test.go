@@ -874,6 +874,61 @@ func TestCIService_GetQRcode(t *testing.T) {
 	}
 }
 
+func TestCIService_GetQRcodeV2(t *testing.T) {
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"ci-process": "QRcode",
+				"cover":      "1",
+			}
+			testFormValues(t, r, vs)
+		})
+
+		_, _, err := client.CI.GetQRcodeV2(context.Background(), "test.jpg", 1, nil)
+		if err != nil {
+			t.Fatalf("CI.GetQRcodeV2 returned error: %v", err)
+		}
+		teardown()
+	}
+
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"ci-process": "QRcode",
+				"cover":      "1",
+				"versionId":  "1.1",
+			}
+			testFormValues(t, r, vs)
+		})
+		_, _, err := client.CI.GetQRcodeV2(context.Background(), "test.jpg", 1, nil, "1.1")
+		if err != nil {
+			t.Fatalf("CI.GetQRcodeV2 returned error: %v", err)
+		}
+		teardown()
+	}
+
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"ci-process": "QRcode",
+				"cover":      "1",
+			}
+			testFormValues(t, r, vs)
+		})
+		_, _, err := client.CI.GetQRcodeV2(context.Background(), "test.jpg", 1, nil, "1.1", "1.2")
+		if err == nil || err.Error() != "wrong params" {
+			t.Fatalf("CI.GetQRcodeV2 returned error: %v", err)
+		}
+		teardown()
+	}
+}
+
 func TestCIService_GenerateQRcode(t *testing.T) {
 	setup()
 	defer teardown()

@@ -91,7 +91,7 @@ func qRcodeRecognitionWhenDownload() {
 	})
 
 	name := "pic/qrcode.jpg"
-	res, _, err := c.CI.GetQRcode(context.Background(), name, 1, nil)
+	res, _, err := c.CI.GetQRcodeV2(context.Background(), name, 1, nil)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }

@@ -1265,6 +1265,37 @@ func (s *CIService) GetQRcode(ctx context.Context, name string, cover int, opt *
 	return &res, resp, err
 }
 
+type GetQRcodeResultV2 struct {
+	XMLName     xml.Name    `xml:"Response"`
+	CodeStatus  int         `xml:"CodeStatus,omitempty"`
+	QRcodeInfo  []QRcodeInfo `xml:"QRcodeInfo,omitempty"`
+	ResultImage string      `xml:"ResultImage,omitempty"`
+}
+
+// 二维码识别-下载时识别 https://cloud.tencent.com/document/product/436/54070
+func (s *CIService) GetQRcodeV2(ctx context.Context, name string, cover int, opt *ObjectGetOptions, id ...string) (*GetQRcodeResultV2, *Response, error) {
+	var u string
+	if len(id) == 1 {
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=QRcode&cover=%v", encodeURIComponent(name), id[0], cover)
+	} else if len(id) == 0 {
+		u = fmt.Sprintf("/%s?ci-process=QRcode&cover=%v", encodeURIComponent(name), cover)
+	} else {
+		return nil, nil, errors.New("wrong params")
+	}
+
+	var res GetQRcodeResultV2
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodGet,
+		optQuery:  opt,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 type GenerateQRcodeOptions struct {
 	QRcodeContent string `url:"qrcode-content,omitempty"`
 	Mode          int    `url:"mode,omitempty"`
