@@ -46,9 +46,9 @@ func main() {
 			},
 		},
 	})
-	obj := "pic/pet.jpeg"
-	opt := &cos.PetDetectOption{}
-	res, _, err := c.CI.DetectPet(context.Background(), obj, opt)
+	obj := "pic/game2.jpeg"
+	opt := &cos.AIGameRecOptions{}
+	res, _, err := c.CI.AIGameRec(context.Background(), obj, opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
