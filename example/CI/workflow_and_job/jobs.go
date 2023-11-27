@@ -1079,6 +1079,23 @@ func InvokeImageInspectJob() {
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 }
 
+// InvokeImageOCRJob 提交一个OCR任务
+func InvokeImageOCRJob() {
+	c := getClient()
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "ImageOCR",
+		Input: &cos.JobInput{
+			Object: "pic/ocr.png",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			TemplateId: "t1a545cd125ea04ec7a3cd455065d601cc",
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
 // JobNotifyCallback 解析任务回调
 func JobNotifyCallback() {
 	taskBody := "<Response><EventName>TaskFinish</EventName><JobsDetail><Code>Success</Code><CreationTime>2022-06-30T19:30:20+0800</CreationTime><EndTime>2022-06-30T19:31:56+0800</EndTime><Input><BucketId>test-123456789</BucketId><Object>input/demo.mp4</Object><Region>ap-chongqing</Region><CosHeaders><Key>Content-Type</Key><Value>video/mp4</Value></CosHeaders><CosHeaders><Key>x-cos-request-id</Key><Value>NjJiZDYwYTFfNjUzYTYyNjRfZjEwZl8xMmZhYzY5</Value></CosHeaders><CosHeaders><Key>EventName</Key><Value>cos:ObjectCreated:Put</Value></CosHeaders><CosHeaders><Key>Size</Key><Value>1424687</Value></CosHeaders></Input><JobId>j06668dc0f86811ecb90d0b03267ce0e5</JobId><Message/><Operation><DigitalWatermark><IgnoreError>false</IgnoreError><Message>123456789ab</Message><State>Failed</State><Type>Text</Type><Version>V1</Version></DigitalWatermark><MediaInfo><Format><Bitrate>8867.172000</Bitrate><Duration>13.654000</Duration><FormatLongName>QuickTime / MOV</FormatLongName><FormatName>mov,mp4,m4a,3gp,3g2,mj2</FormatName><NumProgram>0</NumProgram><NumStream>2</NumStream><Size>15134046</Size><StartTime>0.000000</StartTime></Format><Stream><Audio><Bitrate>128.726000</Bitrate><Channel>2</Channel><ChannelLayout>stereo</ChannelLayout><CodecLongName>AAC (Advanced Audio Coding)</CodecLongName><CodecName>aac</CodecName><CodecTag>0x6134706d</CodecTag><CodecTagString>mp4a</CodecTagString><CodecTimeBase>1/44100</CodecTimeBase><Duration>13.652993</Duration><Index>1</Index><Language>und</Language><SampleFmt>fltp</SampleFmt><SampleRate>44100</SampleRate><StartTime>0.000000</StartTime><Timebase>1/44100</Timebase></Audio><Subtitle/><Video><AvgFps>25.000000</AvgFps><Bitrate>9197.180000</Bitrate><CodecLongName>H.265 / HEVC (High Efficiency Video Coding)</CodecLongName><CodecName>hevc</CodecName><CodecTag>0x31766568</CodecTag><CodecTagString>hev1</CodecTagString><CodecTimeBase>1/12800</CodecTimeBase><ColorPrimaries>bt470bg</ColorPrimaries><ColorRange>tv</ColorRange><ColorTransfer>smpte170m</ColorTransfer><Duration>12.960000</Duration><FieldOrder>progressive</FieldOrder><Fps>25.000000</Fps><HasBFrame>2</HasBFrame><Height>1920</Height><Index>0</Index><Language>und</Language><Level>120</Level><NumFrames>324</NumFrames><PixFormat>yuv420p</PixFormat><Profile>Main</Profile><RefFrames>1</RefFrames><Rotation>0.000000</Rotation><StartTime>0.000000</StartTime><Timebase>1/12800</Timebase><Width>1088</Width></Video></Stream></MediaInfo><MediaResult><OutputFile><Bucket>test-123456789</Bucket><Md5Info><Md5>852883012a6ba726e6ed8d9b984edfdf</Md5><ObjectName>output/super_resolution.mp4</ObjectName></Md5Info><ObjectName>output/super_resolution.mp4</ObjectName><ObjectPrefix/><Region>ap-chongqing</Region></OutputFile></MediaResult><Output><Bucket>test-123456789</Bucket><Object>output/super_resolution.${ext}</Object><Region>ap-chongqing</Region></Output><TemplateId>t1f1ae1dfsdc9ds41dsb31632d45710642a</TemplateId><TemplateName>template_superresolution</TemplateName><TranscodeTemplateId>t156c107210e7243c5817354565d81b578</TranscodeTemplateId><UserData>This is my SuperResolution job.</UserData><JobLevel>0</JobLevel><WatermarkTemplateId>t143ae6e040af6431aa772c9ec3f0a3f36</WatermarkTemplateId><WatermarkTemplateId>t12a74d11687d444deba8a6cc52051ac27</WatermarkTemplateId></Operation><QueueId>p2242ab62c7c94486915508540933a2c6</QueueId><StartTime>2022-06-30T19:30:21+0800</StartTime><State>Success</State><Progress>100</Progress><SubTag>DigitalWatermark</SubTag><Tag>SuperResolution</Tag><Workflow><Name>SuperResolution_1581665960537</Name><RunId>ic90edd59f84f11ec9d4f525400a3c59f</RunId><WorkflowId>web6ac56c1ef54dbfa44d7f4103203be9</WorkflowId><WorkflowName>workflow-test</WorkflowName></Workflow></JobsDetail></Response>"

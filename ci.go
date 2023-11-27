@@ -1266,10 +1266,10 @@ func (s *CIService) GetQRcode(ctx context.Context, name string, cover int, opt *
 }
 
 type GetQRcodeResultV2 struct {
-	XMLName     xml.Name    `xml:"Response"`
-	CodeStatus  int         `xml:"CodeStatus,omitempty"`
+	XMLName     xml.Name     `xml:"Response"`
+	CodeStatus  int          `xml:"CodeStatus,omitempty"`
 	QRcodeInfo  []QRcodeInfo `xml:"QRcodeInfo,omitempty"`
-	ResultImage string      `xml:"ResultImage,omitempty"`
+	ResultImage string       `xml:"ResultImage,omitempty"`
 }
 
 // 二维码识别-下载时识别 https://cloud.tencent.com/document/product/436/54070
@@ -1831,6 +1831,37 @@ func (s *CIService) EffectPet(ctx context.Context, obj string) (*PetEffectResult
 	return &res, resp, err
 }
 
+type PetDetectOption struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+type PetDetectResult struct {
+	XMLName    xml.Name `xml:"Response"`
+	ResultInfo []struct {
+		Score    int    `xml:"Score,omitempty"`
+		Name     string `xml:"Name,omitempty"`
+		Location struct {
+			X      int `xml:"X,omitempty"`
+			Y      int `xml:"Y,omitempty"`
+			Height int `xml:"Height,omitempty"`
+			Width  int `xml:"Width,omitempty"`
+		} `xml:"Location,omitempty"`
+	} `xml:"ResultInfo,omitempty"`
+}
+
+func (s *CIService) DetectPet(ctx context.Context, obj string, opt *PetDetectOption) (*PetDetectResult, *Response, error) {
+	var res PetDetectResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=detect-pet",
+		result:   &res,
+		optQuery: opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
 type AILicenseRecOptions struct {
 	DetectUrl string `url:"detect-url,omitempty"`
 	CardType  string `url:"CardType,omitempty"`
@@ -2296,6 +2327,23 @@ func (s *CIService) GetAIImageColoring(ctx context.Context, name string) (*Respo
 	return resp, err
 }
 
+// AIImageColoringOptions TODO
+type AIImageColoringOptions struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+func (s *CIService) GetAIImageColoringV2(ctx context.Context, name string, opt *AIImageColoringOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AIImageColoring",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
 // GetAISuperResolution https://cloud.tencent.com/document/product/460/83793
 func (s *CIService) GetAISuperResolution(ctx context.Context, name string) (*Response, error) {
 	sendOpt := sendOptions{
@@ -2308,12 +2356,51 @@ func (s *CIService) GetAISuperResolution(ctx context.Context, name string) (*Res
 	return resp, err
 }
 
+// AIImageColoringOptions TODO
+type AISuperResolutionOptions struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+// GetAISuperResolution https://cloud.tencent.com/document/product/460/83793
+func (s *CIService) GetAISuperResolutionV2(ctx context.Context, name string, opt *AISuperResolutionOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AISuperResolution",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
 // GetAIEnhanceImage https://cloud.tencent.com/document/product/460/83792
 func (s *CIService) GetAIEnhanceImage(ctx context.Context, name string) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,
 		uri:              "/" + encodeURIComponent(name) + "?ci-process=AIEnhanceImage",
 		method:           http.MethodGet,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+// AIEnhanceImageOptions 图像增强选项
+type AIEnhanceImageOptions struct {
+	DetectUrl   string `url:"detect-url,omitempty"`
+	Senoise     int    `url:"denoise,omitempty"`
+	Sharpen     int    `url:"sharpen,omitempty"`
+	IgnoreError int    `url:"ignore-error,omitempty"`
+}
+
+// GetAIEnhanceImage https://cloud.tencent.com/document/product/460/83792
+func (s *CIService) GetAIEnhanceImageV2(ctx context.Context, name string, opt *AIEnhanceImageOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(name) + "?ci-process=AIEnhanceImage",
+		method:           http.MethodGet,
+		optQuery:         opt,
 		disableCloseBody: true,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
@@ -2374,8 +2461,9 @@ func (s *CIService) GetAutoTranslationBlock(ctx context.Context, opt *AutoTransl
 
 // ImageRepairOptions 图像修复选项
 type ImageRepairOptions struct {
-	MaskPic  string `url:"MaskPic,omitempty"`
-	MaskPoly string `url:"MaskPoly,omitempty"`
+	DetectUrl string `url:"detect-url,omitempty"`
+	MaskPic   string `url:"MaskPic,omitempty"`
+	MaskPoly  string `url:"MaskPoly,omitempty"`
 }
 
 // GetImageRepair https://cloud.tencent.com/document/product/460/79042
@@ -2461,4 +2549,31 @@ func (s *CIService) TDCRefresh(ctx context.Context, name string) (*Response, err
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
+}
+
+type AIGameRecOptions struct {
+	DetectUrl string `url:"detect-url,omitempty"`
+}
+
+type AIGameRecResult struct {
+	XMLName    xml.Name `xml:"RecognitionResult"`
+	GameLabels *struct {
+		Confidence     int    `xml:"Confidence,omitempty"`
+		FirstCategory  string `xml:"FirstCategory,omitempty"`
+		SecondCategory string `xml:"SecondCategory,omitempty"`
+		GameName       string `xml:"GameName,omitempty"`
+	} `xml:"GameLabels,omitempty"`
+}
+
+func (s *CIService) AIGameRec(ctx context.Context, obj string, opt *AIGameRecOptions) (*AIGameRecResult, *Response, error) {
+	var res AIGameRecResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		method:   http.MethodGet,
+		uri:      "/" + encodeURIComponent(obj) + "?ci-process=AIGameRec",
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
 }

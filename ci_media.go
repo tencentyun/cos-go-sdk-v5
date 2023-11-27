@@ -448,7 +448,13 @@ type Subtitles struct {
 
 // Subtitle TODO
 type Subtitle struct {
-	Url []Subtitle `xml:"Url,omitempty"`
+	Url          string `xml:"Url,omitempty"`
+	Embed        string `xml:"Embed,omitempty"`
+	FontType     string `xml:"FontType,omitempty"`
+	FontSize     string `xml:"FontSize,omitempty"`
+	FontColor    string `xml:"FontColor,omitempty"`
+	OutlineColor string `xml:"OutlineColor,omitempty"`
+	VMargin      string `xml:"VMargin,omitempty"`
 }
 
 // VideoTag TODO
@@ -753,6 +759,9 @@ type MediaProcessJobOperation struct {
 	VocalScoreResult        *VocalScoreResult        `xml:"VocalScoreResult,omitempty"`
 	ImageInspect            *ImageInspect            `xml:"ImageInspect,omitempty"`
 	ImageInspectResult      *ImageInspectResult      `xml:"ImageInspectResult,omitempty"`
+	SnapshotPrefix          string                   `xml:"SnapshotPrefix,omitempty"`
+	ImageOCR                *ImageOCRTemplate        `xml:"ImageOCR,omitempty"`
+	Detection               *ImageOCRDetection       `xml:"Detection,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
@@ -887,11 +896,12 @@ type WorkflowExecutionNotifyBody struct {
 				ObjectCount       int `xml:"ObjectCount"`
 				SpriteObjectCount int `xml:"SpriteObjectCount"`
 				ObjectInfo        []struct {
-					ObjectName      string `xml:"ObjectName"`
-					ObjectUrl       string `xml:"ObjectUrl"`
-					InputObjectName string `xml:"InputObjectName"`
-					Code            string `xml:"Code"`
-					Message         string `xml:"Message"`
+					ObjectName      string             `xml:"ObjectName"`
+					ObjectUrl       string             `xml:"ObjectUrl"`
+					InputObjectName string             `xml:"InputObjectName"`
+					Code            string             `xml:"Code"`
+					Message         string             `xml:"Message"`
+					ImageOcrResult  *ImageOCRDetection `xml:"ImageOcrResult,omitempty"`
 				} `xml:"ObjectInfo,omitempty"`
 				SpriteObjectInfo []struct {
 					ObjectName      string `xml:"ObjectName"`
@@ -1731,6 +1741,9 @@ type NodeOperation struct {
 	Condition            *WorkflowNodeCondition    `xml:"Condition,omitempty" json:"Condition,omitempty"`
 	SegmentVideoBody     *SegmentVideoBody         `xml:"SegmentVideoBody,omitempty" json:"SegmentVideoBody,omitempty"`
 	ImageInspect         *ImageInspect             `xml:"ImageInspect,omitempty" json:"ImageInspect,omitempty"`
+	TranscodeConfig      *struct {
+		FreeTranscode string `xml:"FreeTranscode,omitempty" json:"FreeTranscode,omitempty"`
+	} `xml:"TranscodeConfig,omitempty" json:"TranscodeConfig,omitempty"`
 }
 
 // Node TODO
@@ -2327,6 +2340,7 @@ type Template struct {
 	NoiseReduction    *NoiseReduction    `xml:"NoiseReduction,omitempty" json:"NoiseReduction,omitempty"`
 	VideoEnhance      *VideoEnhance      `xml:"VideoEnhance,omitempty" json:"VideoEnhance,omitempty"`
 	VideoTargetRec    *VideoTargetRec    `xml:"VideoTargetRec,omitempty" json:"VideoTargetRec,omitempty"`
+	ImageOCR          *ImageOCRTemplate  `xml:"ImageOCR,omitempty" json:"ImageOCR,omitempty"`
 }
 
 // CreateMediaSnapshotTemplate 创建截图模板
@@ -3072,6 +3086,7 @@ type InventoryTriggerJobOperation struct {
 	Tag              string                                   `xml:"Tag,omitempty"`
 	JobParam         *InventoryTriggerJobOperationJobParam    `xml:"JobParam,omitempty"`
 	Output           *JobOutput                               `xml:"Output,omitempty"`
+	FreeTranscode    string                                   `xml:"FreeTranscode,omitempty"`
 }
 
 // InventoryTriggerJobOperationJobParam TODO
@@ -3110,6 +3125,8 @@ type InventoryTriggerJobOperationJobParam struct {
 	VocalScoreResult        *VocalScoreResult        `xml:"VocalScoreResult,omitempty"`
 	ImageInspect            *ImageInspect            `xml:"ImageInspect,omitempty"`
 	ImageInspectResult      *ImageInspectResult      `xml:"ImageInspectResult,omitempty"`
+	ImageOCR                *ImageOCRTemplate        `xml:"ImageOCR,omitempty"`
+	Detection               *ImageOCRDetection       `xml:"Detection,omitempty"`
 }
 
 // InventoryTriggerJob TODO
@@ -3710,4 +3727,121 @@ func (s *CIService) CosImageInspect(ctx context.Context, name string, opt *CosIm
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+// CreateOCRTemplateOptions TODO
+type CreateOCRTemplateOptions struct {
+	XMLName  xml.Name          `xml:"Request"`
+	Tag      string            `xml:"Tag,omitempty"`
+	Name     string            `xml:"Name,omitempty"`
+	ImageOCR *ImageOCRTemplate `xml:"ImageOCR,omitempty" json:"ImageOCR,omitempty"`
+}
+
+// ImageOCRTemplate TODO
+type ImageOCRTemplate struct {
+	Type              string `xml:"Type,omitempty"`
+	LanguageType      string `xml:"LanguageType,omitempty"`
+	IsPdf             string `xml:"IsPdf,omitempty"`
+	PdfPageNumber     string `xml:"PdfPageNumber,omitempty"`
+	IsWord            string `xml:"IsWord,omitempty"`
+	EnableWordPolygon string `xml:"EnableWordPolygon,omitempty"`
+}
+
+// CreateOCRTemplate 创建OCR模板
+func (s *CIService) CreateOCRTemplate(ctx context.Context, opt *CreateOCRTemplateOptions) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// UpdateOCRTemplate 更新OCR模板
+func (s *CIService) UpdateOCRTemplate(ctx context.Context, opt *CreateOCRTemplateOptions, templateId string) (*CreateMediaTemplateResult, *Response, error) {
+	var res CreateMediaTemplateResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/template/" + templateId,
+		method:  http.MethodPut,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// ImageOCRDetection TODO
+type ImageOCRDetection struct {
+	InputObjectName string                   `xml:"InputObjectName,omitempty"`
+	InputObjectUrl  string                   `xml:"InputObjectUrl,omitempty"`
+	ObjectName      string                   `xml:"ObjectName,omitempty"`
+	ObjectUrl       string                   `xml:"ObjectUrl,omitempty"`
+	Code            string                   `xml:"Code,omitempty"`
+	State           string                   `xml:"State,omitempty"`
+	Message         string                   `xml:"Message,omitempty"`
+	TextDetections  []ImageOCRTextDetections `xml:"TextDetections,omitempty"`
+	Language        string                   `xml:"Language,omitempty"`
+	Angel           string                   `xml:"Angel,omitempty"`
+	PdfPageSize     int                      `xml:"PdfPageSize,omitempty"`
+}
+
+// ImageOCRTextDetections TODO
+type ImageOCRTextDetections struct {
+	DetectedText string                    `xml:"DetectedText,omitempty"`
+	Confidence   int                       `xml:"Confidence,omitempty"`
+	Polygon      []ImageOCRTextPolygon     `xml:"Polygon,omitempty"`
+	ItemPolygon  []ImageOCRTextItemPolygon `xml:"ItemPolygon,omitempty"`
+	Words        []ImageOCRTextWords       `xml:"Words,omitempty"`
+	WordPolygon  []ImageOCRTextWordPolygon `xml:"WordPolygon,omitempty"`
+}
+
+// ImageOCRTextPolygon TODO
+type ImageOCRTextPolygon struct {
+	X int `xml:"X,omitempty"`
+	Y int `xml:"Y,omitempty"`
+}
+
+// ImageOCRTextItemPolygon TODO
+type ImageOCRTextItemPolygon struct {
+	X      int `xml:"X,omitempty"`
+	Y      int `xml:"Y,omitempty"`
+	Width  int `xml:"Width,omitempty"`
+	Height int `xml:"Height,omitempty"`
+}
+
+// ImageOCRTextWords TODO
+type ImageOCRTextWords struct {
+	Confidence     int    `xml:"Confidence,omitempty"`
+	Character      string `xml:"Character,omitempty"`
+	WordCoordPoint []struct {
+		WordCoordinate []struct {
+			X int `xml:"X,omitempty"`
+			Y int `xml:"Y,omitempty"`
+		} `xml:"WordCoordinate,omitempty"`
+	} `xml:"WordCoordPoint,omitempty"`
+}
+
+// ImageOCRTextWordPolygon TODO
+type ImageOCRTextWordPolygon struct {
+	LeftTop []struct {
+		X int `xml:"X,omitempty"`
+		Y int `xml:"Y,omitempty"`
+	} `xml:"LeftTop,omitempty"`
+	RightTop []struct {
+		X int `xml:"X,omitempty"`
+		Y int `xml:"Y,omitempty"`
+	} `xml:"RightTop,omitempty"`
+	LeftBottom []struct {
+		X int `xml:"X,omitempty"`
+		Y int `xml:"Y,omitempty"`
+	} `xml:"LeftBottom,omitempty"`
+	RightBottom []struct {
+		X int `xml:"X,omitempty"`
+		Y int `xml:"Y,omitempty"`
+	} `xml:"RightBottom,omitempty"`
 }

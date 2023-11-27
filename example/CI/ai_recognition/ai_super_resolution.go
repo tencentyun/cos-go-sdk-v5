@@ -50,7 +50,8 @@ func superResolutionWhenDownload() {
 	})
 	obj := "pic/heibai.jpeg"
 	localPath := "test.jpeg"
-	resp, err := c.CI.GetAISuperResolution(context.Background(), obj)
+	opt := &cos.AISuperResolutionOptions{}
+	resp, err := c.CI.GetAISuperResolutionV2(context.Background(), obj, opt)
 	log_status(err)
 	if err == nil {
 		fd, _ := os.OpenFile(localPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)

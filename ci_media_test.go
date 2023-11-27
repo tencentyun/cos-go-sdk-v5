@@ -3409,3 +3409,64 @@ func TestCIService_CosImageInspect(t *testing.T) {
 		t.Fatalf("CI.CosImageInspect returned error: %v", err)
 	}
 }
+
+func TestCIService_CreateOCRTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := "<Request><Tag>ImageOCR</Tag><Name>ImageOCR-123</Name><ImageOCR><Type>general</Type><LanguageType>zh</LanguageType><IsPdf>false" +
+		"</IsPdf><IsWord>true</IsWord><EnableWordPolygon>true</EnableWordPolygon></ImageOCR></Request>"
+
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateOCRTemplateOptions{
+		Tag:  "ImageOCR",
+		Name: "ImageOCR-123",
+		ImageOCR: &ImageOCRTemplate{
+			Type:              "general",
+			LanguageType:      "zh",
+			IsPdf:             "false",
+			IsWord:            "true",
+			EnableWordPolygon: "true",
+		},
+	}
+
+	_, _, err := client.CI.CreateOCRTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateOCRTemplate returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateOCRTemplate(t *testing.T) {
+	setup()
+	defer teardown()
+
+	tplId := "t1460606b9752148c4ab182f55163ba7cd"
+	wantBody := "<Request><Tag>ImageOCR</Tag><Name>ImageOCR-123</Name><ImageOCR><Type>efficient</Type><LanguageType>zh</LanguageType><IsPdf>false" +
+		"</IsPdf><IsWord>true</IsWord><EnableWordPolygon>true</EnableWordPolygon></ImageOCR></Request>"
+
+	mux.HandleFunc("/template/"+tplId, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testBody(t, r, wantBody)
+	})
+
+	opt := &CreateOCRTemplateOptions{
+		Tag:  "ImageOCR",
+		Name: "ImageOCR-123",
+		ImageOCR: &ImageOCRTemplate{
+			Type:              "efficient",
+			LanguageType:      "zh",
+			IsPdf:             "false",
+			IsWord:            "true",
+			EnableWordPolygon: "true",
+		},
+	}
+
+	_, _, err := client.CI.UpdateOCRTemplate(context.Background(), opt, tplId)
+	if err != nil {
+		t.Fatalf("CI.CreateOCRTemplate returned error: %v", err)
+	}
+}

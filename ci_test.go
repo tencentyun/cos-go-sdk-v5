@@ -2124,6 +2124,24 @@ func TestCIService_EffectPet(t *testing.T) {
 	}
 }
 
+func TestCIService_DetectPet(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "detect-pet",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &PetDetectOption{}
+	_, _, err := client.CI.DetectPet(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.DetectPet returned error: %v", err)
+	}
+}
+
 func TestCIService_AILicenseRec(t *testing.T) {
 	setup()
 	defer teardown()
@@ -2632,6 +2650,25 @@ func TestCIService_GetAIImageColoring(t *testing.T) {
 	}
 }
 
+func TestCIService_GetAIImageColoringV2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIImageColoring",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AIImageColoringOptions{}
+	_, err := client.CI.GetAIImageColoringV2(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("CI.GetAIImageColoringV2 returned error: %v", err)
+	}
+}
+
 func TestCIService_GetAISuperResolution(t *testing.T) {
 	setup()
 	defer teardown()
@@ -2651,6 +2688,25 @@ func TestCIService_GetAISuperResolution(t *testing.T) {
 	}
 }
 
+func TestCIService_GetAISuperResolutionV2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AISuperResolution",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AISuperResolutionOptions{}
+	_, err := client.CI.GetAISuperResolutionV2(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("CI.GetAISuperResolutionV2 returned error: %v", err)
+	}
+}
+
 func TestCIService_GetAIEnhanceImage(t *testing.T) {
 	setup()
 	defer teardown()
@@ -2667,6 +2723,25 @@ func TestCIService_GetAIEnhanceImage(t *testing.T) {
 	_, err := client.CI.GetAIEnhanceImage(context.Background(), key)
 	if err != nil {
 		t.Fatalf("CI.GetAIEnhanceImage returned error: %v", err)
+	}
+}
+
+func TestCIService_GetAIEnhanceImageV2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	key := "pic/cup.jpeg"
+	mux.HandleFunc("/"+key, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIEnhanceImage",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AIEnhanceImageOptions{}
+	_, err := client.CI.GetAIEnhanceImageV2(context.Background(), key, opt)
+	if err != nil {
+		t.Fatalf("CI.GetAIEnhanceImageV2 returned error: %v", err)
 	}
 }
 
@@ -2810,5 +2885,24 @@ func TestCIService_TDCRefresh(t *testing.T) {
 	_, err := client.CI.TDCRefresh(context.Background(), key)
 	if err != nil {
 		t.Fatalf("CI.TDCRefresh returned error: %v", err)
+	}
+}
+
+func TestCIService_AIGameRec(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIGameRec",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AIGameRecOptions{}
+
+	_, _, err := client.CI.AIGameRec(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.AIGameRec returned error: %v", err)
 	}
 }
