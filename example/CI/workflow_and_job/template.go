@@ -964,5 +964,46 @@ func UpdateNoiseReductionTemplate() {
 	fmt.Printf("%+v\n", updateTplRes.Template)
 }
 
+// UpdateOCRTemplate 创建OCR模板
+func CreateOCRTemplate() {
+	c := getClient()
+	rand.Seed(time.Now().UnixNano())
+	createTplOpt := &cos.CreateOCRTemplateOptions{
+		Tag:  "ImageOCR",
+		Name: "ImageOCR-" + strconv.Itoa(rand.Intn(100)),
+		ImageOCR: &cos.ImageOCRTemplate{
+			Type:              "general",
+			LanguageType:      "zh",
+			IsPdf:             "false",
+			IsWord:            "true",
+			EnableWordPolygon: "true",
+		},
+	}
+	createTplRes, _, err := c.CI.CreateOCRTemplate(context.Background(), createTplOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createTplRes.Template)
+}
+
+// UpdateOCRTemplate 更新OCR模板
+func UpdateOCRTemplate() {
+	c := getClient()
+	rand.Seed(time.Now().UnixNano())
+	updateTplOpt := &cos.CreateOCRTemplateOptions{
+		Tag:  "ImageOCR",
+		Name: "ImageOCR-" + strconv.Itoa(rand.Intn(100)),
+		ImageOCR: &cos.ImageOCRTemplate{
+			Type:              "efficient",
+			LanguageType:      "zh",
+			IsPdf:             "false",
+			IsWord:            "true",
+			EnableWordPolygon: "true",
+		},
+	}
+	templateId := "t1a545cd125ea04ec7a3cd455065d601cc"
+	updateTplRes, _, err := c.CI.UpdateOCRTemplate(context.Background(), updateTplOpt, templateId)
+	log_status(err)
+	fmt.Printf("%+v\n", updateTplRes.Template)
+}
+
 func main() {
 }

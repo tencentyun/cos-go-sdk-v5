@@ -50,7 +50,8 @@ func imageColoringWhenDownload() {
 	})
 	obj := "pic/heibai.jpeg"
 	localPath := "test.jpeg"
-	resp, err := c.CI.GetAIImageColoring(context.Background(), obj)
+	opt := &cos.AIImageColoringOptions{}
+	resp, err := c.CI.GetAIImageColoringV2(context.Background(), obj, opt)
 	log_status(err)
 	if err == nil {
 		fd, _ := os.OpenFile(localPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
