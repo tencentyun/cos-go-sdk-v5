@@ -31,8 +31,8 @@ func log_status(err error) {
 }
 
 func getClient() *cos.Client {
-	u, _ := url.Parse("https://testpic-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://testpic-1253960454.ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://testpic-1250000000.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://testpic-1250000000.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
