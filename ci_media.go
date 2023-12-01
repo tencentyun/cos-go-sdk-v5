@@ -1421,6 +1421,40 @@ func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGe
 	return &res, resp, err
 }
 
+type PlayKey struct {
+	MasterPlayKey string `xml:"MasterPlayKey"`
+	BackupPlayKey string `xml:"BackupPlayKey"`
+}
+
+type PlayKeyResult struct {
+	XMLName     xml.Name `xml:"Response"`
+	PlayKeyList *PlayKey `xml:"PlayKeyList"`
+}
+
+func (s *CIService) CreatePlayKey(ctx context.Context) (*PlayKeyResult, *Response, error) {
+	var res PlayKeyResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/playKey",
+		method:  http.MethodPost,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) GetPlayKey(ctx context.Context) (*PlayKeyResult, *Response, error) {
+	var res PlayKeyResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/playKey",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // GenerateMediaInfoOptions TODO
 type GenerateMediaInfoOptions struct {
 	XMLName xml.Name  `xml:"Request"`
