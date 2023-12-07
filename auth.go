@@ -106,6 +106,7 @@ var NeedSignHeaders = map[string]bool{
 	"access-control-request-method":  true,
 	"access-control-request-headers": true,
 	"x-cos-object-type":              true,
+	"pic-operations":                 true,
 }
 
 // 非线程安全，只能在进程初始化（而不是Client初始化）时做设置
