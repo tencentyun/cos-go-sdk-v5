@@ -149,6 +149,6 @@ func (s *BucketService) PostInventory(ctx context.Context, id string, opt *Bucke
 		method:  http.MethodPost,
 		body:    opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
 }

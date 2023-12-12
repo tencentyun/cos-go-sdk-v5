@@ -47,6 +47,6 @@ func (s *ServiceService) Get(ctx context.Context, opt ...*ServiceGetOptions) (*S
 		optQuery: sopt,
 		result:   &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }

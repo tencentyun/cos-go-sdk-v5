@@ -23,6 +23,6 @@ func (s *BucketService) GetLocation(ctx context.Context) (*BucketGetLocationResu
 		method:  http.MethodGet,
 		result:  &res,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }

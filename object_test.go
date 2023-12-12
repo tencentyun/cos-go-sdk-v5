@@ -127,7 +127,6 @@ func TestObjectService_GetRetry(t *testing.T) {
 			ResponseHeaderTimeout: 1 * time.Second,
 		},
 	})
-	client.Conf.RetryOpt.StatusCode = []int{499}
 	name := "test/hello.txt"
 	contentLength := 1024 * 1024 * 10
 	data := make([]byte, contentLength)
@@ -140,7 +139,7 @@ func TestObjectService_GetRetry(t *testing.T) {
 		atomic.AddInt32(&index, 1)
 		if atomic.LoadInt32(&index)%3 != 0 {
 			if atomic.LoadInt32(&index) > 6 {
-				w.WriteHeader(499)
+				w.WriteHeader(500)
 				return
 			}
 			time.Sleep(time.Second * 2)
