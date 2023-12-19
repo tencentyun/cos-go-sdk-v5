@@ -179,3 +179,47 @@ func Test_addHeaderOptions(t *testing.T) {
 		t.Errorf("addHeaderOptions failed")
 	}
 }
+
+func Test_SwitchHost(t *testing.T) {
+	u, _ := url.Parse("https://example-125000000.cos.ap-chengdu.myqcloud.com/123")
+	res := toSwitchHost(u)
+	want := "https://example-125000000.cos.ap-chengdu.tencentcos.cn/123"
+	if res.String() != want {
+		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
+	}
+
+	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu.tencentcos.cn/123")
+	res = toSwitchHost(u)
+	want = "https://example-125000000.cos.ap-chengdu.tencentcos.cn/123"
+	if res.String() != want {
+		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
+	}
+
+	u, _ = url.Parse("https://service.cos.myqcloud.com/123")
+	res = toSwitchHost(u)
+	want = "https://service.cos.myqcloud.com/123"
+	if res.String() != want {
+		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
+	}
+
+	u, _ = url.Parse("https://example-125000000.file.myqcloud.com/123")
+	res = toSwitchHost(u)
+	want = "https://example-125000000.file.myqcloud.com/123"
+	if res.String() != want {
+		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
+	}
+
+	u, _ = url.Parse("http://example-125000000.cos.ap-chengdu.myqcloud.com:80/123")
+	res = toSwitchHost(u)
+	want = "http://example-125000000.cos.ap-chengdu.tencentcos.cn:80/123"
+	if res.String() != want {
+		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
+	}
+
+	u, _ = url.Parse("https://example-125000000.cos-website.ap-chengdu.myqcloud.com:443/123")
+	res = toSwitchHost(u)
+	want = "https://example-125000000.cos-website.ap-chengdu.tencentcos.cn:443/123"
+	if res.String() != want {
+		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
+	}
+}

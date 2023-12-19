@@ -42,6 +42,10 @@ var (
 	hostSuffix       = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	hostPrefix       = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	invalidBucketErr = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
+
+	switchHost      = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)((cos|cos-website)\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
+	oldDomainSuffix = ".myqcloud.com"
+	newDomainSuffix = ".tencentcos.cn"
 )
 
 // BaseURL 访问各 API 所需的基础 URL
@@ -89,9 +93,9 @@ func NewBucketURL(bucketName, region string, secure bool) (*url.URL, error) {
 }
 
 type RetryOptions struct {
-	Count      int
-	Interval   time.Duration
-	StatusCode []int
+	Count          int
+	Interval       time.Duration
+	AutoSwitchHost bool
 }
 type Config struct {
 	EnableCRC        bool
@@ -148,8 +152,9 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 			EnableCRC:        true,
 			RequestBodyClose: false,
 			RetryOpt: RetryOptions{
-				Count:    3,
-				Interval: time.Duration(0),
+				Count:          3,
+				Interval:       time.Duration(0),
+				AutoSwitchHost: true,
 			},
 		},
 	}
@@ -352,6 +357,22 @@ type sendOptions struct {
 	disableCloseBody bool
 }
 
+func toSwitchHost(oldURL *url.URL) *url.URL {
+	// 判断域名是否能够切换
+	if !switchHost.MatchString(oldURL.Host) {
+		return oldURL
+	}
+	newURL, _ := url.Parse(oldURL.String())
+	hostAndPort := strings.SplitN(newURL.Host, ":", 2)
+	newHost := hostAndPort[0]
+	newHost = newHost[:len(newHost)-len(oldDomainSuffix)] + newDomainSuffix
+	if len(hostAndPort) > 1 {
+		newHost += ":" + hostAndPort[1]
+	}
+	newURL.Host = newHost
+	return newURL
+}
+
 func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
 	if opt.body != nil {
 		if _, ok := opt.body.(io.Reader); ok {
@@ -360,28 +381,24 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 		}
 	}
 	count := 1
-	if count < c.Conf.RetryOpt.Count {
+	if c.Conf.RetryOpt.Count > 0 {
 		count = c.Conf.RetryOpt.Count
 	}
-	nr := 0
 	interval := c.Conf.RetryOpt.Interval
-	for nr < count {
+	for nr := 0; nr < count; nr++ {
 		resp, err = c.send(ctx, opt)
 		if err != nil && err != invalidBucketErr {
-			if resp != nil && resp.StatusCode <= 499 {
-				dobreak := true
-				for _, v := range c.Conf.RetryOpt.StatusCode {
-					if resp.StatusCode == v {
-						dobreak = false
-						break
-					}
-				}
-				if dobreak {
-					break
+			// 不重试
+			if resp != nil && resp.StatusCode < 500 {
+				break
+			}
+			if c.Conf.RetryOpt.AutoSwitchHost {
+				// 收不到报文 或者 不存在RequestId
+				if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+					opt.baseURL = toSwitchHost(opt.baseURL)
 				}
 			}
-			nr++
-			if interval > 0 && nr < count {
+			if interval > 0 && nr+1 < count {
 				time.Sleep(interval)
 			}
 			continue
@@ -389,7 +406,6 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 		break
 	}
 	return
-
 }
 func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
 	req, err := c.newRequest(ctx, opt.baseURL, opt.uri, opt.method, opt.body, opt.optQuery, opt.optHeader)

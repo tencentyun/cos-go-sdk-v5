@@ -52,6 +52,6 @@ func (s *BucketService) ListMultipartUploads(ctx context.Context, opt *ListMulti
 		result:   &res,
 		optQuery: opt,
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
+	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
 }
