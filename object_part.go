@@ -60,6 +60,9 @@ type ObjectUploadPartOptions struct {
 	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 	// 上传进度, ProgressCompleteEvent不能表示对应API调用成功，API是否调用成功的判断标准为返回err==nil
 	Listener ProgressListener `header:"-" url:"-" xml:"-"`
+
+	// Upload方法使用
+	innerSwitchURL *url.URL `header:"-" url:"-" xml:"-"`
 }
 
 // UploadPart 请求实现在初始化以后的分块上传，支持的块的数量为1到10000，块的大小为1 MB 到5 GB。
@@ -93,22 +96,51 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 			opt.ContentLength = totalBytes
 		}
 	}
-	reader := TeeReader(r, nil, totalBytes, nil)
-	if s.client.Conf.EnableCRC {
-		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	// 如果是io.Seeker，则重试
+	count := 1
+	var position int64
+	if seeker, ok := r.(io.Seeker); ok {
+		// 记录原始位置
+		position, err = seeker.Seek(0, io.SeekCurrent)
+		if err == nil && s.client.Conf.RetryOpt.Count > 0 {
+			count = s.client.Conf.RetryOpt.Count
+		}
 	}
-	if opt != nil && opt.Listener != nil {
-		reader.listener = opt.Listener
+	var resp *Response
+	var retrieable bool
+	sUrl := s.client.BaseURL.BucketURL
+	if opt.innerSwitchURL != nil {
+		sUrl = opt.innerSwitchURL
 	}
-	u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
-	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       u,
-		method:    http.MethodPut,
-		optHeader: opt,
-		body:      reader,
+	for nr := 0; nr < count; nr++ {
+		reader := TeeReader(r, nil, totalBytes, nil)
+		if s.client.Conf.EnableCRC {
+			reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+		}
+		if opt != nil && opt.Listener != nil {
+			reader.listener = opt.Listener
+		}
+		u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
+		sendOpt := sendOptions{
+			baseURL:   sUrl,
+			uri:       u,
+			method:    http.MethodPut,
+			optHeader: opt,
+			body:      reader,
+		}
+		resp, err = s.client.send(ctx, &sendOpt)
+		sUrl, retrieable = s.client.CheckRetrieable(sUrl, resp, err)
+		if retrieable && nr+1 < count {
+			if seeker, ok := r.(io.Seeker); ok {
+				_, e := seeker.Seek(position, io.SeekStart)
+				if e != nil {
+					break
+				}
+				continue
+			}
+		}
+		break
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
 }
 

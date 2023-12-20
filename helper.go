@@ -233,6 +233,7 @@ func CloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
 	res := &ObjectPutOptions{
 		&ACLHeaderOptions{},
 		&ObjectPutHeaderOptions{},
+		nil,
 	}
 	if opt != nil {
 		if opt.ACLHeaderOptions != nil {
@@ -242,6 +243,9 @@ func CloneObjectPutOptions(opt *ObjectPutOptions) *ObjectPutOptions {
 			*res.ObjectPutHeaderOptions = *opt.ObjectPutHeaderOptions
 			res.XCosMetaXXX = cloneHeader(opt.XCosMetaXXX)
 			res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+		}
+		if opt.innerSwitchURL != nil {
+			res.innerSwitchURL = opt.innerSwitchURL
 		}
 	}
 	return res

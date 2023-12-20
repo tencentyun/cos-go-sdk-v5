@@ -612,6 +612,7 @@ func TestCIService_Put(t *testing.T) {
 		&ObjectPutHeaderOptions{
 			XOptionHeader: &http.Header{},
 		},
+		nil,
 	}
 	opt.XOptionHeader.Add("Pic-Operations", EncodePicOperations(pic))
 	res, _, err := client.CI.Put(context.Background(), name, f, opt)
@@ -734,6 +735,7 @@ func TestCIService_PutFromFile(t *testing.T) {
 		&ObjectPutHeaderOptions{
 			XOptionHeader: &http.Header{},
 		},
+		nil,
 	}
 	opt.XOptionHeader.Add("Pic-Operations", EncodePicOperations(pic))
 	res, _, err := client.CI.PutFromFile(context.Background(), name, filePath, opt)
