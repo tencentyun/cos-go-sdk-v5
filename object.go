@@ -332,6 +332,9 @@ type ObjectPutHeaderOptions struct {
 type ObjectPutOptions struct {
 	*ACLHeaderOptions       `header:",omitempty" url:"-" xml:"-"`
 	*ObjectPutHeaderOptions `header:",omitempty" url:"-" xml:"-"`
+
+	// PutFromFile 使用
+	innerSwitchURL *url.URL `header:"-" url:"-" xml:"-"`
 }
 
 // Put Object请求可以将一个文件（Oject）上传至指定Bucket。
@@ -358,27 +361,58 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 			opt.ContentLength = totalBytes
 		}
 	}
-	reader := TeeReader(r, nil, totalBytes, nil)
-	if s.client.Conf.EnableCRC {
-		reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+	// 如果是io.Seeker，则重试
+	count := 1
+	var position int64
+	if seeker, ok := r.(io.Seeker); ok {
+		// 记录原始位置
+		position, err = seeker.Seek(0, io.SeekCurrent)
+		if err == nil && s.client.Conf.RetryOpt.Count > 0 {
+			count = s.client.Conf.RetryOpt.Count
+		}
 	}
-	if opt != nil && opt.Listener != nil {
-		reader.listener = opt.Listener
+	var resp *Response
+	var retrieable bool
+	sUrl := s.client.BaseURL.BucketURL
+	if opt.innerSwitchURL != nil {
+		sUrl = opt.innerSwitchURL
 	}
-	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + encodeURIComponent(name),
-		method:    http.MethodPut,
-		body:      reader,
-		optHeader: opt,
+	for nr := 0; nr < count; nr++ {
+		reader := TeeReader(r, nil, totalBytes, nil)
+		if s.client.Conf.EnableCRC {
+			reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+		}
+		if opt != nil && opt.Listener != nil {
+			reader.listener = opt.Listener
+		}
+		sendOpt := sendOptions{
+			baseURL:   sUrl,
+			uri:       "/" + encodeURIComponent(name),
+			method:    http.MethodPut,
+			body:      reader,
+			optHeader: opt,
+		}
+		resp, err = s.client.send(ctx, &sendOpt)
+		sUrl, retrieable = s.client.CheckRetrieable(sUrl, resp, err)
+		if retrieable && nr+1 < count {
+			if seeker, ok := r.(io.Seeker); ok {
+				_, e := seeker.Seek(position, io.SeekStart)
+				if e != nil {
+					break
+				}
+				continue
+			}
+		}
+		break
 	}
-	resp, err := s.client.send(ctx, &sendOpt)
-
 	return resp, err
 }
 
 // PutFromFile put object from local file
 func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (resp *Response, err error) {
+	if opt == nil {
+		opt = &ObjectPutOptions{}
+	}
 	nr := 0
 	for nr < 3 {
 		fd, e := os.Open(filePath)
@@ -390,6 +424,12 @@ func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath s
 		if err != nil {
 			nr++
 			fd.Close()
+			if s.client.Conf.RetryOpt.AutoSwitchHost {
+				// 收不到报文 或者 不存在RequestId
+				if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+					opt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
+				}
+			}
 			continue
 		}
 		fd.Close()
@@ -900,6 +940,12 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 					results <- &res
 					break
 				}
+				if s.client.Conf.RetryOpt.AutoSwitchHost {
+					// 收不到报文 或者 不存在RequestId
+					if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+						j.Opt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
+					}
+				}
 				time.Sleep(time.Millisecond)
 				continue
 			}
@@ -1128,6 +1174,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			opt0 = &ObjectPutOptions{
 				opt.OptIni.ACLHeaderOptions,
 				opt.OptIni.ObjectPutHeaderOptions,
+				nil,
 			}
 		}
 		rsp, err := s.PutFromFile(ctx, name, filepath, opt0)

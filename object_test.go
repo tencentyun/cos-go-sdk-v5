@@ -1692,3 +1692,160 @@ func TestObjectService_GetSymlink(t *testing.T) {
 		t.Fatalf("Object.GetSymlink, target is invalid, return: %v, want: %v", res, want)
 	}
 }
+
+func TestObjectService_PutRetry(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test/retry"
+	data := make([]byte, 1024*1024*3)
+	_, err := rand.Read(data)
+	tb := crc64.MakeTable(crc64.ECMA)
+	realcrc := crc64.Update(0, tb, data)
+
+	opt := &ObjectPutOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			Listener: &DefaultProgressListener{},
+		},
+	}
+
+	nr, count := 0, 3
+	mux.HandleFunc("/test/retry", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		bs, _ := ioutil.ReadAll(r.Body)
+		crc := crc64.Update(0, tb, bs)
+		if !reflect.DeepEqual(crc, realcrc) {
+			t.Errorf("Object.Put crc: %v, want: %v", crc, realcrc)
+		}
+		nr++
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+		if nr < count {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+	_, err = client.Object.Put(context.Background(), name, bytes.NewReader(data), opt)
+	if err != nil || nr != count {
+		t.Errorf("Object.Put failed: %v", err)
+	}
+	nr, count = 0, 3
+	_, err = client.Object.Put(context.Background(), name, strings.NewReader(string(data)), opt)
+	if err != nil || nr != count {
+		t.Errorf("Object.Put failed: %v", err)
+	}
+	// 非io.Seeker不做重试
+	nr, count = 0, 3
+	_, err = client.Object.Put(context.Background(), name, bytes.NewBuffer(data), opt)
+	if err == nil || nr != 1 {
+		t.Errorf("Object.Put failed: %v", err)
+	}
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	newfile.Write(data)
+	newfile.Close()
+
+	nr, count = 0, 3
+	_, err = client.Object.PutFromFile(context.Background(), name, filePath, opt)
+	if err != nil || nr != count {
+		t.Errorf("PutFromFile failed: %v", err)
+	}
+}
+
+func TestObjectService_UploadRetry(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	b := make([]byte, 1024*1024*33)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	var mu sync.Mutex
+	// 已上传内容, 10个分块
+	rb := make([][]byte, 33)
+	uploadid := "test-cos-multiupload-uploadid"
+	partmap := make(map[int64]int)
+	mux.HandleFunc("/test.go.upload", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if r.Method == http.MethodPut { // 分块上传
+			r.ParseForm()
+			part, _ := strconv.ParseInt(r.Form.Get("partNumber"), 10, 64)
+			if partmap[part] == 0 {
+				// 重试检验1
+				partmap[part]++
+				ioutil.ReadAll(r.Body)
+				w.WriteHeader(http.StatusInternalServerError)
+			} else if partmap[part] == 1 {
+				// 重试校验2
+				partmap[part]++
+				ioutil.ReadAll(r.Body)
+				w.WriteHeader(http.StatusBadRequest)
+			} else { // 正确上传
+				bs, _ := ioutil.ReadAll(r.Body)
+				rb[part-1] = bs
+				md := hex.EncodeToString(calMD5Digest(bs))
+				crc := crc64.Update(0, crc64.MakeTable(crc64.ECMA), bs)
+				w.Header().Add("ETag", md)
+				w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+			}
+		} else {
+			testMethod(t, r, http.MethodPost)
+			initreq := url.Values{}
+			initreq.Set("uploads", "")
+			compreq := url.Values{}
+			compreq.Set("uploadId", uploadid)
+			r.ParseForm()
+			if reflect.DeepEqual(r.Form, initreq) {
+				// 初始化分块上传
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+                    <Bucket></Bucket>
+                    <Key>%v</Key>
+                    <UploadId>%v</UploadId>
+                </InitiateMultipartUploadResult>`, "test.go.upload", uploadid)
+			} else if reflect.DeepEqual(r.Form, compreq) {
+				// 完成分块上传
+				tb := crc64.MakeTable(crc64.ECMA)
+				crc := uint64(0)
+				for _, v := range rb {
+					crc = crc64.Update(crc, tb, v)
+				}
+				w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+				fmt.Fprintf(w, `<CompleteMultipartUploadResult>
+                    <Location>/test.go.upload</Location>
+                    <Bucket></Bucket>
+                    <Key>test.go.upload</Key>
+                    <ETag>&quot;%v&quot;</ETag>
+                </CompleteMultipartUploadResult>`, hex.EncodeToString(calMD5Digest(b)))
+			} else {
+				t.Errorf("TestObjectService_Upload Unknown Request")
+			}
+		}
+	})
+
+	opt := &MultiUploadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+		OptIni: &InitiateMultipartUploadOptions{
+			nil,
+			&ObjectPutHeaderOptions{
+				XCosMetaXXX: &http.Header{},
+			},
+		},
+	}
+	_, _, err = client.Object.Upload(context.Background(), "test.go.upload", filePath, opt)
+	if err != nil {
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+}

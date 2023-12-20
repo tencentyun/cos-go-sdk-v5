@@ -10,9 +10,12 @@ import (
 	"hash/crc64"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestObjectService_AbortMultipartUpload(t *testing.T) {
@@ -539,4 +542,80 @@ func TestObjectService_MultiCopy(t *testing.T) {
 		t.Errorf("Object.MultiCopy failed %v", err)
 	}
 
+}
+
+func TestObjectService_UploadPartRetry(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &ObjectUploadPartOptions{
+		Listener: &DefaultProgressListener{},
+	}
+	name := "test/hello.txt"
+	data := make([]byte, 1024*1024*3)
+	_, err := rand.Read(data)
+	tb := crc64.MakeTable(crc64.ECMA)
+	realcrc := crc64.Update(0, tb, data)
+	uploadID := "xxxxx"
+	partNumber := 1
+
+	nr, count := 0, 3
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		vs := values{
+			"uploadId":   uploadID,
+			"partNumber": "1",
+		}
+		testFormValues(t, r, vs)
+
+		b, _ := ioutil.ReadAll(r.Body)
+		crc := crc64.Update(0, tb, b)
+		if !reflect.DeepEqual(crc, realcrc) {
+			t.Errorf("Object.Put crc: %v, want: %v", crc, realcrc)
+		}
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+		nr++
+		if nr < count {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+
+	_, err = client.Object.UploadPart(context.Background(), name, uploadID, partNumber, bytes.NewReader(data), opt)
+	if err != nil || nr != count {
+		t.Errorf("Object.UploadPart failed: %v", err)
+	}
+
+	nr, count = 0, 3
+	_, err = client.Object.UploadPart(context.Background(), name, uploadID, partNumber, strings.NewReader(string(data)), opt)
+	if err != nil || nr != count {
+		t.Errorf("Object.UploadPart failed: %v", err)
+	}
+
+	// 非io.Seeker不做重试
+	nr, count = 0, 3
+	_, err = client.Object.UploadPart(context.Background(), name, uploadID, partNumber, bytes.NewBuffer(data), opt)
+	if err == nil || nr != 1 {
+		t.Errorf("Object.UploadPart failed: %v", err)
+	}
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	newfile.Write(data)
+	newfile.Close()
+
+	fd, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("open file failed: %v", err)
+	}
+	// 文件关闭, 不做重试
+	nr, count = 0, 3
+	_, err = client.Object.UploadPart(context.Background(), name, uploadID, partNumber, fd, opt)
+	if err == nil || nr != 1 {
+		t.Errorf("Object.UploadPart failed: %v", err)
+	}
 }

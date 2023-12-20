@@ -373,6 +373,24 @@ func toSwitchHost(oldURL *url.URL) *url.URL {
 	return newURL
 }
 
+func (c *Client) CheckRetrieable(u *url.URL, resp *Response, err error) (*url.URL, bool) {
+	res := u
+	if err != nil && err != invalidBucketErr {
+		// 不重试
+		if resp != nil && resp.StatusCode < 500 {
+			return res, false
+		}
+		if c.Conf.RetryOpt.AutoSwitchHost {
+			// 收不到报文 或者 不存在RequestId
+			if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+				res = toSwitchHost(u)
+			}
+		}
+		return res, true
+	}
+	return res, false
+}
+
 func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
 	if opt.body != nil {
 		if _, ok := opt.body.(io.Reader); ok {
@@ -384,22 +402,13 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 	if c.Conf.RetryOpt.Count > 0 {
 		count = c.Conf.RetryOpt.Count
 	}
-	interval := c.Conf.RetryOpt.Interval
+	var retrieable bool
 	for nr := 0; nr < count; nr++ {
 		resp, err = c.send(ctx, opt)
-		if err != nil && err != invalidBucketErr {
-			// 不重试
-			if resp != nil && resp.StatusCode < 500 {
-				break
-			}
-			if c.Conf.RetryOpt.AutoSwitchHost {
-				// 收不到报文 或者 不存在RequestId
-				if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
-					opt.baseURL = toSwitchHost(opt.baseURL)
-				}
-			}
-			if interval > 0 && nr+1 < count {
-				time.Sleep(interval)
+		opt.baseURL, retrieable = c.CheckRetrieable(opt.baseURL, resp, err)
+		if retrieable {
+			if c.Conf.RetryOpt.Interval > 0 && nr+1 < count {
+				time.Sleep(c.Conf.RetryOpt.Interval)
 			}
 			continue
 		}
@@ -407,6 +416,7 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 	}
 	return
 }
+
 func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
 	req, err := c.newRequest(ctx, opt.baseURL, opt.uri, opt.method, opt.body, opt.optQuery, opt.optHeader)
 	if err != nil {
