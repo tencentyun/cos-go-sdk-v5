@@ -43,9 +43,10 @@ var (
 	hostPrefix       = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	invalidBucketErr = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
-	switchHost      = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)((cos|cos-website)\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
-	oldDomainSuffix = ".myqcloud.com"
-	newDomainSuffix = ".tencentcos.cn"
+	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)((cos|cos-website)\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
+	accelerateDomainSuffix = "accelerate.myqcloud.com"
+	oldDomainSuffix        = ".myqcloud.com"
+	newDomainSuffix        = ".tencentcos.cn"
 )
 
 // BaseURL 访问各 API 所需的基础 URL
@@ -365,6 +366,10 @@ func toSwitchHost(oldURL *url.URL) *url.URL {
 	newURL, _ := url.Parse(oldURL.String())
 	hostAndPort := strings.SplitN(newURL.Host, ":", 2)
 	newHost := hostAndPort[0]
+	// 加速域名不切换
+	if strings.HasSuffix(newHost, accelerateDomainSuffix) {
+		return oldURL
+	}
 	newHost = newHost[:len(newHost)-len(oldDomainSuffix)] + newDomainSuffix
 	if len(hostAndPort) > 1 {
 		newHost += ":" + hostAndPort[1]
