@@ -409,10 +409,8 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 }
 
 // PutFromFile put object from local file
-func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, opt *ObjectPutOptions) (resp *Response, err error) {
-	if opt == nil {
-		opt = &ObjectPutOptions{}
-	}
+func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath string, uopt *ObjectPutOptions) (resp *Response, err error) {
+	opt := CloneObjectPutOptions(uopt)
 	nr := 0
 	for nr < 3 {
 		fd, e := os.Open(filePath)
