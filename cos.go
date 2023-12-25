@@ -43,7 +43,7 @@ var (
 	hostPrefix       = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	invalidBucketErr = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
-	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)((cos|cos-website)\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
+	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
 	accelerateDomainSuffix = "accelerate.myqcloud.com"
 	oldDomainSuffix        = ".myqcloud.com"
 	newDomainSuffix        = ".tencentcos.cn"
