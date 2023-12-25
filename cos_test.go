@@ -218,7 +218,7 @@ func Test_SwitchHost(t *testing.T) {
 
 	u, _ = url.Parse("https://example-125000000.cos-website.ap-chengdu.myqcloud.com:443/123")
 	res = toSwitchHost(u)
-	want = "https://example-125000000.cos-website.ap-chengdu.tencentcos.cn:443/123"
+	want = "https://example-125000000.cos-website.ap-chengdu.myqcloud.com:443/123"
 	if res.String() != want {
 		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
 	}
