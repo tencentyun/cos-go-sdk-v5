@@ -118,6 +118,7 @@ type PresignedURLOptions struct {
 	Query      *url.Values  `xml:"-" url:"-" header:"-"`
 	Header     *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 	SignMerged bool         `xml:"-" url:"-" header:"-"`
+	AuthTime   *AuthTime    `xml:"-" url:"-" header:"-"`
 }
 
 // GetPresignedURL get the object presigned to down or upload file by url
@@ -137,11 +138,20 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		optQuery:  opt,
 		optHeader: opt,
 	}
-	if popt, ok := opt.(*PresignedURLOptions); ok {
-		if popt != nil && popt.Query != nil {
-			qs := popt.Query.Encode()
-			if qs != "" {
-				sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+	var authTime *AuthTime
+	if opt != nil {
+		if opt, ok := opt.(*presignedURLTestingOptions); ok {
+			authTime = opt.authTime
+		}
+		if popt, ok := opt.(*PresignedURLOptions); ok {
+			if popt.Query != nil {
+				qs := popt.Query.Encode()
+				if qs != "" {
+					sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+				}
+			}
+			if popt.AuthTime != nil {
+				authTime = popt.AuthTime
 			}
 		}
 	}
@@ -150,12 +160,6 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		return nil, err
 	}
 
-	var authTime *AuthTime
-	if opt != nil {
-		if opt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = opt.authTime
-		}
-	}
 	if authTime == nil {
 		authTime = NewAuthTime(expired)
 	}
@@ -206,13 +210,22 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 		optQuery:  opt,
 		optHeader: opt,
 	}
+	var authTime *AuthTime
 	mark := "?"
-	if popt, ok := opt.(*PresignedURLOptions); ok {
-		if popt != nil && popt.Query != nil {
-			qs := popt.Query.Encode()
-			if qs != "" {
-				sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
-				mark = "&"
+	if opt != nil {
+		if opt, ok := opt.(*presignedURLTestingOptions); ok {
+			authTime = opt.authTime
+		}
+		if popt, ok := opt.(*PresignedURLOptions); ok {
+			if popt.Query != nil {
+				qs := popt.Query.Encode()
+				if qs != "" {
+					sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
+					mark = "&"
+				}
+			}
+			if popt.AuthTime != nil {
+				authTime = popt.AuthTime
 			}
 		}
 	}
@@ -225,12 +238,6 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 		return nil, err
 	}
 
-	var authTime *AuthTime
-	if opt != nil {
-		if opt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = opt.authTime
-		}
-	}
 	if authTime == nil {
 		authTime = NewAuthTime(expired)
 	}
