@@ -59,6 +59,8 @@ type BucketPutOptions struct {
 	XCosGrantFullControl      string                     `header:"x-cos-grant-full-control,omitempty" url:"-" xml:"-"`
 	XCosGrantReadACP          string                     `header:"x-cos-grant-read-acp,omitempty" url:"-" xml:"-"`
 	XCosGrantWriteACP         string                     `header:"x-cos-grant-write-acp,omitempty" url:"-" xml:"-"`
+	XCosTagging               string                     `header:"x-cos-tagging,omitempty" url:"-" xml:"-"`
+	XOptionHeader             *http.Header               `header:"-,omitempty" url:"-" xml:"-"`
 	CreateBucketConfiguration *CreateBucketConfiguration `header:"-" url:"-" xml:"-"`
 }
 type CreateBucketConfiguration struct {

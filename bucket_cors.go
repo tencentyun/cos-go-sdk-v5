@@ -18,8 +18,9 @@ type BucketCORSRule struct {
 
 // BucketGetCORSResult is the result of GetBucketCORS
 type BucketGetCORSResult struct {
-	XMLName xml.Name         `xml:"CORSConfiguration"`
-	Rules   []BucketCORSRule `xml:"CORSRule,omitempty"`
+	XMLName      xml.Name         `xml:"CORSConfiguration"`
+	Rules        []BucketCORSRule `xml:"CORSRule,omitempty"`
+	ResponseVary string           `xml:"ResponseVary,omitempty"`
 }
 
 // GetCORS 实现 Bucket 跨域访问配置读取。
@@ -39,8 +40,9 @@ func (s *BucketService) GetCORS(ctx context.Context) (*BucketGetCORSResult, *Res
 
 // BucketPutCORSOptions is the option of PutBucketCORS
 type BucketPutCORSOptions struct {
-	XMLName xml.Name         `xml:"CORSConfiguration"`
-	Rules   []BucketCORSRule `xml:"CORSRule,omitempty"`
+	XMLName      xml.Name         `xml:"CORSConfiguration"`
+	Rules        []BucketCORSRule `xml:"CORSRule,omitempty"`
+	ResponseVary string           `xml:"ResponseVary,omitempty"`
 }
 
 // PutCORS 实现 Bucket 跨域访问设置，您可以通过传入XML格式的配置文件实现配置，文件大小限制为64 KB。

@@ -215,6 +215,43 @@ func TestObjectService_GetPresignedURL(t *testing.T) {
 	}
 }
 
+func TestObjectService_GetPresignedURL_AuthTime(t *testing.T) {
+	setup()
+	defer teardown()
+
+	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=0f359fe9d29e7fa0c738ce6c8feaf4ed1e84f287"
+	exceptURL := &url.URL{
+		Scheme:   "http",
+		Host:     client.Host,
+		Path:     "/test.jpg",
+		RawQuery: exceptSign,
+	}
+
+	c := context.Background()
+	name := "test.jpg"
+	ak := "QmFzZTY0IGlzIGEgZ*******"
+	sk := "ZfbOA78asKUYBcXFrJD0a1I*******"
+	startTime := time.Unix(int64(1622702557), 0)
+	endTime := time.Unix(int64(1622706157), 0)
+	opt := &PresignedURLOptions{
+		AuthTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+
+	presignedURL, err := client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reflect.DeepEqual(exceptURL, presignedURL) {
+		t.Fatalf("Wrong PreSignedURL!")
+	}
+}
+
 func TestObjectService_GetPresignedURL2(t *testing.T) {
 	setup()
 	defer teardown()
