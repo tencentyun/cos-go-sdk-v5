@@ -140,8 +140,8 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 	}
 	var authTime *AuthTime
 	if opt != nil {
-		if opt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = opt.authTime
+		if popt, ok := opt.(*presignedURLTestingOptions); ok {
+			authTime = popt.authTime
 		}
 		if popt, ok := opt.(*PresignedURLOptions); ok {
 			if popt.Query != nil {
@@ -213,8 +213,8 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 	var authTime *AuthTime
 	mark := "?"
 	if opt != nil {
-		if opt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = opt.authTime
+		if popt, ok := opt.(*presignedURLTestingOptions); ok {
+			authTime = popt.authTime
 		}
 		if popt, ok := opt.(*PresignedURLOptions); ok {
 			if popt.Query != nil {
