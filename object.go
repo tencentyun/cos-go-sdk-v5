@@ -124,12 +124,7 @@ type PresignedURLOptions struct {
 // GetPresignedURL get the object presigned to down or upload file by url
 // 预签名函数，signHost: 默认签入Header Host, 您也可以选择不签入Header Host，但可能导致请求失败或安全漏洞
 func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
-	// 兼容 name 以 / 开头的情况
-	if strings.HasPrefix(name, "/") {
-		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
-	} else {
-		name = encodeURIComponent(name, []byte{'/'})
-	}
+	name = encodeURIComponent(name)
 
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
@@ -192,12 +187,7 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 }
 
 func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
-	// 兼容 name 以 / 开头的情况
-	if strings.HasPrefix(name, "/") {
-		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
-	} else {
-		name = encodeURIComponent(name, []byte{'/'})
-	}
+	name = encodeURIComponent(name)
 
 	cred := s.client.GetCredential()
 	if cred == nil {
@@ -271,11 +261,7 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 
 func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt *PresignedURLOptions, signHost ...bool) string {
 	// 兼容 name 以 / 开头的情况
-	if strings.HasPrefix(name, "/") {
-		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
-	} else {
-		name = encodeURIComponent(name, []byte{'/'})
-	}
+	name = encodeURIComponent(name)
 
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
