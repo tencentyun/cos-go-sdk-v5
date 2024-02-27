@@ -24,7 +24,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.46"
+	Version               = "0.7.47"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -505,6 +505,9 @@ func addHeaderOptions(ctx context.Context, header http.Header, opt interface{}) 
 }
 
 func checkURL(baseURL *url.URL) bool {
+	if baseURL == nil {
+		return false
+	}
 	host := baseURL.String()
 	if hostSuffix.MatchString(host) && !hostPrefix.MatchString(host) {
 		return false
