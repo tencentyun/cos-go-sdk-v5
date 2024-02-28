@@ -569,6 +569,26 @@ type ACLXml struct {
 	AccessControlList []ACLGrant `xml:"AccessControlList>Grant,omitempty"`
 }
 
+type aclEnum struct {
+	Private                string
+	PublicRead             string
+	PublicReadWrite        string
+	AuthenticatedRead      string
+	Default                string
+	BucketOwnerRead        string
+	BucketOwnerFullControl string
+}
+
+var ACL = &aclEnum{
+	Private:                "private",
+	PublicRead:             "public-read",
+	PublicReadWrite:        "public-read-write",
+	AuthenticatedRead:      "authenticated-read",
+	Default:                "default",
+	BucketOwnerRead:        "bucket-owner-read",
+	BucketOwnerFullControl: "bucket-owner-full-control",
+}
+
 func decodeACL(resp *Response, res *ACLXml) {
 	ItemMap := map[string]string{
 		"ACL":          "x-cos-acl",

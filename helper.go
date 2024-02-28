@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -393,4 +394,63 @@ func deliverInitOptions(opt *InitiateMultipartUploadOptions) (*http.Header, erro
 		}
 	}
 	return header, nil
+}
+
+var (
+	bucketReg   = regexp.MustCompile(`<Bucket>([a-z0-9-]+-[0-9]+)</Bucket>`)
+	keyReg      = regexp.MustCompile(`<Key>(.*?)</Key>`)
+	uploadIdReg = regexp.MustCompile(`<UploadId>([a-z0-9]+)</UploadId>`)
+	locationReg = regexp.MustCompile(`<Location>(.*?)</Location>`)
+	etagReg     = regexp.MustCompile(`<ETag>&quot;(.*?)&quot;</ETag>`)
+)
+
+func UnmarshalInitMultiUploadResult(data []byte, res *InitiateMultipartUploadResult) error {
+	match := bucketReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.Bucket = match[1]
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+	match = keyReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.Key = match[1]
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+	match = uploadIdReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.UploadID = match[1]
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+	return nil
+}
+
+func UnmarshalCompleteMultiUploadResult(data []byte, res *CompleteMultipartUploadResult) error {
+	match := locationReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.Location = match[1]
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+	match = bucketReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.Bucket = match[1]
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+	match = keyReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.Key = match[1]
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+	match = etagReg.FindStringSubmatch(string(data))
+	if len(match) > 1 {
+		res.ETag = "\"" + match[1] + "\""
+	} else {
+		return fmt.Errorf("Unmarshal failed, %v", string(data))
+	}
+
+	return nil
 }
