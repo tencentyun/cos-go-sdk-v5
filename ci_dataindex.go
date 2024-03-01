@@ -480,8 +480,7 @@ type DeleteDatasetBindingResult struct {
 	} `json:"Response"`
 }
 
-
-func (s *CIService) DeleteDatasetBinding(ctx context.Context, opt *DeleteDatasetBindingOptions)(*DeleteDatasetBindingResult, *Response, error) {
+func (s *CIService) DeleteDatasetBinding(ctx context.Context, opt *DeleteDatasetBindingOptions) (*DeleteDatasetBindingResult, *Response, error) {
 	var res DeleteDatasetBindingResult
 	if opt == nil {
 		return nil, nil, fmt.Errorf("opt param nil")

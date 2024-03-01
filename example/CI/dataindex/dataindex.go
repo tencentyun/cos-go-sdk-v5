@@ -172,8 +172,8 @@ func DatasetSimpleQuery() {
 		DatasetName: "adataset",
 		Query: &cos.Query{
 			Operation: "eq",
-			Field:"ContentType",
-			Value:"image/gif",
+			Field:     "ContentType",
+			Value:     "image/gif",
 		},
 	}
 	res, _, err := c.CI.DatasetSimpleQuery(context.Background(), opt)
@@ -184,11 +184,11 @@ func DatasetSimpleQuery() {
 func DatasetSimpleQueryAggregations() {
 	c := getClient()
 	opt := &cos.DatasetSimpleQueryOptions{
-		DatasetName: "adataset",
+		DatasetName:  "adataset",
 		Aggregations: []*cos.Aggregation{},
 	}
 	opt.Aggregations = append(opt.Aggregations, &cos.Aggregation{
-		Field: "ContentType",
+		Field:     "ContentType",
 		Operation: "group",
 	})
 	res, _, err := c.CI.DatasetSimpleQuery(context.Background(), opt)
@@ -200,7 +200,7 @@ func CreateDatasetBinding() {
 	c := getClient()
 	opt := &cos.CreateDatasetBindingOptions{
 		DatasetName: "adataset",
-		URI: "cos://test-125000000",
+		URI:         "cos://test-125000000",
 	}
 	res, _, err := c.CI.CreateDatasetBinding(context.Background(), opt)
 	log_status(err)
@@ -211,7 +211,7 @@ func DescribeDatasetBinding() {
 	c := getClient()
 	opt := &cos.DescribeDatasetBindingOptions{
 		DatasetName: "adataset",
-		URI: "cos://test-125000000",
+		URI:         "cos://test-125000000",
 	}
 	res, _, err := c.CI.DescribeDatasetBinding(context.Background(), opt)
 	log_status(err)
@@ -233,13 +233,12 @@ func DeleteDatasetBinding() {
 	c := getClient()
 	opt := &cos.DeleteDatasetBindingOptions{
 		DatasetName: "adataset",
-		URI: "cos://test-125000000",
+		URI:         "cos://test-125000000",
 	}
 	res, _, err := c.CI.DeleteDatasetBinding(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
-
 
 func main() {
 	// CreateDataSet()
