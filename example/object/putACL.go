@@ -49,7 +49,7 @@ func main() {
 
 	opt := &cos.ObjectPutACLOptions{
 		Header: &cos.ACLHeaderOptions{
-			XCosACL: "private",
+			XCosACL: cos.ACL.Private,
 		},
 	}
 	name := "test/hello.txt"
