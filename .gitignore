@@ -30,4 +30,6 @@ cover.out
 covprofile
 coverage.html
 example/CI/media_process/test*
+example/CI/workflow_and_job/test*
+example/CI/dataindex/test*
 .vscode
