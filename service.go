@@ -26,6 +26,7 @@ type ServiceGetOptions struct {
 	Marker     string `url:"marker,omitempty"`
 	Range      string `url:"range,omitempty"`
 	CreateTime int64  `url:"create-time,omitempty"`
+	Region     string `url:"region,omitempty"`
 }
 
 // Get Service 接口实现获取该用户下所有Bucket列表。
