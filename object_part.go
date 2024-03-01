@@ -33,15 +33,26 @@ type InitiateMultipartUploadResult struct {
 //
 // https://www.qcloud.com/document/product/436/7746
 func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string, opt *InitiateMultipartUploadOptions) (*InitiateMultipartUploadResult, *Response, error) {
+	var buff bytes.Buffer
 	var res InitiateMultipartUploadResult
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name) + "?uploads",
 		method:    http.MethodPost,
 		optHeader: opt,
-		result:    &res,
+		result:    &buff,
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
+	if err == nil {
+		err = xml.Unmarshal(buff.Bytes(), &res)
+		if err != nil {
+			// xml body存在非法字符(key存在非法字符)
+			if _, ok := err.(*xml.SyntaxError); ok {
+				err = UnmarshalInitMultiUploadResult(buff.Bytes(), &res)
+				return &res, resp, err
+			}
+		}
+	}
 	return &res, resp, err
 }
 
@@ -233,6 +244,7 @@ func (o ObjectList) Less(i, j int) bool { // rewrite the Less method from small 
 // https://www.qcloud.com/document/product/436/7742
 func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploadID string, opt *CompleteMultipartUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
+	var buff bytes.Buffer
 	var res CompleteMultipartUploadResult
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
@@ -240,13 +252,23 @@ func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploa
 		method:    http.MethodPost,
 		optHeader: opt,
 		body:      opt,
-		result:    &res,
+		result:    &buff,
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
 	if err == nil && resp.StatusCode == 200 {
+		err = xml.Unmarshal(buff.Bytes(), &res)
+		if err != nil {
+			// xml body存在非法字符(key存在非法字符)
+			if _, ok := err.(*xml.SyntaxError); ok {
+				err = UnmarshalCompleteMultiUploadResult(buff.Bytes(), &res)
+				if err != nil {
+					return &res, resp, err
+				}
+			}
+		}
 		if res.ETag == "" {
-			return &res, resp, errors.New("response 200 OK, but body contains an error")
+			return &res, resp, fmt.Errorf("response 200 OK, but body contains an error, %v", buff.Bytes())
 		}
 	}
 	return &res, resp, err
