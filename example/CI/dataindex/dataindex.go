@@ -200,7 +200,7 @@ func CreateDatasetBinding() {
 	c := getClient()
 	opt := &cos.CreateDatasetBindingOptions{
 		DatasetName: "adataset",
-		URI: "cos://wwj-bj1-1253960454",
+		URI: "cos://test-125000000",
 	}
 	res, _, err := c.CI.CreateDatasetBinding(context.Background(), opt)
 	log_status(err)
