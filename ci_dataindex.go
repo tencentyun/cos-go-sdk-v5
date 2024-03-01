@@ -259,22 +259,30 @@ type DescribeFileMetaIndexOptions struct {
 }
 
 type FileInfo struct {
-	Coscrc64         string            `json:"COSCRC64"`
-	COSStorageClass  string            `json:"COSStorageClass"`
-	CacheControl     string            `json:"CacheControl"`
-	ContentType      string            `json:"ContentType"`
-	CreateTime       string            `json:"CreateTime"`
-	CustomID         string            `json:"CustomId"`
-	CustomLabels     map[string]string `json:"CustomLabels"`
-	DatasetName      string            `json:"DatasetName"`
-	ETag             string            `json:"ETag"`
-	FileModifiedTime string            `json:"FileModifiedTime"`
-	Filename         string            `json:"Filename"`
-	MediaType        string            `json:"MediaType"`
-	ObjectACL        string            `json:"ObjectACL"`
-	Size             int            `json:"Size"`
-	URI              string            `json:"URI"`
-	UpdateTime       string            `json:"UpdateTime"`
+	DatasetName          string            `json:"DatasetName,omitempty"`
+	OwnerID              string            `json:"OwnerID,omitempty"`
+	ObjectId             string            `json:"ObjectId,omitempty"`
+	CreateTime           string            `json:"CreateTime,omitempty"`
+	UpdateTime           string            `json:"UpdateTime,omitempty"`
+	URI                  string            `json:"URI,omitempty"`
+	Filename             string            `json:"Filename,omitempty"`
+	MediaType            string            `json:"MediaType,omitempty"`
+	ContentType          string            `json:"ContentType,omitempty"`
+	COSStorageClass      string            `json:"COSStorageClass,omitempty"`
+	Coscrc64             string            `json:"COSCRC64,omitempty"`
+	Size                 int               `json:"Size,omitempty"`
+	CacheControl         string            `json:"CacheControl,omitempty"`
+	ContentDisposition   string            `json:"ContentDisposition,omitempty"`
+	ContentEncoding      string            `json:"ContentEncoding,omitempty"`
+	ContentLanguage      string            `json:"ContentLanguage,omitempty"`
+	ServerSideEncryption string            `json:"ServerSideEncryption,omitempty"`
+	ETag                 string            `json:"ETag,omitempty"`
+	FileModifiedTime     string            `json:"FileModifiedTime,omitempty"`
+	CustomID             string            `json:"CustomId,omitempty"`
+	CustomLabels         map[string]string `json:"CustomLabels,omitempty"`
+	COSUserMeta          map[string]string `json:"COSUserMeta,omitempty"`
+	ObjectACL            string            `json:"ObjectACL",omitempty`
+	COSTagging           map[string]string `json:"COSTagging,omitempty"`
 }
 
 type DescribeFileMetaIndexResult struct {
@@ -304,7 +312,7 @@ type DeleteFileMetaIndexOptions struct {
 
 type DeleteFileMetaIndexResult struct {
 	Response struct {
-		RequestID string     `json:"RequestId"`
+		RequestID string `json:"RequestId"`
 	} `json:"Response"`
 }
 
@@ -320,3 +328,167 @@ func (s *CIService) DeleteFileMetaIndex(ctx context.Context, opt *DeleteFileMeta
 	return &res, resp, err
 }
 
+type Query struct {
+	Operation  string   `json:"Operation,omitempty"`
+	Field      string   `json:"Field,omitempty"`
+	Value      string   `json:"Value,omitempty"`
+	SubQueries []*Query `json:"SubQueries,omitempty"`
+}
+
+type Aggregation struct {
+	Field     string `json:"Field,omitempty"`
+	Operation string `json:"Operation,omitempty"`
+}
+type DatasetSimpleQueryOptions struct {
+	DatasetName  string         `json:"DatasetName,omitempty" url:"-"`
+	Query        *Query         `json:"Query,omitempty" url:"-"`
+	Sort         string         `json:"Sort,omitempty" url:"-"`
+	Order        string         `json:"Order,omitempty" url:"-"`
+	MaxResults   string         `json:"MaxResults,omitempty" url:"-"`
+	Aggregations []*Aggregation `json:"Aggregations,omitempty" url:"-"`
+	NextToken    string         `json:"NextToken,omitempty" url:"-"`
+	WithFields   []string       `json:"WithFields,omitempty"  url:"-"`
+	OptHeaders   *OptHeaders    `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type Groups struct {
+	Count int    `json:"Count"`
+	Value string `json:"Value"`
+}
+type Aggregations struct {
+	Field     string   `json:"Field"`
+	Groups    []Groups `json:"Groups"`
+	Operation string   `json:"Operation"`
+	Value     float32  `json:"Value"`
+}
+
+type DatasetSimpleQueryResult struct {
+	Response struct {
+		Aggregations []Aggregations `json:"Aggregations"`
+		Files        []FileInfo     `json:"Files"`
+		NextToken    string         `json:"NextToken"`
+		RequestID    string         `json:"RequestId"`
+	} `json:"Response"`
+}
+
+func (s *CIService) DatasetSimpleQuery(ctx context.Context, opt *DatasetSimpleQueryOptions) (*DatasetSimpleQueryResult, *Response, error) {
+	var res DatasetSimpleQueryResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetquery/simple", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type CreateDatasetBindingOptions struct {
+	DatasetName string      `json:"DatasetName,omitempty" url:"-"`
+	URI         string      `json:"URI,omitempty" url:"-"`
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type Binding struct {
+	CreateTime  string `json:"CreateTime,omitempty" url:"-"`
+	DatasetName string `json:"DatasetName,omitempty" url:"-"`
+	Detail      string `json:"Detail,omitempty" url:"-"`
+	State       string `json:"State,omitempty" url:"-"`
+	URI         string `json:"URI,omitempty" url:"-"`
+	UpdateTime  string `json:"UpdateTime,omitempty" url:"-"`
+}
+type CreateDatasetBindingResult struct {
+	Response struct {
+		Binding   Binding `json:"Binding,omitempty"`
+		RequestID string  `json:"RequestId,omitempty"`
+	} `json:"Response,omitempty"`
+}
+
+func (s *CIService) CreateDatasetBinding(ctx context.Context, opt *CreateDatasetBindingOptions) (*CreateDatasetBindingResult, *Response, error) {
+	var res CreateDatasetBindingResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetbinding/create", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type DescribeDatasetBindingOptions struct {
+	DatasetName string      `json:"-" url:"datasetname,omitempty"`
+	URI         string      `json:"-" url:"uri,omitempty"`
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type DescribeDatasetBindingResult struct {
+	Response struct {
+		Binding   Binding `json:"Binding,omitempty"`
+		RequestID string  `json:"RequestId,omitempty"`
+	} `json:"Response,omitempty"`
+}
+
+func (s *CIService) DescribeDatasetBinding(ctx context.Context, opt *DescribeDatasetBindingOptions) (*DescribeDatasetBindingResult, *Response, error) {
+	var res DescribeDatasetBindingResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetbinding", http.MethodGet)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type DescribeDatasetBindingsOptions struct {
+	DatasetName string      `json:"-" url:"datasetname,omitempty"`
+	MaxResults  int         `json:"-" url:"maxresults,omitempty"`
+	NextToken   string      `json:"-" url:"nexttoken,omitempty"`
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type DescribeDatasetBindingsResult struct {
+	Response struct {
+		Bindings  []*Binding `json:"Bindings,omitempty"`
+		NextToken string     `json:"NextToken,omitempty"`
+		RequestID string     `json:"RequestId,omitempty"`
+	} `json:"Response,omitempty"`
+}
+
+func (s *CIService) DescribeDatasetBindings(ctx context.Context, opt *DescribeDatasetBindingsOptions) (*DescribeDatasetBindingsResult, *Response, error) {
+	var res DescribeDatasetBindingsResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetbindings", http.MethodGet)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type DeleteDatasetBindingOptions struct {
+	DatasetName string      `json:"DatasetName,omitempty" url:"-"`
+	URI         string      `json:"URI,omitempty" url:"-"`
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type DeleteDatasetBindingResult struct {
+	Response struct {
+		RequestID string `json:"RequestId"`
+	} `json:"Response"`
+}
+
+
+func (s *CIService) DeleteDatasetBinding(ctx context.Context, opt *DeleteDatasetBindingOptions)(*DeleteDatasetBindingResult, *Response, error) {
+	var res DeleteDatasetBindingResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetbinding", http.MethodDelete)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}

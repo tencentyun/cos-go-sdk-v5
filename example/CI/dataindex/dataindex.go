@@ -30,8 +30,8 @@ func log_status(err error) {
 	}
 }
 func getClient() *cos.Client {
-	u, _ := url.Parse("https://wwj-cq-1253960454.cos.ap-chongqing.myqcloud.com")
-	cu, _ := url.Parse("https://ci.ap-chongqing.myqcloud.com")
+	u, _ := url.Parse("https://test-125000000.cos.ap-beijing.myqcloud.com")
+	cu, _ := url.Parse("https://ci.ap-beijing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
@@ -109,7 +109,7 @@ func CreateFileMetaIndex() {
 	opt := &cos.CreateFileMetaIndexOptions{
 		DatasetName: "adataset",
 		File: &cos.File{
-			URI:      "cos://wwj-cq-1253960454/1.gif",
+			URI:      "cos://test-125000000/12.gif",
 			CustomID: "123",
 			CustomLabels: &map[string]string{
 				"age":   "18",
@@ -129,7 +129,7 @@ func UpdateFileMetaIndex() {
 	opt := &cos.UpdateFileMetaIndexOptions{
 		DatasetName: "adataset",
 		File: &cos.File{
-			URI:      "cos://wwj-cq-1253960454/1.gif",
+			URI:      "cos://test-125000000/1.gif",
 			CustomID: "123",
 			CustomLabels: &map[string]string{
 				"age":   "18",
@@ -148,7 +148,7 @@ func DescribeFileMetaIndex() {
 	c := getClient()
 	opt := &cos.DescribeFileMetaIndexOptions{
 		DatasetName: "adataset",
-		Uri:         "cos://wwj-cq-1253960454/1.gif",
+		Uri:         "cos://test-125000000/1.gif",
 	}
 	res, _, err := c.CI.DescribeFileMetaIndex(context.Background(), opt)
 	log_status(err)
@@ -159,12 +159,87 @@ func DeleteFileMetaIndex() {
 	c := getClient()
 	opt := &cos.DeleteFileMetaIndexOptions{
 		DatasetName: "adataset",
-		Uri:         "cos://wwj-cq-1253960454/1.gif",
+		Uri:         "cos://test-125000000/1.gif",
 	}
 	res, _, err := c.CI.DeleteFileMetaIndex(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
+
+func DatasetSimpleQuery() {
+	c := getClient()
+	opt := &cos.DatasetSimpleQueryOptions{
+		DatasetName: "adataset",
+		Query: &cos.Query{
+			Operation: "eq",
+			Field:"ContentType",
+			Value:"image/gif",
+		},
+	}
+	res, _, err := c.CI.DatasetSimpleQuery(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func DatasetSimpleQueryAggregations() {
+	c := getClient()
+	opt := &cos.DatasetSimpleQueryOptions{
+		DatasetName: "adataset",
+		Aggregations: []*cos.Aggregation{},
+	}
+	opt.Aggregations = append(opt.Aggregations, &cos.Aggregation{
+		Field: "ContentType",
+		Operation: "group",
+	})
+	res, _, err := c.CI.DatasetSimpleQuery(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func CreateDatasetBinding() {
+	c := getClient()
+	opt := &cos.CreateDatasetBindingOptions{
+		DatasetName: "adataset",
+		URI: "cos://wwj-bj1-1253960454",
+	}
+	res, _, err := c.CI.CreateDatasetBinding(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func DescribeDatasetBinding() {
+	c := getClient()
+	opt := &cos.DescribeDatasetBindingOptions{
+		DatasetName: "adataset",
+		URI: "cos://test-125000000",
+	}
+	res, _, err := c.CI.DescribeDatasetBinding(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func DescribeDatasetBindings() {
+	c := getClient()
+	opt := &cos.DescribeDatasetBindingsOptions{
+		DatasetName: "adataset",
+		// MaxResults: 3,
+	}
+	res, _, err := c.CI.DescribeDatasetBindings(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func DeleteDatasetBinding() {
+	c := getClient()
+	opt := &cos.DeleteDatasetBindingOptions{
+		DatasetName: "adataset",
+		URI: "cos://test-125000000",
+	}
+	res, _, err := c.CI.DeleteDatasetBinding(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
 
 func main() {
 	// CreateDataSet()
@@ -176,4 +251,10 @@ func main() {
 	// UpdateFileMetaIndex()
 	// DescribeFileMetaIndex()
 	// DeleteFileMetaIndex()
+	// DatasetSimpleQuery()
+	// DatasetSimpleQueryAggregations()
+	// CreateDatasetBinding()
+	// DescribeDatasetBinding()
+	// DescribeDatasetBindings()
+	// DeleteDatasetBinding()
 }
