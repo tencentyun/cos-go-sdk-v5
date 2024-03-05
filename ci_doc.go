@@ -345,6 +345,8 @@ func (s *CIService) CIDocCompare(ctx context.Context, opt *CIDocCompareOptions) 
 type DocPreviewHTMLOptions struct {
 	DstType        string      `url:"dstType,omitempty"`
 	SrcType        string      `url:"srcType,omitempty"`
+	WebofficeUrl   string      `url:"weboffice_url,omitempty"`
+	TokenUid       string      `url:"tokenuid,omitempty"`
 	Sign           string      `url:"sign,omitempty"`
 	Copyable       string      `url:"copyable,omitempty"`
 	HtmlParams     *HtmlParams `url:"htmlParams,omitempty"`
