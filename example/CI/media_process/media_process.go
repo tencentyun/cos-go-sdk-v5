@@ -145,5 +145,13 @@ func ModifyM3U8Token() {
 	fmt.Printf("%s\n", rspBody)
 }
 
+func CreateMediaProcessBucket() {
+	c := getClient()
+	opt := &cos.CreateMediaProcessBucketOptions{}
+	res, _, err := c.CI.CreateMediaProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
 func main() {
 }
