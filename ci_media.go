@@ -1319,6 +1319,27 @@ type MediaProcessBucket struct {
 	CreateTime string `xml:"CreateTime,omitempty"`
 }
 
+type CreateMediaProcessBucketOptions struct {
+}
+
+type CreateMediaProcessBucketResult struct {
+	XMLName     xml.Name           `xml:"Response"`
+	RequestId   string             `xml:"RequestId,omitempty"`
+	MediaBucket MediaProcessBucket `xml:"MediaBucket,omitempty"`
+}
+
+func (s *CIService) CreateMediaProcessBucket(ctx context.Context, opt *CreateMediaProcessBucketOptions) (*CreateMediaProcessBucketResult, *Response, error) {
+	var res CreateMediaProcessBucketResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/mediabucket",
+		method:  http.MethodPost,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // DescribeMediaProcessBuckets TODO
 // 媒体bucket接口 https://cloud.tencent.com/document/product/436/48988
 func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *DescribeMediaProcessBucketsOptions) (*DescribeMediaProcessBucketsResult, *Response, error) {
