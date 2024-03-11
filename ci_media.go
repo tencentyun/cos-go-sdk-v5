@@ -287,6 +287,7 @@ type ConcatTemplate struct {
 	AudioMix        *AudioMix        `xml:"AudioMix,omitempty"`
 	AudioMixArray   []AudioMix       `xml:"AudioMixArray,omitempty"`
 	SceneChangeInfo *SceneChangeInfo `xml:"SceneChangeInfo,omitempty"`
+	DirectConcat    string           `xml:"DirectConcat,omitempty"`
 }
 
 // SceneChangeInfo 转场参数
