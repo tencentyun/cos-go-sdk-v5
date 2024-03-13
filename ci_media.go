@@ -460,7 +460,8 @@ type Subtitle struct {
 
 // VideoTag TODO
 type VideoTag struct {
-	Scenario string `xml:"Scenario,omitempty"`
+	Scenario string `xml:"Scenario,omitempty"` // 1. Stream 2. ShortVideo
+	Text     string `xml:"Text,omitempty"`
 }
 
 // VideoTagResult TODO
@@ -482,6 +483,7 @@ type VideoTagResultStreamDataData struct {
 	PlaceTags  []VideoTagResultStreamDataDataPlaceTags  `xml:"PlaceTags,omitempty"`
 	ActionTags []VideoTagResultStreamDataDataActionTags `xml:"ActionTags,omitempty"`
 	ObjectTags []VideoTagResultStreamDataDataObjectTags `xml:"ObjectTags,omitempty"`
+	Labels     []VideoTagResultStreamDataDataLabels     `xml:"Labels,omitempty"`
 }
 
 // VideoTagResultStreamDataDataTags TODO
@@ -536,6 +538,12 @@ type VideoTagResultStreamDataDataActionTags struct {
 type VideoTagResultStreamDataDataObjectTags struct {
 	Objects   []VideoTagResultStreamDataDataPersonTagsDetailPerSecond `xml:"Objects,omitempty"`
 	TimeStamp string                                                  `xml:"TimeStamp,omitempty"`
+}
+
+type VideoTagResultStreamDataDataLabels struct {
+	First      string  `xml:"First,omitempty"`
+	Second     string  `xml:"Second,omitempty"`
+	Confidence float64 `xml:"Confidence,omitempty"`
 }
 
 // QualityEstimate TODO
