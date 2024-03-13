@@ -235,11 +235,12 @@ func InvokeVideoTagJob() {
 	createJobOpt := &cos.CreateJobsOptions{
 		Tag: "VideoTag",
 		Input: &cos.JobInput{
-			Object: "input/test.mp4",
+			Object: "50000453.mp4",
 		},
 		Operation: &cos.MediaProcessJobOperation{
 			VideoTag: &cos.VideoTag{
-				Scenario: "Stream",
+				Scenario: "ShortVideo",
+				Text:     "今日周二！新冠病毒偏方治疗，希望对大家有帮助！",
 			},
 		},
 	}
