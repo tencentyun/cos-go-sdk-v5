@@ -1,6 +1,7 @@
 package cos
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -9,10 +10,16 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/clbanning/mxj"
 	"github.com/mitchellh/mapstructure"
 )
+
+type VodInfo struct {
+	FileId   string `xml:"FileId,omitempty"`
+	SubAppId string `xml:"SubAppId,omitempty"`
+}
 
 // JobInput TODO
 type JobInput struct {
@@ -24,7 +31,8 @@ type JobInput struct {
 		Key   string `xml:"Key"`
 		Value string `xml:"Value"`
 	} `xml:"CosHeaders"`
-	Url string `xml:"Url,omitempty"`
+	Url string   `xml:"Url,omitempty"`
+	Vod *VodInfo `xml:"Vod,omitempty"`
 }
 
 // StreamExtract TODO
@@ -1473,6 +1481,10 @@ func (s *CIService) CreatePlayKey(ctx context.Context) (*PlayKeyResult, *Respons
 	return &res, resp, err
 }
 
+func (s *CIService) CreateMediaPlayKey(ctx context.Context) (*PlayKeyResult, *Response, error) {
+	return s.CreatePlayKey(ctx)
+}
+
 func (s *CIService) GetPlayKey(ctx context.Context) (*PlayKeyResult, *Response, error) {
 	var res PlayKeyResult
 	sendOpt := sendOptions{
@@ -1480,6 +1492,36 @@ func (s *CIService) GetPlayKey(ctx context.Context) (*PlayKeyResult, *Response, 
 		uri:     "/playKey",
 		method:  http.MethodGet,
 		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+func (s *CIService) DescribeMediaPlayKey(ctx context.Context) (*PlayKeyResult, *Response, error) {
+	var res PlayKeyResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/playKey",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type UpdateMediaPlayKeyOptions struct {
+	MasterPlayKey string `url:"masterPlayKey,omitempty"`
+	BackupPlayKey string `url:"backupPlayKey,omitempty"`
+}
+
+func (s *CIService) UpdateMediaPlayKey(ctx context.Context, opt *UpdateMediaPlayKeyOptions) (*PlayKeyResult, *Response, error) {
+	var res PlayKeyResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/playKey",
+		method:   http.MethodPut,
+		optQuery: opt,
+		result:   &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
@@ -1503,6 +1545,80 @@ func (s *CIService) GenerateMediaInfo(ctx context.Context, opt *GenerateMediaInf
 		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+// GenerateMediaInfoOptions TODO
+type GenerateAVInfoOptions struct {
+	XMLName    xml.Name    `xml:"Request"`
+	Input      *JobInput   `xml:"Input,omitempty"`
+	OptHeaders *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+type GetAVInfoResult struct {
+	Format struct {
+		BitRate        string `json:"bit_rate"`
+		Duration       string `json:"duration"`
+		FormatLongName string `json:"format_long_name"`
+		FormatName     string `json:"format_name"`
+		NbPrograms     int    `json:"nb_programs"`
+		NbStreams      int    `json:"nb_streams"`
+		Size           string `json:"size"`
+		StartTime      string `json:"start_time"`
+	} `json:"format"`
+	Streams []struct {
+		AvgFrameRate       string    `json:"avg_frame_rate,omitempty"`
+		BitRate            string    `json:"bit_rate"`
+		CodecLongName      string    `json:"codec_long_name"`
+		CodecName          string    `json:"codec_name"`
+		CodecTag           string    `json:"codec_tag"`
+		CodecTagString     string    `json:"codec_tag_string"`
+		CodecTimeBase      string    `json:"codec_time_base"`
+		CodecType          string    `json:"codec_type"`
+		ColorPrimaries     string    `json:"color_primaries,omitempty"`
+		ColorRange         string    `json:"color_range,omitempty"`
+		ColorTransfer      string    `json:"color_transfer,omitempty"`
+		CreationTime       time.Time `json:"creation_time"`
+		DisplayAspectRatio string    `json:"display_aspect_ratio,omitempty"`
+		Duration           string    `json:"duration"`
+		FiledOrder         string    `json:"filed_order,omitempty"`
+		HasBFrames         string    `json:"has_b_frames,omitempty"`
+		Height             int       `json:"height,omitempty"`
+		Index              int       `json:"index"`
+		Language           string    `json:"language"`
+		Level              int       `json:"level,omitempty"`
+		NbFrames           string    `json:"nb_frames,omitempty"`
+		PixFmt             string    `json:"pix_fmt,omitempty"`
+		Profile            string    `json:"profile,omitempty"`
+		RFrameRate         string    `json:"r_frame_rate,omitempty"`
+		Refs               int       `json:"refs,omitempty"`
+		Rotation           string    `json:"rotation,omitempty"`
+		SampleAspectRatio  string    `json:"sample_aspect_ratio,omitempty"`
+		StartTime          string    `json:"start_time"`
+		Timebase           string    `json:"timebase"`
+		Width              int       `json:"width,omitempty"`
+		ChannelLayout      string    `json:"channel_layout,omitempty"`
+		Channels           int       `json:"channels,omitempty"`
+		SampleFmt          string    `json:"sample_fmt,omitempty"`
+		SampleRate         string    `json:"sample_rate,omitempty"`
+	} `json:"streams"`
+}
+
+// GenerateMediaInfo TODO
+// 生成媒体信息接口，支持大文件，耗时较大请求
+func (s *CIService) GenerateAVInfo(ctx context.Context, opt *GenerateAVInfoOptions) (*GetAVInfoResult, *Response, error) {
+	var buf bytes.Buffer
+	var res GetAVInfoResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/avinfo",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &buf,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
 	return &res, resp, err
 }
 
@@ -1570,6 +1686,19 @@ func (s *CIService) PostSnapshot(ctx context.Context, opt *PostSnapshotOptions) 
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+// PostCISnapshot
+func (s *CIService) PostCISnapshot(ctx context.Context, opt *PostSnapshotOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.CIURL,
+		uri:              "/cisnapshot",
+		body:             opt,
+		method:           http.MethodPost,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
 }
 
 // GetPrivateM3U8Options TODO
@@ -3908,4 +4037,64 @@ type ImageOCRTextWordPolygon struct {
 		X int `xml:"X,omitempty"`
 		Y int `xml:"Y,omitempty"`
 	} `xml:"RightBottom,omitempty"`
+}
+
+type LiveTanscodeVideo struct {
+	Codec   string `xml:"Codec"`
+	Width   string `xml:"Width,omitempty"`
+	Height  string `xml:"Height,omitempty"`
+	Fps     string `xml:"Fps,omitempty"`
+	Bitrate string `xml:"Bitrate,omitempty"`
+	Gop     string `xml:"Gop,omitempty"`
+	Maxrate string `xml:"Maxrate,omitempty"`
+}
+
+type LiveTanscodeTransConfig struct {
+	InitialClipNum string      `xml:"InitialClipNum,omitempty"`
+	CosTag         string      `xml:"CosTag,omitempty"`
+	HlsEncrypt     *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
+}
+
+type LiveTanscode struct {
+	Container *Container         `xml:"Container,omitempty"`
+	Video     *LiveTanscodeVideo `xml:"Video,omitempty"`
+	// TimeInterval  *TimeInterval `xml:"TimeInterval,omitempty"`
+	// Audio         *Audio        `xml:"Audio,omitempty"`
+	TransConfig *LiveTanscodeTransConfig `xml:"TransConfig,omitempty"`
+}
+
+type GeneratePlayListJobOperation struct {
+	Tag         string        `xml:"Tag,omitempty"`
+	Output      *JobOutput    `xml:"Output,omitempty"`
+	MediaResult *MediaResult  `xml:"MediaResult,omitempty"`
+	MediaInfo   *MediaInfo    `xml:"MediaInfo,omitempty"`
+	Transcode   *LiveTanscode `xml:"Transcode,omitempty"`
+	UserData    string        `xml:"UserData,omitempty"`
+	JobLevel    int           `xml:"JobLevel,omitempty"`
+}
+
+type CreateGeneratePlayListJobOptions struct {
+	XMLName          xml.Name                      `xml:"Request"`
+	Tag              string                        `xml:"Tag,omitempty"`
+	Input            *JobInput                     `xml:"Input,omitempty"`
+	Operation        *GeneratePlayListJobOperation `xml:"Operation,omitempty"`
+	QueueId          string                        `xml:"QueueId,omitempty"`
+	QueueType        string                        `xml:"QueueType,omitempty"`
+	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType     string                        `xml:"CallBackType,omitempty"`
+	CallBack         string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+}
+
+func (s *CIService) CreateGeneratePlayListJob(ctx context.Context, opt *CreateGeneratePlayListJobOptions) (*CreateJobsResult, *Response, error) {
+	var res CreateJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
 }
