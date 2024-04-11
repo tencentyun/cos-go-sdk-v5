@@ -50,23 +50,35 @@ func getClient() *cos.Client {
 	return c
 }
 
-func CreatePlayKey() {
+func CreateMediaPlayKey() {
 	c := getClient()
-	Res, _, err := c.CI.CreatePlayKey(context.Background())
+	Res, _, err := c.CI.CreateMediaPlayKey(context.Background())
 	log_status(err)
 	fmt.Printf("%+v\n", Res.PlayKeyList)
 }
 
-func GetPlayKey() {
+func DescribeMediaPlayKey() {
 	c := getClient()
 
-	Res, _, err := c.CI.GetPlayKey(context.Background())
+	Res, _, err := c.CI.DescribeMediaPlayKey(context.Background())
 	log_status(err)
 	fmt.Printf("%+v\n", Res.PlayKeyList)
 
+}
+
+func UpdateMediaPlayKey() {
+	c := getClient()
+	opt := &cos.UpdateMediaPlayKeyOptions{
+		MasterPlayKey: "abdcfeafdavdaa",
+		BackupPlayKey: "fqefefdavdaedfdsfva",
+	}
+	Res, _, err := c.CI.UpdateMediaPlayKey(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", Res.PlayKeyList)
 }
 
 func main() {
-	CreatePlayKey()
-	GetPlayKey()
+	// CreateMediaPlayKey()
+	// DescribeMediaPlayKey()
+	UpdateMediaPlayKey()
 }
