@@ -78,8 +78,14 @@ func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOpti
 
 	if opt != nil && opt.Listener != nil {
 		if err == nil && resp != nil {
-			if totalBytes, e := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64); e == nil {
-				resp.Body = TeeReader(resp.Body, nil, totalBytes, opt.Listener)
+			if contentLength := resp.Header.Get("Content-Length"); contentLength != "" {
+				if totalBytes, e := strconv.ParseInt(contentLength, 10, 64); e == nil {
+					resp.Body = TeeReader(resp.Body, nil, totalBytes, opt.Listener)
+				}
+			} else {
+				// 支持multi download range下中间的chunk没有content-length的场景,
+				// multi process也不看这里的totalBytes
+				resp.Body = TeeReader(resp.Body, nil, 0, opt.Listener)
 			}
 		}
 	}
@@ -1127,6 +1133,143 @@ func SplitFileIntoChunks(filePath string, partSize int64) (int64, []Chunk, int, 
 
 }
 
+type multiDownloadProgress struct {
+	totalSize     int64
+	chunkProgress []*ProgressEvent
+	chunks        int
+	listener      ProgressListener
+	notify        chan *chunkProgressEvent
+	stopc         chan struct{}
+}
+
+func newMultiDownloadProgress(listener ProgressListener, chunks int, totalSize int64) *multiDownloadProgress {
+	return &multiDownloadProgress{
+		totalSize:     totalSize,
+		chunkProgress: make([]*ProgressEvent, chunks),
+		chunks:        chunks,
+		listener:      listener,
+		notify:        make(chan *chunkProgressEvent, chunks),
+		stopc:         make(chan struct{}),
+	}
+}
+
+func (p *multiDownloadProgress) ChunkListener(number int) ProgressListener {
+	return &chunkDownloadProgress{
+		number: number,
+		notify: p.notify,
+	}
+}
+
+func (p *multiDownloadProgress) Start() {
+	var (
+		et       ProgressEventType
+		consumed int64
+		started  bool
+	)
+	for {
+		select {
+		case <-p.stopc:
+			return
+		case e := <-p.notify:
+			consumed += e.event.ConsumedBytes
+			if o := p.chunkProgress[e.number-1]; o != nil {
+				consumed -= o.ConsumedBytes
+			}
+			p.chunkProgress[e.number-1] = e.event
+
+			// eventType聚合逻辑改为所有chunkjob都完成之后判定成功和失败
+			// 因为就算提前给失败，Download function并不会终止执行
+			// 用户捕获期间event中的Error即可不丢失数据
+			if e.event.EventType == ProgressCompletedEvent || e.event.EventType == ProgressFailedEvent {
+				completed := 0
+				failed := 0
+				for _, c := range p.chunkProgress {
+					if c != nil {
+						if c.EventType == ProgressCompletedEvent {
+							completed += 1
+						} else if c.EventType == ProgressFailedEvent {
+							failed += 1
+						}
+					}
+				}
+
+				if total := completed + failed; total < p.chunks {
+					if started {
+						et = ProgressDataEvent
+					}
+				} else if failed > 0 {
+					et = ProgressFailedEvent
+				} else {
+					et = ProgressCompletedEvent
+				}
+			} else if started && et == ProgressStartedEvent {
+				et = ProgressDataEvent
+			}
+
+			progressCallback(
+				p.listener,
+				newProgressEvent(
+					et,
+					e.event.RWBytes,
+					consumed,
+					p.totalSize,
+					e.event.Err,
+				),
+			)
+			started = true
+		}
+	}
+}
+
+func (p *multiDownloadProgress) Stop() {
+	close(p.stopc)
+}
+
+func (p *multiDownloadProgress) ChunkFailed(res *Results, errs ...error) {
+	err := res.err
+	if len(errs) > 0 {
+		err = errs[0]
+	}
+	p.notify <- &chunkProgressEvent{
+		number: res.PartNumber,
+		event: newProgressEvent(
+			ProgressFailedEvent,
+			0,
+			0,
+			// 因为totalSize不看chunk progress event所以可以填0
+			0,
+			err,
+		),
+	}
+}
+
+func (p *multiDownloadProgress) ChunkAlreadyDone(chunk Chunk) {
+	p.notify <- &chunkProgressEvent{
+		number: chunk.Number,
+		event: newProgressEvent(
+			ProgressCompletedEvent,
+			0,
+			chunk.Size,
+			chunk.Size,
+		),
+	}
+}
+
+type chunkDownloadProgress struct {
+	number int
+	notify chan *chunkProgressEvent
+	parent *multiDownloadProgress
+}
+
+func (p *chunkDownloadProgress) ProgressChangedCallback(event *ProgressEvent) {
+	p.notify <- &chunkProgressEvent{p.number, event}
+}
+
+type chunkProgressEvent struct {
+	number int
+	event  *ProgressEvent
+}
+
 func (s *ObjectService) getResumableUploadID(ctx context.Context, name string) (string, error) {
 	opt := &ObjectListUploadsOptions{
 		Prefix:       name,
@@ -1572,15 +1715,29 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		go downloadWorker(ctx, s, chjobs, chresults)
 	}
 
+	var multiProgress *multiDownloadProgress
+	if opt.Opt != nil && opt.Opt.Listener != nil {
+		multiProgress = newMultiDownloadProgress(
+			opt.Opt.Listener,
+			len(chunks),
+			totalBytes,
+		)
+		go multiProgress.Start()
+	}
+
 	go func() {
 		for _, chunk := range chunks {
 			if chunk.Done {
+				if multiProgress != nil {
+					multiProgress.ChunkAlreadyDone(chunk)
+				}
 				continue
 			}
 			var downOpt ObjectGetOptions
 			if opt.Opt != nil {
 				downOpt = *opt.Opt
-				downOpt.Listener = nil // listener need to set nil
+				// downOpt.Listener = nil // listener need to set nil
+				downOpt.Listener = multiProgress.ChunkListener(chunk.Number)
 			}
 			job := &Jobs{
 				Name:       name,
@@ -1604,7 +1761,15 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		res := <-chresults
 		if res.Resp == nil || res.err != nil {
 			err = fmt.Errorf("part %d get resp Content. error: %s", res.PartNumber, res.err.Error())
+			if multiProgress != nil {
+				multiProgress.ChunkFailed(res, err)
+			}
 			continue
+		}
+
+		// 没有complete事件的chunk在这里补偿一下
+		if multiProgress != nil {
+			multiProgress.ChunkAlreadyDone(chunks[res.PartNumber-1])
 		}
 		// Dump CheckPoint Info
 		if opt.CheckPoint {
@@ -1620,6 +1785,9 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	close(chresults)
 	if cpfd != nil {
 		cpfd.Close()
+	}
+	if multiProgress != nil {
+		multiProgress.Stop()
 	}
 	if err != nil {
 		return nil, err
