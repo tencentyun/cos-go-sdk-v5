@@ -123,6 +123,7 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 	if opt.innerSwitchURL != nil {
 		sUrl = opt.innerSwitchURL
 	}
+	retryErr := &RetryError{}
 	for nr := 0; nr < count; nr++ {
 		reader := TeeReader(r, nil, totalBytes, nil)
 		if s.client.Conf.EnableCRC {
@@ -139,8 +140,12 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 			optHeader: opt,
 			body:      reader,
 		}
+		// 把上一次错误记录下来
+		if err != nil {
+			retryErr.Add(err)
+		}
 		resp, err = s.client.send(ctx, &sendOpt)
-		sUrl, retrieable = s.client.CheckRetrieable(sUrl, resp, err)
+		sUrl, retrieable = s.client.CheckRetrieable(sUrl, resp, err, nr >= count-2)
 		if retrieable && nr+1 < count {
 			if seeker, ok := r.(io.Seeker); ok {
 				_, e := seeker.Seek(position, io.SeekStart)
@@ -152,6 +157,13 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 		}
 		break
 	}
+	if err != nil {
+		if _, ok := err.(*ErrorResponse); !ok {
+			retryErr.Add(err)
+			err = retryErr
+		}
+	}
+
 	return resp, err
 }
 
@@ -456,31 +468,44 @@ func copyworker(ctx context.Context, s *ObjectService, jobs <-chan *CopyJobs, re
 	}
 }
 
-func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *ObjectHeadOptions, id []string) (resp *Response, err error) {
+func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *ObjectHeadOptions, id []string) (*Response, error) {
 	surl := strings.SplitN(sourceURL, "/", 2)
 	if len(surl) < 2 {
-		err = errors.New(fmt.Sprintf("sourceURL format error: %s", sourceURL))
-		return
+		return nil, fmt.Errorf("sourceURL format error: %s", sourceURL)
 	}
 
 	u, err := url.Parse(fmt.Sprintf("http://%s", surl[0]))
 	if err != nil {
-		return
+		return nil, err
 	}
 	b := &BaseURL{BucketURL: u}
 	client := NewClient(b, &http.Client{
 		Transport: s.client.client.Transport,
 	})
 	if len(id) > 0 {
-		resp, err = client.Object.Head(ctx, surl[1], nil, id[0])
+		return client.Object.Head(ctx, surl[1], nil, id[0])
 	} else {
-		resp, err = client.Object.Head(ctx, surl[1], nil)
+		keyAndVer := strings.SplitN(surl[1], "?", 2)
+		if len(keyAndVer) < 2 {
+			// 不存在versionId
+			return client.Object.Head(ctx, surl[1], nil)
+		} else {
+			q, err := url.ParseQuery(keyAndVer[1])
+			if err != nil {
+				return nil, fmt.Errorf("sourceURL format error: %s", sourceURL)
+			}
+			return client.Object.Head(ctx, keyAndVer[0], nil, q.Get("versionId"))
+		}
 	}
-	return
+	return nil, fmt.Errorf("Head Err")
 }
 
 // 如果源对象大于5G，则采用分块复制的方式进行拷贝，此时源对象的元信息如果COPY
 func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL string, opt *MultiCopyOptions, id ...string) (*ObjectCopyResult, *Response, error) {
+	if strings.HasPrefix(sourceURL, "http://") || strings.HasPrefix(sourceURL, "https://") {
+		return nil, nil, errors.New("sourceURL format is invalid.")
+	}
+
 	resp, err := s.innerHead(ctx, sourceURL, nil, id)
 	if err != nil {
 		return nil, nil, err
@@ -494,7 +519,12 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	if len(id) == 1 {
 		u = fmt.Sprintf("%s/%s?versionId=%s", surl[0], encodeURIComponent(surl[1]), id[0])
 	} else if len(id) == 0 {
-		u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1]))
+		keyAndVer := strings.SplitN(surl[1], "?", 2)
+		if len(keyAndVer) < 2 {
+			u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1]))
+		} else {
+			u = fmt.Sprintf("%v/%v?%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
+		}
 	} else {
 		return nil, nil, errors.New("wrong params")
 	}

@@ -10,6 +10,22 @@ import (
 	"strings"
 )
 
+type RetryError struct {
+	Errs []error
+}
+
+func (r *RetryError) Error() string {
+	var errStr []string
+	for _, err := range r.Errs {
+		errStr = append(errStr, err.Error())
+	}
+	return strings.Join(errStr, "; ")
+}
+
+func (r *RetryError) Add(err error) {
+	r.Errs = append(r.Errs, err)
+}
+
 // ErrorResponse 包含 API 返回的错误信息
 //
 // https://www.qcloud.com/document/product/436/7730
