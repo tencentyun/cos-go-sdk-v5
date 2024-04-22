@@ -155,7 +155,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 			RetryOpt: RetryOptions{
 				Count:          3,
 				Interval:       time.Duration(0),
-				AutoSwitchHost: true,
+				AutoSwitchHost: false,
 			},
 		},
 	}
@@ -378,14 +378,14 @@ func toSwitchHost(oldURL *url.URL) *url.URL {
 	return newURL
 }
 
-func (c *Client) CheckRetrieable(u *url.URL, resp *Response, err error) (*url.URL, bool) {
+func (c *Client) CheckRetrieable(u *url.URL, resp *Response, err error, secondLast bool) (*url.URL, bool) {
 	res := u
 	if err != nil && err != invalidBucketErr {
 		// 不重试
 		if resp != nil && resp.StatusCode < 500 {
 			return res, false
 		}
-		if c.Conf.RetryOpt.AutoSwitchHost {
+		if c.Conf.RetryOpt.AutoSwitchHost && secondLast {
 			// 收不到报文 或者 不存在RequestId
 			if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
 				res = toSwitchHost(u)
@@ -407,10 +407,15 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 	if c.Conf.RetryOpt.Count > 0 {
 		count = c.Conf.RetryOpt.Count
 	}
+	retryErr := &RetryError{}
 	var retrieable bool
 	for nr := 0; nr < count; nr++ {
+		// 把上一次错误记录下来
+		if err != nil {
+			retryErr.Add(err)
+		}
 		resp, err = c.send(ctx, opt)
-		opt.baseURL, retrieable = c.CheckRetrieable(opt.baseURL, resp, err)
+		opt.baseURL, retrieable = c.CheckRetrieable(opt.baseURL, resp, err, nr >= count-2)
 		if retrieable {
 			if c.Conf.RetryOpt.Interval > 0 && nr+1 < count {
 				time.Sleep(c.Conf.RetryOpt.Interval)
@@ -418,6 +423,13 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 			continue
 		}
 		break
+	}
+	// 最后一次非COS错误，输出三次结果
+	if err != nil {
+		if _, ok := err.(*ErrorResponse); !ok {
+			retryErr.Add(err)
+			err = retryErr
+		}
 	}
 	return
 }
@@ -506,6 +518,9 @@ func addHeaderOptions(ctx context.Context, header http.Header, opt interface{}) 
 
 func checkURL(baseURL *url.URL) bool {
 	if baseURL == nil {
+		return false
+	}
+	if baseURL.Scheme == "" || baseURL.Hostname() == "" {
 		return false
 	}
 	host := baseURL.String()
