@@ -195,7 +195,7 @@ func TestCIService_DescribeFileMetaIndex(t *testing.T) {
 	mux.HandleFunc("/filemeta", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		testHeader(t, r, "Content-Type", "application/json")
-		fmt.Fprint(w, "{\"Files\":[{\"COSCRC64\":\"447296710575197191\",\"COSStorageClass\":\"STANDARD\",\"ContentType\":\"image/gif\",\"CreateTime\":\"2024-05-08T20:21:18.766475412+08:00\",\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"DatasetName\":\"adataset\",\"ETag\":\"\\\"c3ad99087956ff0c3d8293ab35747030\\\"\",\"FileModifiedTime\":\"2024-05-06T20:54:07+08:00\",\"Filename\":\"1.gif\",\"MediaType\":\"video\",\"ObjectACL\":\"default\",\"ObjectId\":\"64992b92f79f8ffad132586c4ca26cd4d5dd19783b746e5f6b14dc773f1c0f20\",\"OwnerID\":\"2832742109\",\"Size\":495199,\"URI\":\"cos://test1-1253960454/1.gif\",\"UpdateTime\":\"2024-05-08T20:28:14.884074916+08:00\"}],\"RequestId\":\"NjYzYjcwOWVfMzliNjI5MWVfNmFiZV8zNGM4NDE=\"}")
+		fmt.Fprint(w, "{\"Files\":[{\"COSCRC64\":\"447296710575197191\",\"COSStorageClass\":\"STANDARD\",\"ContentType\":\"image/gif\",\"CreateTime\":\"2024-05-08T20:21:18.766475412+08:00\",\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"DatasetName\":\"adataset\",\"ETag\":\"\\\"c3ad99087956ff0c3d8293ab35747030\\\"\",\"FileModifiedTime\":\"2024-05-06T20:54:07+08:00\",\"Filename\":\"1.gif\",\"MediaType\":\"video\",\"ObjectACL\":\"default\",\"ObjectId\":\"64992b92f79f8ffad132586c4ca26cd4d5dd19783b746e5f6b14dc773f1c0f20\",\"OwnerID\":\"2832742109\",\"Size\":495199,\"URI\":\"cos://test1-1250000000/1.gif\",\"UpdateTime\":\"2024-05-08T20:28:14.884074916+08:00\"}],\"RequestId\":\"NjYzYjcwOWVfMzliNjI5MWVfNmFiZV8zNGM4NDE=\"}")
 	})
 
 	client.CI.DescribeFileMetaIndex(context.Background(), nil)
@@ -297,7 +297,7 @@ func TestCIService_CreateDatasetBinding(t *testing.T) {
 		testMethod(t, r, http.MethodPost)
 		testHeader(t, r, "Content-Type", "application/json")
 		testBody(t, r, wantBody)
-		fmt.Fprint(w, "{\"Binding\":{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1253960454\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"},\"RequestId\":\"NjYzYjc0NThfNmQ2ODk0MGJfYmUyXzMyZWE3ZA==\"}")
+		fmt.Fprint(w, "{\"Binding\":{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1250000000\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"},\"RequestId\":\"NjYzYjc0NThfNmQ2ODk0MGJfYmUyXzMyZWE3ZA==\"}")
 	})
 
 	client.CI.CreateDatasetBinding(context.Background(), nil)
@@ -319,7 +319,7 @@ func TestCIService_DescribeDatasetBinding(t *testing.T) {
 	mux.HandleFunc("/datasetbinding", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		testHeader(t, r, "Content-Type", "application/json")
-		fmt.Fprint(w, "{\"Binding\":{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1253960454\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"},\"RequestId\":\"NjYzYjc0YTRfNTc2ODk0MGJfNjZkN18zYzcyNjY=\"}")
+		fmt.Fprint(w, "{\"Binding\":{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1250000000\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"},\"RequestId\":\"NjYzYjc0YTRfNTc2ODk0MGJfNjZkN18zYzcyNjY=\"}")
 	})
 
 	client.CI.DescribeDatasetBinding(context.Background(), nil)
@@ -341,7 +341,7 @@ func TestCIService_DescribeDatasetBindings(t *testing.T) {
 	mux.HandleFunc("/datasetbindings", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		testHeader(t, r, "Content-Type", "application/json")
-		fmt.Fprint(w, "{\"Bindings\":[{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1253960454\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"}],\"NextToken\":\"\",\"RequestId\":\"NjYzYjc1MDBfNmQ2ODk0MGJfYmUyXzMyZWRlNQ==\"}")
+		fmt.Fprint(w, "{\"Bindings\":[{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1250000000\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"}],\"NextToken\":\"\",\"RequestId\":\"NjYzYjc1MDBfNmQ2ODk0MGJfYmUyXzMyZWRlNQ==\"}")
 	})
 
 	client.CI.DescribeDatasetBindings(context.Background(), nil)

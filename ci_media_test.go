@@ -3470,3 +3470,179 @@ func TestCIService_UpdateOCRTemplate(t *testing.T) {
 		t.Fatalf("CI.CreateOCRTemplate returned error: %v", err)
 	}
 }
+
+func TestCIService_CreateMediaProcessBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/mediabucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateMediaProcessBucketOptions{}
+
+	_, _, err := client.CI.CreateMediaProcessBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateMediaProcessBucket returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateMediaPlayKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/playKey", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	_, _, err := client.CI.CreateMediaPlayKey(context.Background())
+	if err != nil {
+		t.Fatalf("CI.CreatePlayKey returned error: %v", err)
+	}
+}
+
+func TestCIService_GetPlayKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/playKey", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, "<Response><RequestId>NjYzY2NlZjNfMjk5ZWFlMWVfMzI2NjNhXzMwNmY=</RequestId><PlayKeyList><MasterPlayKey>abdcfeafdavdaa</MasterPlayKey><BackupPlayKey>fqefefdavdaedfdsfva</BackupPlayKey></PlayKeyList></Response>")
+	})
+
+	_, _, err := client.CI.GetPlayKey(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetPlayKey returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeMediaPlayKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/playKey", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, "<Response><RequestId>NjYzY2NlZjNfMjk5ZWFlMWVfMzI2NjNhXzMwNmY=</RequestId><PlayKeyList><MasterPlayKey>abdcfeafdavdaa</MasterPlayKey><BackupPlayKey>fqefefdavdaedfdsfva</BackupPlayKey></PlayKeyList></Response>")
+	})
+
+	_, _, err := client.CI.DescribeMediaPlayKey(context.Background())
+	if err != nil {
+		t.Fatalf("CI.DescribeMediaPlayKey returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateMediaPlayKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/playKey", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		fmt.Fprint(w, "<Response><RequestId>NjYzY2NlZjNfMjk5ZWFlMWVfMzI2NjNhXzMwNmY=</RequestId><PlayKeyList><MasterPlayKey>abdcfeafdavdaa</MasterPlayKey><BackupPlayKey>fqefefdavdaedfdsfva</BackupPlayKey></PlayKeyList></Response>")
+	})
+
+	opt := &UpdateMediaPlayKeyOptions{
+		MasterPlayKey : "123456",
+		BackupPlayKey : "123456",
+	}
+	_, _, err := client.CI.UpdateMediaPlayKey(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.UpdateMediaPlayKey returned error: %v", err)
+	}
+}
+
+func TestCIService_GenerateAVInfo(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/avinfo", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		fmt.Fprint(w, "{\"format\":{\"bit_rate\":\"1276.632000\",\"duration\":\"39.600000\",\"format_long_name\":\"QuickTime / MOV\",\"format_name\":\"mov,mp4,m4a,3gp,3g2,mj2\",\"nb_programs\":0,\"nb_streams\":2,\"size\":\"6319329\",\"start_time\":\"0.000000\"},\"streams\":[{\"avg_frame_rate\":\"11250/491\",\"bit_rate\":\"1183.907000\",\"codec_long_name\":\"H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10\",\"codec_name\":\"h264\",\"codec_tag\":\"0x31637661\",\"codec_tag_string\":\"avc1\",\"codec_time_base\":\"1/12800\",\"codec_type\":\"video\",\"color_primaries\":\"unknown\",\"color_range\":\"tv\",\"color_transfer\":\"unknown\",\"duration\":\"39.280000\",\"filed_order\":\"progressive\",\"has_b_frames\":\"2\",\"height\":1920,\"index\":0,\"language\":\"und\",\"level\":40,\"nb_frames\":\"900\",\"pix_fmt\":\"yuv420p\",\"profile\":\"High\",\"r_frame_rate\":\"25/1\",\"refs\":1,\"rotation\":\"0.000000\",\"start_time\":\"0.320000\",\"timebase\":\"1/12800\",\"width\":1080},{\"bit_rate\":\"96.398000\",\"channel_layout\":\"mono\",\"channels\":1,\"codec_long_name\":\"AAC (Advanced Audio Coding)\",\"codec_name\":\"aac\",\"codec_tag\":\"0x6134706d\",\"codec_tag_string\":\"mp4a\",\"codec_time_base\":\"1/44100\",\"codec_type\":\"audio\",\"duration\":\"39.274671\",\"index\":1,\"language\":\"und\",\"sample_fmt\":\"fltp\",\"sample_rate\":\"44100\",\"start_time\":\"0.000000\",\"timebase\":\"1/44100\"}]}")
+	})
+
+	opt := &GenerateAVInfoOptions{
+		Input: &JobInput{
+			Object: "337281974274744320.mp4",
+		},
+	}
+	_, _, err := client.CI.GenerateAVInfo(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GenerateAVInfo returned error: %v", err)
+	}
+}
+
+func TestCIService_PostCISnapshot(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/cisnapshot", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &PostSnapshotOptions{
+		Input: &JobInput{
+			Object: "50000453.mp4",
+		},
+		Time:   "1",
+		Format: "png",
+		Width:  128,
+		Height: 128,
+		Output: &JobOutput{
+			Region: "ap-chongqing",
+			Bucket: "test-1250000000",
+			Object: "a.png",
+		},
+	}
+	_, err := client.CI.PostCISnapshot(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PostCISnapshot returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateGeneratePlayListJob(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateGeneratePlayListJobOptions{
+		Tag: "GeneratePlayList",
+		Input: &JobInput{
+			Object: "a.mp4",
+		},
+		Operation: &GeneratePlayListJobOperation{
+			Output: &JobOutput{
+				Region: "ap-chongqing",
+				Bucket: "test-1250000000",
+				Object: "live/a.m3u8",
+			},
+			Transcode: &LiveTanscode{
+				Video: &LiveTanscodeVideo{
+					Codec:   "H.264",
+					Width:   "960", // 设置480、720、960、1080
+					Bitrate: "2000",
+					Maxrate: "5000",
+					Fps:     "30",
+				},
+				Container: &Container{
+					Format: "hls",
+					ClipConfig: &ClipConfig{
+						Duration: "5",
+					},
+				},
+				TransConfig: &LiveTanscodeTransConfig{
+					HlsEncrypt: &HlsEncrypt{
+						IsHlsEncrypt: true,
+					},
+					InitialClipNum: "2",
+					CosTag:         "a=a&b=b",
+				},
+			},
+		},
+	}
+	_, _, err := client.CI.CreateGeneratePlayListJob(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateGeneratePlayListJob returned error: %v", err)
+	}
+}
