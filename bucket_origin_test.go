@@ -49,6 +49,9 @@ func TestBucketService_GetOrigin(t *testing.T) {
             <OriginInfo>
                 <HostInfo>
                     <HostName>examplebucket-1250000000.cos.ap-shanghai.myqcloud.com</HostName>
+                    <Weight>10</Weight>
+                    <StandbyHostName_1>hostname1</StandbyHostName_1>
+                    <StandbyHostName_2>hostname2</StandbyHostName_2>
                 </HostInfo>
             </OriginInfo>
         </OriginRule>
@@ -91,7 +94,9 @@ func TestBucketService_GetOrigin(t *testing.T) {
 				},
 				OriginInfo: &BucketOriginInfo{
 					HostInfo: &BucketOriginHostInfo{
-						HostName: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+						HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+						Weight:            10,
+						StandbyHostName_N: []string{"hostname1", "hostname2"},
 					},
 				},
 			},
@@ -137,7 +142,9 @@ func TestBucketService_PutOrigin(t *testing.T) {
 				},
 				OriginInfo: &BucketOriginInfo{
 					HostInfo: &BucketOriginHostInfo{
-						HostName: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+						HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+						Weight:            10,
+						StandbyHostName_N: []string{"hostname1", "hostname2"},
 					},
 				},
 			},

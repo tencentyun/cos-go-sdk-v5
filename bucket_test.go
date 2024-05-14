@@ -119,14 +119,28 @@ func TestBucketService_Put(t *testing.T) {
 		t.Fatalf("Bucket.Put returned error: %v", err)
 	}
 
+	opt = &BucketPutOptions{
+		XCosACL: "public-read",
+		CreateBucketConfiguration: &CreateBucketConfiguration{
+			BucketAZConfig: "MAZ",
+		},
+	}
+	_, err = client.Bucket.Put(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Bucket.Put returned error: %v", err)
+	}
 }
 
 func TestBucketService_Delete(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var checkHeader bool
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodDelete)
+		if checkHeader {
+			testHeader(t, r, "x-cos-meta-test", "test")
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -134,14 +148,29 @@ func TestBucketService_Delete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bucket.Delete returned error: %v", err)
 	}
+
+	checkHeader = true
+	opt := &BucketDeleteOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+	_, err = client.Bucket.Delete(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Bucket.Delete returned error: %v", err)
+	}
+
 }
 
 func TestBucketService_Head(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var checkHeader bool
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodHead)
+		if checkHeader {
+			testHeader(t, r, "x-cos-meta-test", "test")
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -149,24 +178,67 @@ func TestBucketService_Head(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bucket.Head returned error: %v", err)
 	}
+
+	checkHeader = true
+	opt := &BucketHeadOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+	_, err = client.Bucket.Head(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Bucket.Head returned error: %v", err)
+	}
+
 }
 
 func TestBucketService_IsExist(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var exist, notfound, deny bool
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodHead)
-		w.WriteHeader(http.StatusNotFound)
+		if exist {
+			w.WriteHeader(http.StatusOK)
+		}
+		if notfound {
+			w.WriteHeader(http.StatusNotFound)
+		}
+		if deny {
+			w.WriteHeader(http.StatusForbidden)
+		}
 	})
 
+	// 存在
+	exist, notfound, deny = true, false, false
 	isExisted, err := client.Bucket.IsExist(context.Background())
+	if err != nil {
+		t.Fatalf("Bucket.Head returned error: %v", err)
+	}
+	if isExisted != true {
+		t.Errorf("bucket IsExist failed")
+	}
+
+	// 不存在
+	exist, notfound, deny = false, true, false
+	isExisted, err = client.Bucket.IsExist(context.Background())
 	if err != nil {
 		t.Fatalf("Bucket.Head returned error: %v", err)
 	}
 	if isExisted != false {
 		t.Errorf("bucket IsExist failed")
 	}
+
+	// 报错
+	exist, notfound, deny = false, false, true
+	isExisted, err = client.Bucket.IsExist(context.Background())
+	if err == nil {
+		t.Fatalf("Bucket.Head returned error: %v", err)
+	}
+	if isExisted != false {
+		t.Errorf("bucket IsExist failed")
+	}
+
 }
 
 func TestBucketService_GetObjectVersions(t *testing.T) {

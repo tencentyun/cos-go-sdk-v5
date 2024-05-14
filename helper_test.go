@@ -3,10 +3,20 @@ package cos
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
 )
+
+// 非IsLenReader
+type tmpOtherReader struct {
+	Reader io.Reader
+}
+
+func (this *tmpOtherReader) Read(p []byte) (int, error) {
+	return this.Reader.Read(p)
+}
 
 func Test_calSHA1Digest(t *testing.T) {
 	want := "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"
@@ -182,4 +192,133 @@ func Test_progress(t *testing.T) {
 		EventType:  -1,
 		TotalBytes: 1,
 	})
+}
+
+func Test_UnmarshalInitMultiUploadResult_Error(t *testing.T) {
+	data := []byte(`
+<InitiateMultipartUploadResult>
+    <Key>test</Key>
+    <UploadId>149795166761115ef06e259b2fceb8ff34bf7dd840883d26a0f90243562dd398efa41718db</UploadId>
+</InitiateMultipartUploadResult>`)
+	var res InitiateMultipartUploadResult
+	err := UnmarshalInitMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+
+	data = []byte(`
+<InitiateMultipartUploadResult>
+    <Bucket>test-1253846586</Bucket>
+    <UploadId>149795166761115ef06e259b2fceb8ff34bf7dd840883d26a0f90243562dd398efa41718db</UploadId>
+</InitiateMultipartUploadResult>`)
+	err = UnmarshalInitMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+
+	data = []byte(`
+<InitiateMultipartUploadResult>
+    <Bucket>test-1253846586</Bucket>
+    <Key>test</Key>
+</InitiateMultipartUploadResult>`)
+	err = UnmarshalInitMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+}
+
+func Test_UnmarshalCompleteMultiUploadResult_Error(t *testing.T) {
+	data := []byte(`
+<CompleteMultipartUploadResult>
+    <Bucket>test</Bucket>
+    <Key>test/hello.txt</Key>
+    <ETag>&quot;594f98b11c6901c0f0683de1085a6d0e-4&quot;</ETag>
+</CompleteMultipartUploadResult>`)
+	var res CompleteMultipartUploadResult
+	err := UnmarshalCompleteMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+
+	data = []byte(`
+<CompleteMultipartUploadResult>
+    <Location>test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt</Location>
+    <Key>test/hello.txt</Key>
+    <ETag>&quot;594f98b11c6901c0f0683de1085a6d0e-4&quot;</ETag>
+</CompleteMultipartUploadResult>`)
+	err = UnmarshalCompleteMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+
+	data = []byte(`
+<CompleteMultipartUploadResult>
+    <Location>test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt</Location>
+    <Bucket>test</Bucket>
+    <ETag>&quot;594f98b11c6901c0f0683de1085a6d0e-4&quot;</ETag>
+</CompleteMultipartUploadResult>`)
+	err = UnmarshalCompleteMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+
+	data = []byte(`
+<CompleteMultipartUploadResult>
+    <Location>test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt</Location>
+    <Bucket>test</Bucket>
+    <Key>test/hello.txt</Key>
+</CompleteMultipartUploadResult>`)
+	err = UnmarshalCompleteMultiUploadResult(data, &res)
+	if err == nil {
+		t.Errorf("UnmarshalInitMultiUploadResult except return error")
+	}
+}
+
+func Test_EncodeURIComponent(t *testing.T) {
+	res := EncodeURIComponent("/")
+	if res != "%2F" {
+		t.Errorf("EncodeURIComponent failed, res: %v", res)
+	}
+}
+
+func Test_GetRange(t *testing.T) {
+	_, err := GetRange("byte=0-1")
+	if err == nil {
+		t.Errorf("GetRange expect failed")
+	}
+
+	_, err = GetRange("bytes=10")
+	if err == nil {
+		t.Errorf("GetRange expect failed")
+	}
+
+	_, err = GetRange("bytes=a-10")
+	if err == nil {
+		t.Errorf("GetRange expect failed")
+	}
+
+	_, err = GetRange("bytes=0-b")
+	if err == nil {
+		t.Errorf("GetRange expect failed")
+	}
+
+	_, err = GetRange("bytes=0-10")
+	if err != nil {
+		t.Errorf("GetRange failed: %v", err)
+	}
+
+	_, err = GetRange("bytes=0-")
+	if err != nil {
+		t.Errorf("GetRange failed: %v", err)
+	}
+
+	_, err = GetRange("bytes=-10")
+	if err != nil {
+		t.Errorf("GetRange failed: %v", err)
+	}
+
+	res, err := GetRangeOptions(&ObjectGetOptions{})
+	if err != nil || res != nil {
+		t.Errorf("GetRangeOptions failed: %v, %v", res, err)
+	}
 }

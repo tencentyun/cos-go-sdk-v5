@@ -41,6 +41,58 @@ func TestObjectService_AbortMultipartUpload(t *testing.T) {
 	}
 }
 
+func TestObjectService_InitiateMultipartUpload_XMLSyntaxError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &InitiateMultipartUploadOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			ContentType: "text/html",
+		},
+		ACLHeaderOptions: &ACLHeaderOptions{
+			XCosACL: "private",
+		},
+	}
+	eChar, _ := DecodeURIComponent("%07") //特殊字符
+	eName := fmt.Sprintf("test/hello_%v.txt", eChar)
+	name := "test/hello.txt"
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		v := new(BucketPutTaggingOptions)
+		xml.NewDecoder(r.Body).Decode(v)
+
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "x-cos-acl", "private")
+		testHeader(t, r, "Content-Type", "text/html")
+		vs := values{
+			"uploads": "",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+	<Bucket>test-1253846586</Bucket>
+	<Key>%v</Key>
+	<UploadId>149795166761115ef06e259b2fceb8ff34bf7dd840883d26a0f90243562dd398efa41718db</UploadId>
+</InitiateMultipartUploadResult>`, eName)
+	})
+
+	ref, _, err := client.Object.InitiateMultipartUpload(context.Background(),
+		name, opt)
+	if err != nil {
+		t.Fatalf("Object.InitiateMultipartUpload returned error: %v", err)
+	}
+
+	want := &InitiateMultipartUploadResult{
+		XMLName:  xml.Name{Local: "InitiateMultipartUploadResult"},
+		Bucket:   "test-1253846586",
+		Key:      eName,
+		UploadID: "149795166761115ef06e259b2fceb8ff34bf7dd840883d26a0f90243562dd398efa41718db",
+	}
+
+	if !reflect.DeepEqual(ref, want) {
+		t.Errorf("Object.InitiateMultipartUpload returned %+v, want %+v", ref, want)
+	}
+}
+
 func TestObjectService_InitiateMultipartUpload(t *testing.T) {
 	setup()
 	defer teardown()
@@ -352,6 +404,70 @@ func TestObjectService_ListParts(t *testing.T) {
 	}
 }
 
+func TestObjectService_CompleteMultipartUpload_XMLSyntaxError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	eChar, _ := DecodeURIComponent("%07") //特殊字符
+	eName := fmt.Sprintf("test/hello_%v.txt", eChar)
+	name := "test/hello.txt"
+	uploadID := "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+
+	opt := &CompleteMultipartUploadOptions{
+		Parts: []Object{
+			{
+				PartNumber: 1,
+				ETag:       "\"fae3dba15f4d9b2d76cbaed5de3a08e3\"",
+			},
+			{
+				PartNumber: 2,
+				ETag:       "\"c81982550f2f965118d486176d9541d4\"",
+			},
+		},
+	}
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		v := new(CompleteMultipartUploadOptions)
+		xml.NewDecoder(r.Body).Decode(v)
+
+		testMethod(t, r, http.MethodPost)
+		vs := values{
+			"uploadId": uploadID,
+		}
+		testFormValues(t, r, vs)
+
+		want := opt
+		want.XMLName = xml.Name{Local: "CompleteMultipartUpload"}
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.CompleteMultipartUpload request body: %+v, want %+v", v, want)
+		}
+		fmt.Fprintf(w, `<CompleteMultipartUploadResult>
+	<Location>test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt</Location>
+	<Bucket>test-1253846586</Bucket>
+	<Key>%v</Key>
+	<ETag>&quot;594f98b11c6901c0f0683de1085a6d0e-4&quot;</ETag>
+</CompleteMultipartUploadResult>`, eName)
+	})
+
+	ref, _, err := client.Object.CompleteMultipartUpload(context.Background(),
+		name, uploadID, opt)
+	if err != nil {
+		t.Fatalf("Object.CompleteMultipartUpload returned error: %v", err)
+	}
+
+	want := &CompleteMultipartUploadResult{
+		XMLName:  xml.Name{Local: "CompleteMultipartUploadResult"},
+		Bucket:   "test-1253846586",
+		Key:      eName,
+		ETag:     "\"594f98b11c6901c0f0683de1085a6d0e-4\"",
+		Location: "test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt",
+	}
+
+	if !reflect.DeepEqual(ref, want) {
+		t.Errorf("Object.CompleteMultipartUpload returned \n%#v, want \n%#v", ref, want)
+	}
+}
+
 func TestObjectService_CompleteMultipartUpload(t *testing.T) {
 	setup()
 	defer teardown()
@@ -538,6 +654,12 @@ func TestObjectService_MultiCopy(t *testing.T) {
 	soruceURL := fmt.Sprintf("%s/%s", client.BaseURL.BucketURL.Host, "test.src.copy")
 	_, _, err := client.Object.MultiCopy(context.Background(), dest, soruceURL, opt)
 
+	if err != nil {
+		t.Errorf("Object.MultiCopy failed %v", err)
+	}
+
+	soruceURL = fmt.Sprintf("%s/%s?versionId=versionid", client.BaseURL.BucketURL.Host, "test.src.copy")
+	_, _, err = client.Object.MultiCopy(context.Background(), dest, soruceURL, opt)
 	if err != nil {
 		t.Errorf("Object.MultiCopy failed %v", err)
 	}

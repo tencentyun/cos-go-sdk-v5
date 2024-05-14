@@ -178,14 +178,28 @@ func TestObjectService_GetRetry(t *testing.T) {
 	}
 }
 
+func TestObjectService_GetObjectURL(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "test"
+	uri, _ := url.Parse("/" + encodeURIComponent(name, []byte{'/'}))
+	want := client.BaseURL.BucketURL.ResolveReference(uri)
+
+	res := client.Object.GetObjectURL("test")
+	if res.String() != client.BaseURL.BucketURL.ResolveReference(uri).String() {
+		t.Errorf("GetObjectURL failed, want: %v, return: %v", want, res)
+	}
+}
+
 func TestObjectService_GetPresignedURL(t *testing.T) {
 	setup()
 	defer teardown()
 
-	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=0f359fe9d29e7fa0c738ce6c8feaf4ed1e84f287"
+	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557%3B1622706157&q-key-time=1622702557%3B1622706157&q-header-list=&q-url-param-list=&q-signature=820975b5a8eccce9455b94d4ebed14d66654bf3c"
 	exceptURL := &url.URL{
 		Scheme:   "http",
-		Host:     client.Host,
+		Host:     client.BaseURL.BucketURL.Host,
 		Path:     "/test.jpg",
 		RawQuery: exceptSign,
 	}
@@ -196,7 +210,7 @@ func TestObjectService_GetPresignedURL(t *testing.T) {
 	sk := "ZfbOA78asKUYBcXFrJD0a1I*******"
 	startTime := time.Unix(int64(1622702557), 0)
 	endTime := time.Unix(int64(1622706157), 0)
-	opt := presignedURLTestingOptions{
+	opt := &presignedURLTestingOptions{
 		authTime: &AuthTime{
 			SignStartTime: startTime,
 			SignEndTime:   endTime,
@@ -205,35 +219,25 @@ func TestObjectService_GetPresignedURL(t *testing.T) {
 		},
 	}
 
-	presignedURL, err := client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt)
+	presignedURL, err := client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if reflect.DeepEqual(exceptURL, presignedURL) {
+	if !reflect.DeepEqual(exceptURL, presignedURL) {
 		t.Fatalf("Wrong PreSignedURL!")
 	}
-}
 
-func TestObjectService_GetPresignedURL_AuthTime(t *testing.T) {
-	setup()
-	defer teardown()
-
-	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=0f359fe9d29e7fa0c738ce6c8feaf4ed1e84f287"
-	exceptURL := &url.URL{
+	exceptSign = "test=params&sign=q-sign-algorithm%3Dsha1%26q-ak%3DQmFzZTY0IGlzIGEgZ*******%26q-sign-time%3D1622702557%3B1622706157%26q-key-time%3D1622702557%3B1622706157%26q-header-list%3D%26q-url-param-list%3Dtest%26q-signature%3D7757e84ed5f8953eafc30afcd2a5d1ad68e00d67"
+	exceptURL = &url.URL{
 		Scheme:   "http",
-		Host:     client.Host,
+		Host:     client.BaseURL.BucketURL.Host,
 		Path:     "/test.jpg",
 		RawQuery: exceptSign,
 	}
-
-	c := context.Background()
-	name := "test.jpg"
-	ak := "QmFzZTY0IGlzIGEgZ*******"
-	sk := "ZfbOA78asKUYBcXFrJD0a1I*******"
-	startTime := time.Unix(int64(1622702557), 0)
-	endTime := time.Unix(int64(1622706157), 0)
-	opt := &PresignedURLOptions{
+	opt1 := &PresignedURLOptions{
+		Query:      &url.Values{},
+		SignMerged: true,
 		AuthTime: &AuthTime{
 			SignStartTime: startTime,
 			SignEndTime:   endTime,
@@ -241,17 +245,59 @@ func TestObjectService_GetPresignedURL_AuthTime(t *testing.T) {
 			KeyEndTime:    endTime,
 		},
 	}
-
-	presignedURL, err := client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt)
+	opt1.Query.Add("test", "params")
+	presignedURL, err = client.Object.GetPresignedURL(c, http.MethodPut, name, ak, sk, time.Hour, opt1, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if reflect.DeepEqual(exceptURL, presignedURL) {
+	if !reflect.DeepEqual(exceptURL, presignedURL) {
 		t.Fatalf("Wrong PreSignedURL!")
+	}
+
+	_, err = client.Object.GetPresignedURL(c, http.MethodPut, "", ak, sk, time.Hour, opt1)
+	if err == nil {
+		t.Errorf("GetPresignedURL expect err is not null")
 	}
 }
 
+/*
+	func testobjectservice_getpresignedurl_authtime(t *testing.t) {
+		setup()
+		defer teardown()
+
+		exceptsign := "q-sign-algorithm=sha1&q-ak=qmfzzty0iglzigegz*******&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=0f359fe9d29e7fa0c738ce6c8feaf4ed1e84f287"
+		excepturl := &url.url{
+			scheme:   "http",
+			host:     client.ba,
+			path:     "/test.jpg",
+			rawquery: exceptsign,
+		}
+
+		c := context.background()
+		name := "test.jpg"
+		ak := "qmfzzty0iglzigegz*******"
+		sk := "zfboa78askuybcxfrjd0a1i*******"
+		starttime := time.unix(int64(1622702557), 0)
+		endtime := time.unix(int64(1622706157), 0)
+		opt := &presignedurloptions{
+			authtime: &authtime{
+				signstarttime: starttime,
+				signendtime:   endtime,
+				keystarttime:  starttime,
+				keyendtime:    endtime,
+			},
+		}
+
+		presignedurl, err := client.object.getpresignedurl(c, http.methodput, name, ak, sk, time.hour, opt)
+		if err != nil {
+			t.fatal(err)
+		}
+
+		if !reflect.deepequal(excepturl, presignedurl) {
+			t.fatalf("wrong presignedurl!")
+		}
+	}
+*/
 func TestObjectService_GetPresignedURL2(t *testing.T) {
 	setup()
 	defer teardown()
@@ -264,10 +310,10 @@ func TestObjectService_GetPresignedURL2(t *testing.T) {
 		},
 	})
 
-	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557;1622706157&q-key-time=1622702557;1622706157&q-header-list=&q-url-param-list=&q-signature=0f359fe9d29e7fa0c738ce6c8feaf4ed1e84f287"
+	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557%3B1622706157&q-key-time=1622702557%3B1622706157&q-header-list=&q-url-param-list=&q-signature=820975b5a8eccce9455b94d4ebed14d66654bf3c"
 	exceptURL := &url.URL{
 		Scheme:   "http",
-		Host:     client.Host,
+		Host:     client.BaseURL.BucketURL.Host,
 		Path:     "/test.jpg",
 		RawQuery: exceptSign,
 	}
@@ -276,7 +322,7 @@ func TestObjectService_GetPresignedURL2(t *testing.T) {
 	name := "test.jpg"
 	startTime := time.Unix(int64(1622702557), 0)
 	endTime := time.Unix(int64(1622706157), 0)
-	opt := presignedURLTestingOptions{
+	opt := &presignedURLTestingOptions{
 		authTime: &AuthTime{
 			SignStartTime: startTime,
 			SignEndTime:   endTime,
@@ -285,14 +331,121 @@ func TestObjectService_GetPresignedURL2(t *testing.T) {
 		},
 	}
 
-	presignedURL, err := client.Object.GetPresignedURL2(c, http.MethodPut, name, time.Hour, opt)
+	presignedURL, err := client.Object.GetPresignedURL2(c, http.MethodPut, name, time.Hour, opt, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if reflect.DeepEqual(exceptURL, presignedURL) {
+	if !reflect.DeepEqual(exceptURL, presignedURL) {
 		t.Fatalf("Wrong PreSignedURL!")
 	}
+
+	exceptSign = "test=params&sign=q-sign-algorithm%3Dsha1%26q-ak%3DQmFzZTY0IGlzIGEgZ*******%26q-sign-time%3D1622702557%3B1622706157%26q-key-time%3D1622702557%3B1622706157%26q-header-list%3D%26q-url-param-list%3Dtest%26q-signature%3D7757e84ed5f8953eafc30afcd2a5d1ad68e00d67"
+	exceptURL = &url.URL{
+		Scheme:   "http",
+		Host:     client.BaseURL.BucketURL.Host,
+		Path:     "/test.jpg",
+		RawQuery: exceptSign,
+	}
+	opt1 := &PresignedURLOptions{
+		Query:      &url.Values{},
+		SignMerged: true,
+		AuthTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+	opt1.Query.Add("test", "params")
+	presignedURL, err = client.Object.GetPresignedURL2(c, http.MethodPut, name, time.Hour, opt1, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(exceptURL, presignedURL) {
+		t.Fatalf("Wrong PreSignedURL!")
+	}
+
+	_, err = client.Object.GetPresignedURL2(c, http.MethodPut, "", time.Hour, opt1)
+	if err == nil {
+		t.Errorf("GetPresignedURL expect err is not null")
+	}
+
+}
+
+func TestObjectService_GetPresignedURL3(t *testing.T) {
+	setup()
+	defer teardown()
+
+	u, _ := url.Parse(server.URL)
+	client := NewClient(&BaseURL{u, u, u, u, u}, &http.Client{
+		Transport: &AuthorizationTransport{
+			SecretID:  "QmFzZTY0IGlzIGEgZ*******",
+			SecretKey: "ZfbOA78asKUYBcXFrJD0a1I*******",
+		},
+	})
+
+	exceptSign := "q-sign-algorithm=sha1&q-ak=QmFzZTY0IGlzIGEgZ*******&q-sign-time=1622702557%3B1622706157&q-key-time=1622702557%3B1622706157&q-header-list=&q-url-param-list=&q-signature=820975b5a8eccce9455b94d4ebed14d66654bf3c"
+	exceptURL := &url.URL{
+		Scheme:   "http",
+		Host:     client.BaseURL.BucketURL.Host,
+		Path:     "/test.jpg",
+		RawQuery: exceptSign,
+	}
+
+	c := context.Background()
+	name := "test.jpg"
+	startTime := time.Unix(int64(1622702557), 0)
+	endTime := time.Unix(int64(1622706157), 0)
+	opt := &presignedURLTestingOptions{
+		authTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+
+	presignedURL, err := client.Object.GetPresignedURL3(c, http.MethodPut, name, time.Hour, opt, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(exceptURL, presignedURL) {
+		t.Fatalf("Wrong PreSignedURL!")
+	}
+
+	exceptSign = "test=params&sign=q-sign-algorithm%3Dsha1%26q-ak%3DQmFzZTY0IGlzIGEgZ*******%26q-sign-time%3D1622702557%3B1622706157%26q-key-time%3D1622702557%3B1622706157%26q-header-list%3D%26q-url-param-list%3Dtest%26q-signature%3D7757e84ed5f8953eafc30afcd2a5d1ad68e00d67"
+	exceptURL = &url.URL{
+		Scheme:   "http",
+		Host:     client.BaseURL.BucketURL.Host,
+		Path:     "/test.jpg",
+		RawQuery: exceptSign,
+	}
+	opt1 := &PresignedURLOptions{
+		Query:      &url.Values{},
+		SignMerged: true,
+		AuthTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+	opt1.Query.Add("test", "params")
+	presignedURL, err = client.Object.GetPresignedURL3(c, http.MethodPut, name, time.Hour, opt1, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(exceptURL, presignedURL) {
+		t.Fatalf("Wrong PreSignedURL!")
+	}
+
+	_, err = client.Object.GetPresignedURL3(c, http.MethodPut, "", time.Hour, opt1)
+	if err == nil {
+		t.Errorf("GetPresignedURL expect err is not null")
+	}
+
 }
 
 func TestObjectService_Put(t *testing.T) {
@@ -349,6 +502,65 @@ func TestObjectService_Put(t *testing.T) {
 		}
 		retry++
 	}
+}
+
+func TestObjectService_Put2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &ObjectPutOptions{
+		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+			ContentType: "text/html",
+			Listener:    &DefaultProgressListener{},
+		},
+		ACLHeaderOptions: &ACLHeaderOptions{
+			XCosACL: "private",
+		},
+	}
+	name := "test/hello.txt"
+	data := []byte("hello")
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testHeader(t, r, "x-cos-acl", "private")
+		testHeader(t, r, "Content-Type", "text/html")
+
+		b, _ := ioutil.ReadAll(r.Body)
+		tb := crc64.MakeTable(crc64.ECMA)
+		crc := crc64.Update(0, tb, b)
+		v := string(b)
+		want := "hello"
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.Put request body: %#v, want %#v", v, want)
+		}
+		realcrc := crc64.Update(0, tb, []byte("hello"))
+		if !reflect.DeepEqual(crc, realcrc) {
+			t.Errorf("Object.Put crc: %v, want: %v", crc, realcrc)
+		}
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+	})
+
+	// reader is nil
+	_, err := client.Object.Put(context.Background(), name, nil, opt)
+	if err == nil || err.Error() != "reader is nil" {
+		t.Fatalf("CI.Put returned error: %v", err)
+	}
+
+	// 没法获取 totalBytes
+	r := &tmpOtherReader{
+		Reader: bytes.NewReader(data),
+	}
+	_, err = client.Object.Put(context.Background(), name, r, opt)
+	if err == nil || err.Error() != "can't get reader content length, unkown reader type" {
+		t.Fatalf("Object.Put returned error: %v", err)
+	}
+	// 成功，通过ContentLength获取totalBytes
+	opt.ContentLength = int64(len(data))
+	_, err = client.Object.Put(context.Background(), name, r, opt)
+	if err != nil {
+		t.Fatalf("Object.Put returned error: %v", err)
+	}
+
 }
 
 func TestObjectService_PutFromFile(t *testing.T) {
@@ -421,14 +633,35 @@ func TestObjectService_Delete(t *testing.T) {
 	defer teardown()
 	name := "test/hello.txt"
 
+	var withVersion bool
+	versionId := "versionid"
 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodDelete)
+		if withVersion {
+			vs := values{
+				"versionId": versionId,
+			}
+			testFormValues(t, r, vs)
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	_, err := client.Object.Delete(context.Background(), name)
 	if err != nil {
 		t.Fatalf("Object.Delete returned error: %v", err)
+	}
+
+	_, err = client.Object.Delete(context.Background(), "/test/../")
+	if err != ObjectKeySimplifyCheckErr {
+		t.Fatalf("Object.Delete expect error: %v", err)
+	}
+
+	opt := &ObjectDeleteOptions{
+		VersionId: versionId,
+	}
+	_, err = client.Object.Delete(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("Object.Delete return error: %v", err)
 	}
 }
 
@@ -437,9 +670,14 @@ func TestObjectService_Head(t *testing.T) {
 	defer teardown()
 	name := "test/hello.txt"
 
+	var appendType bool
 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "HEAD")
 		testHeader(t, r, "If-Modified-Since", "Mon, 12 Jun 2017 05:36:19 GMT")
+		if appendType {
+			w.Header().Add("X-Cos-Object-Type", "appendable")
+			w.Header().Add("Content-Length", "100")
+		}
 	})
 
 	opt := &ObjectHeadOptions{
@@ -449,6 +687,21 @@ func TestObjectService_Head(t *testing.T) {
 	_, err := client.Object.Head(context.Background(), name, opt)
 	if err != nil {
 		t.Fatalf("Object.Head returned error: %v", err)
+	}
+
+	// err
+	_, err = client.Object.Head(context.Background(), name, opt, "id1", "id2")
+	if err == nil || err.Error() != "wrong params" {
+		t.Fatalf("Object.Head expect error: %v", err)
+	}
+
+	appendType = true
+	resp, err := client.Object.Head(context.Background(), name, opt)
+	if err != nil {
+		t.Fatalf("Object.Head return error: %v", err)
+	}
+	if resp.Header.Get("Content-Length") != "100" {
+		t.Errorf("Object.Head header error: %v", resp.Header)
 	}
 }
 
@@ -500,13 +753,20 @@ func TestObjectService_PostRestore(t *testing.T) {
 	name := "test/hello.txt"
 	wantBody := "<RestoreRequest><Days>3</Days><CASJobParameters><Tier>Expedited</Tier></CASJobParameters></RestoreRequest>"
 
+	var withVersion bool
+	versionId := "versionid"
 	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
 		testHeader(t, r, "Content-Type", "application/xml")
 		testHeader(t, r, "Content-Length", "106")
-		//b, _ := ioutil.ReadAll(r.Body)
-		//fmt.Printf("%s", string(b))
 		testBody(t, r, wantBody)
+		vs := values{
+			"restore": "",
+		}
+		if withVersion {
+			vs["versionId"] = versionId
+		}
+		testFormValues(t, r, vs)
 	})
 
 	opt := &ObjectRestoreOptions{
@@ -521,6 +781,16 @@ func TestObjectService_PostRestore(t *testing.T) {
 		t.Fatalf("Object.PostRestore returned error: %v", err)
 	}
 
+	withVersion = true
+	_, err = client.Object.PostRestore(context.Background(), name, opt, versionId)
+	if err != nil {
+		t.Fatalf("Object.PostRestore returned error: %v", err)
+	}
+
+	_, err = client.Object.PostRestore(context.Background(), name, opt, "id1", "id2")
+	if err == nil || err.Error() != "wrong params" {
+		t.Fatalf("Object.PostRestore expect error: %v", err)
+	}
 }
 
 func TestObjectService_Append_Simple(t *testing.T) {
@@ -530,6 +800,7 @@ func TestObjectService_Append_Simple(t *testing.T) {
 	opt := &ObjectPutOptions{
 		ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
 			ContentType: "text/html",
+			Listener:    &DefaultProgressListener{},
 		},
 		ACLHeaderOptions: &ACLHeaderOptions{
 			XCosACL: "private",
@@ -567,6 +838,11 @@ func TestObjectService_Append_Simple(t *testing.T) {
 	}
 	if p != len("hello") {
 		t.Fatalf("Object.Append position error, want: %v, return: %v", len("hello"), p)
+	}
+
+	_, _, err = client.Object.Append(context.Background(), name, p, nil, opt)
+	if err == nil || err.Error() != "reader is nil" {
+		t.Errorf("Append expect error: %v", err)
 	}
 }
 
@@ -669,23 +945,48 @@ func TestObjectService_Copy(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var withVersion, returnErr bool
+	versionId := "versionid"
+	sourceURL := "test-1253846586.cos.ap-guangzhou.myqcloud.com/test.source"
+
 	mux.HandleFunc("/test.go.copy", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
+		if withVersion {
+			source := r.Header.Get("X-Cos-Copy-Source")
+			want := fmt.Sprintf("%v?versionId=%v", sourceURL, versionId)
+			if source != want {
+				t.Errorf("request copy-source: %v, want: %v", source, want)
+			}
+		}
+		if returnErr {
+			fmt.Fprint(w, `<Error>
+		<Code>ErrorRequest</Code>
+		<Message>Error Request</Message>
+	</Error>`)
+			return
+		}
 		fmt.Fprint(w, `<CopyObjectResult>
 		<ETag>"098f6bcd4621d373cade4e832627b4f6"</ETag>
 		<LastModified>2017-12-13T14:53:12</LastModified>
 	</CopyObjectResult>`)
 	})
 
+	opt := &ObjectCopyOptions{
+		&ObjectCopyHeaderOptions{
+			ContentType: "application/xml",
+		},
+		&ACLHeaderOptions{
+			XCosACL: "public-read",
+		},
+	}
 	wrongURL := "wrongURL"
-	_, _, err := client.Object.Copy(context.Background(), "test.go.copy", wrongURL, nil)
+	_, _, err := client.Object.Copy(context.Background(), "test.go.copy", wrongURL, opt)
 	exceptedErr := errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", wrongURL))
 	if !reflect.DeepEqual(err, exceptedErr) {
 		t.Fatalf("Object.Copy returned %#v, excepted %#v", err, exceptedErr)
 	}
 
-	sourceURL := "test-1253846586.cos.ap-guangzhou.myqcloud.com/test.source"
-	ref, _, err := client.Object.Copy(context.Background(), "test.go.copy", sourceURL, nil)
+	ref, _, err := client.Object.Copy(context.Background(), "test.go.copy", sourceURL, opt)
 	if err != nil {
 		t.Fatalf("Object.Copy returned error: %v", err)
 	}
@@ -698,6 +999,33 @@ func TestObjectService_Copy(t *testing.T) {
 
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Object.Copy returned %+v, want %+v", ref, want)
+	}
+
+	_, _, err = client.Object.Copy(context.Background(), "test.go.copy", "https://"+sourceURL, opt)
+	if err == nil || err.Error() != "sourceURL format is invalid." {
+		t.Errorf("Object.Copy returned failed: %v", err)
+	}
+
+	withVersion = true
+	_, _, err = client.Object.Copy(context.Background(), "test.go.copy", sourceURL, opt, versionId)
+	if err != nil {
+		t.Errorf("Object.Copy returned failed: %v", err)
+	}
+
+	_, _, err = client.Object.Copy(context.Background(), "test.go.copy", sourceURL+"?versionId="+versionId, opt)
+	if err != nil {
+		t.Errorf("Object.Copy returned failed: %v", err)
+	}
+
+	// 响应错误
+	returnErr = true
+	_, _, err = client.Object.Copy(context.Background(), "test.go.copy", sourceURL+"?versionId="+versionId, opt)
+	if err == nil {
+		t.Errorf("Object.Copy expect error")
+	}
+	e, ok := err.(*ErrorResponse)
+	if !ok || e.Code != "ErrorRequest" {
+		t.Errorf("Object.Copy expect error: %v", err)
 	}
 }
 
@@ -1106,12 +1434,20 @@ func TestObjectService_GetTagging(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var withVersion, withHeader bool
+	versionId := "versionid"
 	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		vs := values{
 			"tagging": "",
 		}
+		if withVersion {
+			vs["versionId"] = versionId
+		}
 		testFormValues(t, r, vs)
+		if withHeader {
+			testHeader(t, r, "x-cos-meta-test", "test")
+		}
 		fmt.Fprint(w, `<Tagging>
 	<TagSet>
 		<Tag>
@@ -1126,11 +1462,6 @@ func TestObjectService_GetTagging(t *testing.T) {
 </Tagging>`)
 	})
 
-	res, _, err := client.Object.GetTagging(context.Background(), "test")
-	if err != nil {
-		t.Fatalf("Object.GetTagging returned error %v", err)
-	}
-
 	want := &ObjectGetTaggingResult{
 		XMLName: xml.Name{Local: "Tagging"},
 		TagSet: []ObjectTaggingTag{
@@ -1139,9 +1470,54 @@ func TestObjectService_GetTagging(t *testing.T) {
 		},
 	}
 
+	res, _, err := client.Object.GetTagging(context.Background(), "test", "id1", "id2", "id3")
+	if err == nil || err.Error() != "wrong params" {
+		t.Fatalf("Object.GetTagging expect error %v", err)
+	}
+
+	res, _, err = client.Object.GetTagging(context.Background(), "test")
+	if err != nil {
+		t.Fatalf("Object.GetTagging returned error %v", err)
+	}
+
 	if !reflect.DeepEqual(res, want) {
 		t.Errorf("Object.GetTagging returned %+v, want %+v", res, want)
 	}
+
+	withVersion, withHeader = true, false
+	res, _, err = client.Object.GetTagging(context.Background(), "test", versionId)
+	if err != nil {
+		t.Fatalf("Object.GetTagging returned error %v", err)
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("Object.GetTagging returned %+v, want %+v", res, want)
+	}
+
+	withVersion, withHeader = false, true
+	opt := &ObjectGetTaggingOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+	res, _, err = client.Object.GetTagging(context.Background(), "test", opt)
+	if err != nil {
+		t.Fatalf("Object.GetTagging returned error %v", err)
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("Object.GetTagging returned %+v, want %+v", res, want)
+	}
+
+	withVersion, withHeader = true, true
+	res, _, err = client.Object.GetTagging(context.Background(), "test", versionId, opt)
+	if err != nil {
+		t.Fatalf("Object.GetTagging returned error %v", err)
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("Object.GetTagging returned %+v, want %+v", res, want)
+	}
+
 }
 
 func TestObjectService_PutTagging(t *testing.T) {
@@ -1161,6 +1537,8 @@ func TestObjectService_PutTagging(t *testing.T) {
 		},
 	}
 
+	var withVersion bool
+	versionId := "versionid"
 	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		v := new(ObjectPutTaggingOptions)
 		xml.NewDecoder(r.Body).Decode(v)
@@ -1168,6 +1546,9 @@ func TestObjectService_PutTagging(t *testing.T) {
 		testMethod(t, r, "PUT")
 		vs := values{
 			"tagging": "",
+		}
+		if withVersion {
+			vs["versionId"] = versionId
 		}
 		testFormValues(t, r, vs)
 
@@ -1179,7 +1560,18 @@ func TestObjectService_PutTagging(t *testing.T) {
 
 	})
 
-	_, err := client.Object.PutTagging(context.Background(), "test", opt)
+	_, err := client.Object.PutTagging(context.Background(), "test", opt, "id", "id")
+	if err == nil || err.Error() != "wrong params" {
+		t.Errorf("Object.PutTagging expect error: %v", err)
+	}
+
+	_, err = client.Object.PutTagging(context.Background(), "test", opt)
+	if err != nil {
+		t.Fatalf("Object.PutTagging returned error: %v", err)
+	}
+
+	withVersion = true
+	_, err = client.Object.PutTagging(context.Background(), "test", opt, versionId)
 	if err != nil {
 		t.Fatalf("Object.PutTagging returned error: %v", err)
 	}
@@ -1190,21 +1582,54 @@ func TestObjectService_DeleteTagging(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var withVersion, withHeader bool
+	versionId := "versionid"
 	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodDelete)
 		vs := values{
 			"tagging": "",
 		}
+		if withVersion {
+			vs["versionId"] = versionId
+		}
 		testFormValues(t, r, vs)
+		if withHeader {
+			testHeader(t, r, "x-cos-meta-test", "test")
+		}
 
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	_, err := client.Object.DeleteTagging(context.Background(), "test")
+	_, err := client.Object.DeleteTagging(context.Background(), "/test/..")
+	if err == nil {
+		t.Errorf("DeleteTagging Expect error")
+	}
+	_, err = client.Object.DeleteTagging(context.Background(), "test")
 	if err != nil {
 		t.Fatalf("Object.DeleteTagging returned error: %v", err)
 	}
 
+	withVersion, withHeader = true, false
+	_, err = client.Object.DeleteTagging(context.Background(), "test", versionId)
+	if err != nil {
+		t.Fatalf("Object.DeleteTagging returned error %v", err)
+	}
+
+	withVersion, withHeader = false, true
+	opt := &ObjectGetTaggingOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+	_, err = client.Object.DeleteTagging(context.Background(), "test", opt)
+	if err != nil {
+		t.Fatalf("Object.DeleteTagging returned error %v", err)
+	}
+
+	withVersion, withHeader = true, true
+	_, err = client.Object.DeleteTagging(context.Background(), "test", versionId, opt)
+	if err != nil {
+		t.Fatalf("Object.DeleteTagging returned error %v", err)
+	}
 }
 
 func TestObjectService_PutFetchTask(t *testing.T) {
@@ -1525,6 +1950,28 @@ func TestObjectService_GetSignature(t *testing.T) {
 	if sign != wanted {
 		t.Errorf("GetSignature error, return: %+v, want: %+v\n", sign, wanted)
 	}
+}
+
+func TestObjectService_GetSignature2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	secretID := "ak"
+	secretKey := "sk"
+	name := "exampleobject"
+	startTime := time.Unix(int64(1622702557), 0)
+	endTime := time.Unix(int64(1622706157), 0)
+	opt := &PresignedURLOptions{
+		Query: &url.Values{},
+		AuthTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+	opt.Query.Add("key", "value")
+	client.Object.GetSignature(context.Background(), http.MethodGet, name, secretID, secretKey, time.Hour, opt, true)
 }
 
 func TestObjectService_getResumableUploadID(t *testing.T) {
@@ -1884,5 +2331,24 @@ func TestObjectService_UploadRetry(t *testing.T) {
 	_, _, err = client.Object.Upload(context.Background(), "test.go.upload", filePath, opt)
 	if err != nil {
 		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+}
+
+func TestObjectKeyErr(t *testing.T) {
+	names := []string{"../", "/../", "abc/..", "/abc/../123////..", "/bcd/../abc/../", "/bcd/./abc/../123/../..", "////./123/////..", "/./123//////bcd/../.."}
+
+	for _, name := range names {
+		_, err := client.Object.Get(context.Background(), name, nil)
+		if err != ObjectKeySimplifyCheckErr {
+			t.Fatalf("Get Err, want: %v, return: %v, name: %v", ObjectKeySimplifyCheckErr, err, name)
+		}
+		_, err = client.Object.GetToFile(context.Background(), name, "", nil)
+		if err != ObjectKeySimplifyCheckErr {
+			t.Fatalf("GetToFile Err, want: %v, return: %v, name: %v", ObjectKeySimplifyCheckErr, err, name)
+		}
+		_, err = client.Object.Download(context.Background(), name, "", nil)
+		if err != ObjectKeySimplifyCheckErr {
+			t.Fatalf("Download Err, want: %v, return: %v, name: %v", ObjectKeySimplifyCheckErr, err, name)
+		}
 	}
 }

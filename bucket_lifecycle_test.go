@@ -64,11 +64,6 @@ func TestBucketService_GetLifecycle(t *testing.T) {
 </LifecycleConfiguration>`)
 	})
 
-	ref, _, err := client.Bucket.GetLifecycle(context.Background())
-	if err != nil {
-		t.Fatalf("Bucket.GetLifecycle returned error: %v", err)
-	}
-
 	want := &BucketGetLifecycleResult{
 		XMLName: xml.Name{Local: "LifecycleConfiguration"},
 		Rules: []BucketLifecycleRule{
@@ -110,9 +105,27 @@ func TestBucketService_GetLifecycle(t *testing.T) {
 		},
 	}
 
+	ref, _, err := client.Bucket.GetLifecycle(context.Background())
+	if err != nil {
+		t.Fatalf("Bucket.GetLifecycle returned error: %v", err)
+	}
+
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Bucket.GetLifecycle returned %+v, want %+v", ref, want)
 	}
+
+	opt := &BucketGetLifecycleOptions{
+		XOptionHeader: &http.Header{},
+	}
+	ref, _, err = client.Bucket.GetLifecycle(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Bucket.GetLifecycle returned error: %v", err)
+	}
+
+	if !reflect.DeepEqual(ref, want) {
+		t.Errorf("Bucket.GetLifecycle returned %+v, want %+v", ref, want)
+	}
+
 }
 
 func TestBucketService_PutLifecycle(t *testing.T) {
@@ -182,4 +195,11 @@ func TestBucketService_DeleteLifecycle(t *testing.T) {
 		t.Fatalf("Bucket.DeleteLifecycle returned error: %v", err)
 	}
 
+	opt := &BucketDeleteLifecycleOptions{
+		XOptionHeader: &http.Header{},
+	}
+	_, err = client.Bucket.DeleteLifecycle(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Bucket.DeleteLifecycle returned error: %v", err)
+	}
 }

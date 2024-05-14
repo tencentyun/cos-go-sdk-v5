@@ -258,3 +258,16 @@ func TestCIService_DocPreviewHTML(t *testing.T) {
 		t.Fatalf("CI.DocPreviewHTML returned error: %v", err)
 	}
 }
+
+func TestCIService_CIDocCompareResultWrite(t *testing.T) {
+	setup()
+	defer teardown()
+	result := &CIDocCompareResult{
+		Code:       "success",
+		ETag:       "1234567890",
+		Msg:        "success",
+		ResultPath: "abc/abc.jpg",
+	}
+	slice := make([]byte, 5)
+	result.Write(slice)
+}

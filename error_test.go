@@ -158,3 +158,38 @@ func Test_CheckReponse(t *testing.T) {
 		t.Errorf("checkResponse failed: %v", e)
 	}
 }
+
+func Test_RetryError(t *testing.T) {
+	var errs RetryError
+	errs.Add(errors.New("err1"))
+	errs.Add(errors.New("err2"))
+	errs.Add(errors.New("err3"))
+	if errs.Error() != "err1; err2; err3" {
+		t.Errorf("RetryError return err: %v", errs.Error())
+	}
+}
+
+func Test_ErrorResponse(t *testing.T) {
+	setup()
+	defer teardown()
+	request, _ := http.NewRequest(http.MethodGet, client.BaseURL.BucketURL.String(), nil)
+	request.Header.Add("X-Cos-Request-Id", "requestid")
+	request.Header.Add("X-Cos-Trace-Id", "traceid")
+	resp := &http.Response{
+		StatusCode: 404,
+		Header:     http.Header{},
+		Request:    request,
+		Body: ioutil.NopCloser(strings.NewReader(`{
+			"code": 404,
+			"message": "404 NotFound",
+			"request_id": "requestid"}`)),
+	}
+	resp.Header.Add("Content-Type", "application/json")
+	err := &ErrorResponse{
+		Response: resp,
+	}
+	except := fmt.Sprintf("%v %v: %d %v(Message: %v, RequestId: %v, TraceId: %v)", resp.Request.Method, client.BaseURL.BucketURL.String(), resp.StatusCode, err.Code, err.Message, err.RequestID, err.TraceID)
+	if err.Error() != except {
+		t.Errorf("error message is invalid, return: %v, except: %v", err.Error(), except)
+	}
+}
