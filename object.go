@@ -57,6 +57,9 @@ type presignedURLTestingOptions struct {
 //
 // https://www.qcloud.com/document/product/436/7753
 func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*Response, error) {
+	if s.client.Conf.ObjectKeySimplifyCheck && !CheckObjectKeySimplify("/"+name) {
+		return nil, ObjectKeySimplifyCheckErr
+	}
 	var u string
 	if len(id) == 1 {
 		u = fmt.Sprintf("/%s?versionId=%s", encodeURIComponent(name), id[0])
@@ -657,10 +660,14 @@ type ObjectDeleteOptions struct {
 // https://www.qcloud.com/document/product/436/7743
 func (s *ObjectService) Delete(ctx context.Context, name string, opt ...*ObjectDeleteOptions) (*Response, error) {
 	var optHeader *ObjectDeleteOptions
-	// When use "" string might call the delete bucket interface
 	if len(name) == 0 || name == "/" {
 		return nil, errors.New("empty object name")
 	}
+	// When use "" string might call the delete bucket interface
+	if s.client.Conf.ObjectKeySimplifyCheck && !CheckObjectKeySimplify("/"+name) {
+		return nil, ObjectKeySimplifyCheckErr
+	}
+
 	if len(opt) > 0 {
 		optHeader = opt[0]
 	}
@@ -707,7 +714,7 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	if resp != nil && resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
-		resp.Header.Add("x-cos-next-append-position", resp.Header["Content-Length"][0])
+		resp.Header.Add("x-cos-next-append-position", resp.Header.Get("Content-Length"))
 	}
 
 	return resp, err
@@ -1502,6 +1509,10 @@ func (s *ObjectService) checkDownloadedParts(opt *MultiDownloadCPInfo, chfile st
 }
 
 func (s *ObjectService) Download(ctx context.Context, name string, filepath string, opt *MultiDownloadOptions, id ...string) (*Response, error) {
+	// key 校验
+	if s.client.Conf.ObjectKeySimplifyCheck && !CheckObjectKeySimplify("/"+name) {
+		return nil, ObjectKeySimplifyCheckErr
+	}
 	// 参数校验
 	if opt == nil {
 		opt = &MultiDownloadOptions{}
@@ -1760,8 +1771,12 @@ func (s *ObjectService) GetTagging(ctx context.Context, name string, opt ...inte
 }
 
 func (s *ObjectService) DeleteTagging(ctx context.Context, name string, opt ...interface{}) (*Response, error) {
+	// When use "" string might call the delete bucket interface
 	if len(name) == 0 || name == "/" {
 		return nil, errors.New("empty object name")
+	}
+	if s.client.Conf.ObjectKeySimplifyCheck && !CheckObjectKeySimplify("/"+name) {
+		return nil, ObjectKeySimplifyCheckErr
 	}
 	var optHeader *ObjectGetTaggingOptions
 	u := fmt.Sprintf("/%s?tagging", encodeURIComponent(name))

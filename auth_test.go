@@ -60,6 +60,40 @@ func TestAuthorizationTransport(t *testing.T) {
 	client.GetCredential()
 }
 
+func TestAuthorizationTransportErr(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			t.Error("AuthorizationTransport didn't add Authorization header")
+		}
+	})
+
+	auth := &AuthorizationTransport{
+		SecretID:  "test ", //存在空格
+		SecretKey: "test",
+	}
+	client.client.Transport = auth
+	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	_, err := client.doAPI(context.Background(), req, nil, true)
+	if err == nil || strings.Index(err.Error(), "SecretID is invalid") < 0 {
+		t.Errorf("AuthorizationTransport RoundTrip expect error: %v", err)
+	}
+	auth = &AuthorizationTransport{
+		SecretID:  "test",
+		SecretKey: "test ", // 存在空格
+	}
+	client.client.Transport = auth
+	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	_, err = client.doAPI(context.Background(), req, nil, true)
+	if err == nil || strings.Index(err.Error(), "SecretKey is invalid") < 0 {
+		t.Errorf("AuthorizationTransport RoundTrip expect error: %v", err)
+	}
+
+}
+
 func TestCVMCredentialTransport(t *testing.T) {
 	setup()
 	defer teardown()
@@ -126,6 +160,113 @@ func TestCVMCredentialTransport(t *testing.T) {
 	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
 	client.GetCredential()
+
+	client.client.Transport = &CVMCredentialTransport{
+		Transport: http.DefaultTransport,
+	}
+	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	client.doAPI(context.Background(), req, nil, true)
+	client.GetCredential()
+}
+
+func TestCVMCredentialTransportErr(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// CVM http server
+	cvm_mux := http.NewServeMux()
+	cvm_server := httptest.NewServer(cvm_mux)
+	defer cvm_server.Close()
+	// 将默认 CVM Host 修改成测试IP:PORT
+	defaultCVMMetaHost = strings.TrimLeft(cvm_server.URL, "http://")
+
+	var statusCodeErr, bodyErr bool
+	cvm_mux.HandleFunc("/"+defaultCVMCredURI, func(w http.ResponseWriter, r *http.Request) {
+		if statusCodeErr {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if bodyErr {
+			fmt.Fprint(w, "")
+			return
+		}
+		fmt.Fprint(w, "cvm_read_cos_only")
+	})
+
+	transport := &CVMCredentialTransport{}
+
+	statusCodeErr = true
+	_, err := transport.GetRoles()
+	if err == nil || err.Error() != "get cvm security-credentials role failed, StatusCode: 404, Body: " {
+		t.Errorf("CVMCredentialTransport GetRoles expect err: %v", err)
+	}
+
+	statusCodeErr = false
+	bodyErr = true
+	_, err = transport.GetRoles()
+	if err == nil || err.Error() != "get cvm security-credentials role failed, No valid cam role was found" {
+		t.Errorf("CVMCredentialTransport GetRoles expect err: %v", err)
+	}
+
+	var tokenErr, tokenJsonErr, tokenCodeErr bool
+	cvm_mux.HandleFunc("/"+defaultCVMCredURI+"/cvm_read_cos_only", func(w http.ResponseWriter, r *http.Request) {
+		if tokenErr {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if tokenJsonErr {
+			fmt.Fprint(w, fmt.Sprintf(`
+                "ExpiredTime": %v,
+                "Expiration": "now",
+                "Code": "Success"
+            `, time.Now().Unix()+3600))
+		}
+		if tokenCodeErr {
+			fmt.Fprint(w, fmt.Sprintf(`{
+                "ExpiredTime": %v,
+                "Expiration": "now",
+                "Code": "Failed"
+            }`, time.Now().Unix()+3600))
+		}
+	})
+
+	nt := time.Now().Unix()
+	transport = &CVMCredentialTransport{
+		secretID:     "ak",
+		secretKey:    "sk",
+		sessionToken: "token",
+		expiredTime:  nt + defaultCVMAuthExpire + 1,
+	}
+	// 密钥未超时
+	ak, sk, token, err := transport.UpdateCredential(nt)
+	if ak != transport.secretID || sk != transport.secretKey || token != transport.sessionToken {
+		t.Errorf("UpdateCredential failed, return: %v, %v, %v, want: %v", ak, sk, token, *transport)
+	}
+	// 密钥超时，GetRoles返回错误
+	transport.expiredTime = nt + defaultCVMAuthExpire - 1
+	ak, sk, token, err = transport.UpdateCredential(nt)
+	if ak != transport.secretID || sk != transport.secretKey || token != transport.sessionToken || err == nil {
+		t.Errorf("UpdateCredential failed, return: %v, %v, %v, want: %v", ak, sk, token, *transport)
+	}
+	// 密钥超时，GetRoles返回正常, 获取临时密钥返回错误
+	statusCodeErr, bodyErr = false, false
+	tokenErr = true
+	ak, sk, token, err = transport.UpdateCredential(nt)
+	if ak != transport.secretID || sk != transport.secretKey || token != transport.sessionToken || err == nil {
+		t.Errorf("UpdateCredential failed, return: %v, %v, %v, want: %v", ak, sk, token, *transport)
+	}
+	// 密钥超时，GetRoles返回正常, 获取临时密钥返回body解析错误
+	tokenErr, tokenJsonErr = false, true
+	ak, sk, token, err = transport.UpdateCredential(nt)
+	if ak != transport.secretID || sk != transport.secretKey || token != transport.sessionToken || err == nil {
+		t.Errorf("UpdateCredential failed, return: %v, %v, %v, want: %v", ak, sk, token, *transport)
+	}
+	// 密钥超时，GetRoles返回正常, 获取临时密钥返回Code != Success
+	tokenErr, tokenJsonErr, tokenCodeErr = false, false, true
+	ak, sk, token, err = transport.UpdateCredential(nt)
+	if ak != transport.secretID || sk != transport.secretKey || token != transport.sessionToken || err == nil {
+		t.Errorf("UpdateCredential failed, return: %v, %v, %v, want: %v", ak, sk, token, *transport)
+	}
 }
 
 func TestDNSScatterTransport(t *testing.T) {
@@ -166,4 +307,13 @@ func TestCredentialTransport(t *testing.T) {
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
 	client.GetCredential()
+
+	client.client.Transport = &CredentialTransport{
+		Credential: NewTokenCredential("test", "test", ""),
+		Transport:  http.DefaultTransport,
+	}
+	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
+	client.doAPI(context.Background(), req, nil, true)
+	client.GetCredential()
+
 }

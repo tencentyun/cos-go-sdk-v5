@@ -161,7 +161,7 @@ type AuthTime struct {
 
 // NewAuthTime 生成 AuthTime 的便捷函数
 //
-//   expire: 从现在开始多久过期.
+//	expire: 从现在开始多久过期.
 func NewAuthTime(expire time.Duration) *AuthTime {
 	signStartTime := time.Now()
 	keyStartTime := signStartTime
@@ -414,7 +414,7 @@ func (t *CVMCredentialTransport) GetRoles() ([]string, error) {
 		return nil, err
 	}
 	roles := strings.Split(strings.TrimSpace(string(bs)), "\n")
-	if len(roles) == 0 {
+	if string(bs) == "" || len(roles) == 0 {
 		return nil, fmt.Errorf("get cvm security-credentials role failed, No valid cam role was found")
 	}
 	return roles, nil

@@ -403,4 +403,9 @@ func TestBatchService_DeleteJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Batch.DescribeJob returned error: %v", err)
 	}
+	_, err = client.Batch.DeleteJob(context.Background(), "", headers)
+	if err == nil || err.Error() != "Id is invalid" {
+		t.Fatalf("Batch.DescribeJob returned error: %v", err)
+	}
+
 }

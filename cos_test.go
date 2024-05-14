@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -229,5 +230,17 @@ func Test_SwitchHost(t *testing.T) {
 	if res.String() != want {
 		t.Errorf("toSwitchHost failed, expect: %v, res: %v", want, res.String())
 	}
+}
 
+func Test_CheckRetrieable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	u, _ := url.Parse("https://example-125000000.cos.ap-chengdu.myqcloud.com/123")
+	wanted := "https://example-125000000.cos.ap-chengdu.tencentcos.cn/123"
+	client.Conf.RetryOpt.AutoSwitchHost = true
+	res, retry := client.CheckRetrieable(u, nil, errors.New("err"), true)
+	if retry != true || res.String() != wanted {
+		t.Errorf("CheckRetrieable failed, switch: %v, retry: %v", res.String(), retry)
+	}
 }

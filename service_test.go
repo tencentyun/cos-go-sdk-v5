@@ -35,7 +35,11 @@ func TestServiceService_Get(t *testing.T) {
 </ListAllMyBucketsResult>`)
 	})
 
-	ref, _, err := client.Service.Get(context.Background())
+	opt := &ServiceGetOptions{
+		MaxKeys: 10,
+	}
+
+	ref, _, err := client.Service.Get(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("Service.Get returned error: %v", err)
 	}

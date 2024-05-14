@@ -39,12 +39,12 @@ type BucketPutACLOptions struct {
 //
 // Put Bucket ACL是一个覆盖操作，传入新的ACL将覆盖原有ACL。只有所有者有权操作。
 //
-//   "x-cos-acl"：枚举值为public-read，private；public-read意味这个Bucket有公有读私有写的权限，
-//   private意味这个Bucket有私有读写的权限。
+//	"x-cos-acl"：枚举值为public-read，private；public-read意味这个Bucket有公有读私有写的权限，
+//	private意味这个Bucket有私有读写的权限。
 //
-//   "x-cos-grant-read"：意味被赋予权限的用户拥有该Bucket的读权限
-//   "x-cos-grant-write"：意味被赋予权限的用户拥有该Bucket的写权限
-//   "x-cos-grant-full-control"：意味被赋予权限的用户拥有该Bucket的读写权限
+//	"x-cos-grant-read"：意味被赋予权限的用户拥有该Bucket的读权限
+//	"x-cos-grant-write"：意味被赋予权限的用户拥有该Bucket的写权限
+//	"x-cos-grant-full-control"：意味被赋予权限的用户拥有该Bucket的读写权限
 //
 // https://www.qcloud.com/document/product/436/7737
 func (s *BucketService) PutACL(ctx context.Context, opt *BucketPutACLOptions) (*Response, error) {

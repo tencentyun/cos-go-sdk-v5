@@ -44,11 +44,6 @@ func TestObjectService_GetACL(t *testing.T) {
 </AccessControlPolicy>`)
 	})
 
-	ref, _, err := client.Object.GetACL(context.Background(), name)
-	if err != nil {
-		t.Fatalf("Object.GetACL returned error: %v", err)
-	}
-
 	want := &ObjectGetACLResult{
 		XMLName: xml.Name{Local: "AccessControlPolicy"},
 		Owner: &Owner{
@@ -75,9 +70,60 @@ func TestObjectService_GetACL(t *testing.T) {
 		},
 	}
 
+	ref, _, err := client.Object.GetACL(context.Background(), name)
+	if err != nil {
+		t.Fatalf("Object.GetACL returned error: %v", err)
+	}
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Object.GetACL returned %+v, want %+v", ref, want)
 	}
+
+	mux.HandleFunc("/test_with_version", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"acl":       "",
+			"versionId": "versionid",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprint(w, `<AccessControlPolicy>
+	<Owner>
+		<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+		<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+	</Owner>
+	<AccessControlList>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+				<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+			</Grantee>
+			<Permission>FULL_CONTROL</Permission>
+		</Grant>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+				<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+			</Grantee>
+			<Permission>READ</Permission>
+		</Grant>
+	</AccessControlList>
+</AccessControlPolicy>`)
+	})
+
+	name = "test_with_version"
+	ref, _, err = client.Object.GetACL(context.Background(), name, "versionid")
+	if err != nil {
+		t.Fatalf("Object.GetACL returned error: %v", err)
+	}
+
+	if !reflect.DeepEqual(ref, want) {
+		t.Errorf("Object.GetACL returned %+v, want %+v", ref, want)
+	}
+
+	ref, _, err = client.Object.GetACL(context.Background(), name, "versionid", "errparams")
+	if err == nil {
+		t.Fatalf("Object.GetACL returned error")
+	}
+
 }
 
 func TestObjectService_PutACL_with_header_opt(t *testing.T) {
@@ -169,6 +215,37 @@ func TestObjectService_PutACL_with_body_opt(t *testing.T) {
 	_, err := client.Object.PutACL(context.Background(), name, opt)
 	if err != nil {
 		t.Fatalf("Object.PutACL returned error: %v", err)
+	}
+
+	mux.HandleFunc("/test_with_version", func(w http.ResponseWriter, r *http.Request) {
+		v := new(ACLXml)
+		xml.NewDecoder(r.Body).Decode(v)
+
+		testMethod(t, r, http.MethodPut)
+		vs := values{
+			"acl":       "",
+			"versionId": "versionid",
+		}
+		testFormValues(t, r, vs)
+		testHeader(t, r, "x-cos-acl", "")
+
+		want := opt.Body
+		want.XMLName = xml.Name{Local: "AccessControlPolicy"}
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Object.PutACL request body: %+v, want %+v", v, want)
+		}
+
+	})
+
+	name = "test_with_version"
+	_, err = client.Object.PutACL(context.Background(), name, opt, "versionid")
+	if err != nil {
+		t.Fatalf("Object.PutACL returned error: %v", err)
+	}
+
+	_, err = client.Object.PutACL(context.Background(), name, opt, "versionid", "errparam")
+	if err == nil {
+		t.Fatalf("Object.PutACL returned error")
 	}
 
 }

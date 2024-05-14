@@ -431,25 +431,25 @@ func UnmarshalCompleteMultiUploadResult(data []byte, res *CompleteMultipartUploa
 	if len(match) > 1 {
 		res.Location = match[1]
 	} else {
-		return fmt.Errorf("Unmarshal failed, %v", string(data))
+		return fmt.Errorf("Unmarshal Location failed, %v", string(data))
 	}
 	match = bucketReg.FindStringSubmatch(string(data))
 	if len(match) > 1 {
 		res.Bucket = match[1]
 	} else {
-		return fmt.Errorf("Unmarshal failed, %v", string(data))
+		return fmt.Errorf("Unmarshal Bucket failed, %v", string(data))
 	}
 	match = keyReg.FindStringSubmatch(string(data))
 	if len(match) > 1 {
 		res.Key = match[1]
 	} else {
-		return fmt.Errorf("Unmarshal failed, %v", string(data))
+		return fmt.Errorf("Unmarshal Key failed, %v", string(data))
 	}
 	match = etagReg.FindStringSubmatch(string(data))
 	if len(match) > 1 {
 		res.ETag = "\"" + match[1] + "\""
 	} else {
-		return fmt.Errorf("Unmarshal failed, %v", string(data))
+		return fmt.Errorf("Unmarshal Etag failed, %v", string(data))
 	}
 
 	return nil

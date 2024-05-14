@@ -3541,8 +3541,8 @@ func TestCIService_UpdateMediaPlayKey(t *testing.T) {
 	})
 
 	opt := &UpdateMediaPlayKeyOptions{
-		MasterPlayKey : "123456",
-		BackupPlayKey : "123456",
+		MasterPlayKey: "123456",
+		BackupPlayKey: "123456",
 	}
 	_, _, err := client.CI.UpdateMediaPlayKey(context.Background(), opt)
 	if err != nil {
