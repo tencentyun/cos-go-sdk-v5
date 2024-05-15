@@ -4047,6 +4047,7 @@ type LiveTanscodeVideo struct {
 	Bitrate string `xml:"Bitrate,omitempty"`
 	Gop     string `xml:"Gop,omitempty"`
 	Maxrate string `xml:"Maxrate,omitempty"`
+	Crf     string `xml:"Crf,omitempty"`
 }
 
 type LiveTanscodeTransConfig struct {
