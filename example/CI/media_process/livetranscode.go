@@ -125,7 +125,7 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 	}
 	// 生成token
 	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	resultUrl := presignedURL.String() + "&ci-process=pm3u8&expires=43200&&tokenType=JwtToken&token=" + generateToken
+	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + generateToken
 	fmt.Println(resultUrl)
 }
 
