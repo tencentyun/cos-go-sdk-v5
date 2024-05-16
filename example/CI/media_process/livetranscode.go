@@ -76,8 +76,8 @@ func GenerateToken(appId string, bucketId string, objectKey string, secret []byt
 	return token.SignedString(secret)
 }
 
-// 验证环境url
-func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) {
+// CI验证环境
+func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) string {
 	// 固定为getplaylist
 	name := "getplaylist"
 
@@ -96,16 +96,16 @@ func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucke
 	presignedURL, err := c.Object.GetPresignedURL(ctx, http.MethodGet, name, tak, tsk, time.Hour, token)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return
+		return ""
 	}
 	// 生成token
 	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
 	resultUrl := presignedURL.String() + "&tokenType=JwtToken&expires=3600&object=" + url.QueryEscape(objectKey) + "&token=" + generateToken
-	fmt.Println(resultUrl)
+	return resultUrl
 }
 
-// cos环境url
-func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) {
+// COS环境
+func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) string {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
@@ -121,12 +121,22 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return
+		return ""
 	}
 	// 生成token
 	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
 	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + generateToken
-	fmt.Println(resultUrl)
+	return resultUrl
+}
+
+// CDN域名
+func GetCDNDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) string {
+
+	url := "http://abc.cdn.com/" + objectKey
+	// 生成token
+	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
+	resultUrl := url + "?ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + generateToken
+	return resultUrl
 }
 
 func log_status(err error) {
