@@ -181,7 +181,7 @@ func IsLenReader(reader io.Reader) bool {
 
 func CheckReaderLen(reader io.Reader) error {
 	nlen, err := GetReaderLen(reader)
-	if err != nil || nlen < singleUploadMaxLength {
+	if err != nil || nlen <= singleUploadMaxLength {
 		return nil
 	}
 	return errors.New("The single object size you upload can not be larger than 5GB")
