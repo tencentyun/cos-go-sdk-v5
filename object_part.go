@@ -536,7 +536,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	if err != nil {
 		return nil, nil, err
 	}
-	if partNum == 0 || (totalBytes < singleUploadMaxLength && !opt.useMulti) {
+	if partNum == 0 || (totalBytes <= singleUploadMaxLength && !opt.useMulti) {
 		if len(id) > 0 {
 			return s.Copy(ctx, name, sourceURL, opt.OptCopy, id[0])
 		} else {
