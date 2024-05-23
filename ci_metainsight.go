@@ -491,3 +491,92 @@ func (s *CIService) DeleteDatasetBinding(ctx context.Context, opt *DeleteDataset
 	}
 	return &res, resp, err
 }
+
+type DatasetFaceSearchOptions struct {
+	DatasetName    string      `json:"DatasetName,omitempty" url:"-"`
+	URI            string      `json:"URI,omitempty" url:"-"`
+	MaxFaceNum     int         `json:"MaxFaceNum,omitempty" url:"-"`
+	Limit          int         `json:"Limit,omitempty" url:"-"`
+	MatchThreshold int         `json:"MatchThreshold,omitempty" url:"-"`
+	OptHeaders     *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type FaceBoundary struct {
+	Height int `json:"Height"`
+	Width  int `json:"Width"`
+	Left   int `json:"Left"`
+	Top    int `json:"Top"`
+}
+
+type InputFaceBoundary struct {
+	Height int `json:"Height"`
+	Width  int `json:"Width"`
+	Left   int `json:"Left"`
+	Top    int `json:"Top"`
+}
+
+type FaceInfo struct {
+	PersonId     string       `json:"PersonId"`
+	FaceId       string       `json:"FaceId"`
+	URI          string       `json:"URI"`
+	Score        string       `json:"Score"`
+	FaceBoundary FaceBoundary `json:"FaceBoundary"`
+}
+
+type FaceResult struct {
+	FaceInfos         []FaceInfo        `json:"FaceInfos"`
+	InputFaceBoundary InputFaceBoundary `json:"InputFaceBoundary"`
+}
+
+type DatasetFaceSearchResult struct {
+	Response struct {
+		RequestID  string       `json:"RequestId"`
+		FaceResult []FaceResult `json:"FaceResult"`
+	} `json:"Response"`
+}
+
+func (s *CIService) DatasetFaceSearch(ctx context.Context, opt *DatasetFaceSearchOptions) (*DatasetFaceSearchResult, *Response, error) {
+	var res DatasetFaceSearchResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetquery/facesearch", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type DatasetImageSearchOptions struct {
+	DatasetName    string      `json:"DatasetName,omitempty" url:"-"`
+	URI            string      `json:"URI,omitempty" url:"-"`
+	Mode           int         `json:"Mode,omitempty" url:"-"`
+	Text           int         `json:"Text,omitempty" url:"-"`
+	MatchThreshold int         `json:"MatchThreshold,omitempty" url:"-"`
+	Limit          int         `json:"Limit,omitempty" url:"-"`
+	OptHeaders     *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type ImageResult struct {
+	URI   string `json:"URI"`
+	Score int    `json:"Score"`
+}
+
+type DatasetImageSearchResult struct {
+	Response struct {
+		RequestID   string        `json:"RequestId"`
+		ImageResult []ImageResult `json:"ImageResult"`
+	} `json:"Response"`
+}
+
+func (s *CIService) DatasetImageSearch(ctx context.Context, opt *DatasetImageSearchOptions) (*DatasetImageSearchResult, *Response, error) {
+	var res DatasetImageSearchResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/datasetquery/imagesearch", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
