@@ -705,6 +705,8 @@ type TextAuditingJobDetail struct {
 	UserInfo      *UserExtraInfo       `xml:",omitempty"`
 	ListInfo      *UserListInfo        `xml:",omitempty"`
 	ForbidState   int                  `xml:",omitempty"`
+	ValueInfo     *TextRecognitionInfo `xml:",omitempty"`
+	SpamInfo      *TextRecognitionInfo `xml:",omitempty"`
 }
 
 // TextLibResult
@@ -736,6 +738,8 @@ type TextSectionResult struct {
 	AdsInfo       *TextRecognitionInfo `xml:",omitempty"`
 	IllegalInfo   *TextRecognitionInfo `xml:",omitempty"`
 	AbuseInfo     *TextRecognitionInfo `xml:",omitempty"`
+	ValueInfo     *TextRecognitionInfo `xml:",omitempty"`
+	SpamInfo      *TextRecognitionInfo `xml:",omitempty"`
 }
 
 // 文本审核-查询任务 https://cloud.tencent.com/document/product/436/56288
