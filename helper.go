@@ -301,6 +301,15 @@ func CloneCompleteMultipartUploadOptions(opt *CompleteMultipartUploadOptions) *C
 	return &res
 }
 
+func cloneObjectCopyPartOptions(opt *ObjectCopyPartOptions) *ObjectCopyPartOptions {
+	var res ObjectCopyPartOptions
+	if opt != nil {
+		res = *opt
+		res.XOptionHeader = cloneHeader(opt.XOptionHeader)
+	}
+	return &res
+}
+
 type RangeOptions struct {
 	HasStart bool
 	HasEnd   bool
