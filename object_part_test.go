@@ -561,6 +561,17 @@ func TestObjectService_CopyPart(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Object.CopyPart returned error is nil")
 	}
+	_, _, err = client.Object.CopyPart(context.Background(),
+		name, uploadID, partNumber, "http://"+sourceUrl, opt)
+	if err == nil {
+		t.Fatalf("Object.CopyPart returned error is nil")
+	}
+	_, _, err = client.Object.CopyPart(context.Background(),
+		name, uploadID, partNumber, "test-1253846586.cos.ap-guangzhou.myqcloud.com", opt)
+	if err == nil {
+		t.Fatalf("Object.CopyPart returned error is nil")
+	}
+
 }
 
 func TestObjectService_MultiCopy(t *testing.T) {

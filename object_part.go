@@ -338,11 +338,25 @@ type CopyPartResult struct {
 //
 // https://www.qcloud.com/document/product/436/7750
 func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, partNumber int, sourceURL string, opt *ObjectCopyPartOptions) (*CopyPartResult, *Response, error) {
-	if opt == nil {
-		opt = &ObjectCopyPartOptions{}
+	if strings.HasPrefix(sourceURL, "http://") || strings.HasPrefix(sourceURL, "https://") {
+		return nil, nil, errors.New("sourceURL format is invalid.")
 	}
-	opt.XCosCopySource = sourceURL
-	u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
+	surl := strings.SplitN(sourceURL, "/", 2)
+	if len(surl) < 2 {
+		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
+	}
+	var u string
+	keyAndVer := strings.SplitN(surl[1], "?", 2)
+	if len(keyAndVer) < 2 {
+		u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1], []byte{'/'}))
+	} else {
+		u = fmt.Sprintf("%v/%v?%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
+	}
+
+	opt = cloneObjectCopyPartOptions(opt)
+	opt.XCosCopySource = u
+
+	u = fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
 	var res CopyPartResult
 	var bs bytes.Buffer
 	sendOpt := sendOptions{
@@ -511,20 +525,11 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 		return nil, nil, err
 	}
 	totalBytes := resp.ContentLength
-	surl := strings.SplitN(sourceURL, "/", 2)
-	if len(surl) < 2 {
-		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
-	}
 	var u string
 	if len(id) == 1 {
-		u = fmt.Sprintf("%s/%s?versionId=%s", surl[0], encodeURIComponent(surl[1]), id[0])
+		u = fmt.Sprintf("%s?versionId=%s", sourceURL, id[0])
 	} else if len(id) == 0 {
-		keyAndVer := strings.SplitN(surl[1], "?", 2)
-		if len(keyAndVer) < 2 {
-			u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1]))
-		} else {
-			u = fmt.Sprintf("%v/%v?%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
-		}
+		u = sourceURL
 	} else {
 		return nil, nil, errors.New("wrong params")
 	}
@@ -536,6 +541,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if partNum == 0 || (totalBytes <= singleUploadMaxLength && !opt.useMulti) {
 		if len(id) > 0 {
 			return s.Copy(ctx, name, sourceURL, opt.OptCopy, id[0])
