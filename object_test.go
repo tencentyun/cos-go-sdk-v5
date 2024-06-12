@@ -258,6 +258,12 @@ func TestObjectService_GetPresignedURL(t *testing.T) {
 	if err == nil {
 		t.Errorf("GetPresignedURL expect err is not null")
 	}
+
+	_, err = client.Object.GetPresignedURL(c, http.MethodPut, "/", ak, sk, time.Hour, opt1)
+	if err != nil {
+		t.Errorf("GetPresignedURL return err: %v", err)
+	}
+
 }
 
 /*
@@ -369,6 +375,11 @@ func TestObjectService_GetPresignedURL2(t *testing.T) {
 	_, err = client.Object.GetPresignedURL2(c, http.MethodPut, "", time.Hour, opt1)
 	if err == nil {
 		t.Errorf("GetPresignedURL expect err is not null")
+	}
+
+	_, err = client.Object.GetPresignedURL2(c, http.MethodPut, "/", time.Hour, opt1)
+	if err != nil {
+		t.Errorf("GetPresignedURL return err: %v", err)
 	}
 
 }

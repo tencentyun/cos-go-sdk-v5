@@ -130,7 +130,12 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 	if name == "" {
 		return nil, fmt.Errorf("object key is empty.")
 	}
-	name = encodeURIComponent(name)
+	// 兼容 name 以 / 开头的情况
+	if strings.HasPrefix(name, "/") {
+		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	} else {
+		name = encodeURIComponent(name, []byte{'/'})
+	}
 
 	sendOpt := sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
@@ -196,8 +201,12 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 	if name == "" {
 		return nil, fmt.Errorf("object key is empty.")
 	}
-
-	name = encodeURIComponent(name)
+	// 兼容 name 以 / 开头的情况
+	if strings.HasPrefix(name, "/") {
+		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	} else {
+		name = encodeURIComponent(name, []byte{'/'})
+	}
 
 	cred := s.client.GetCredential()
 	if cred == nil {
