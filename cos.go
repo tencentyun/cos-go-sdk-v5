@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
@@ -24,7 +25,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.48"
+	Version               = "0.7.50"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -47,6 +48,8 @@ var (
 	accelerateDomainSuffix = "accelerate.myqcloud.com"
 	oldDomainSuffix        = ".myqcloud.com"
 	newDomainSuffix        = ".tencentcos.cn"
+
+	ObjectKeySimplifyCheckErr = fmt.Errorf("The Getobject Key is illegal")
 )
 
 // BaseURL 访问各 API 所需的基础 URL
@@ -99,9 +102,10 @@ type RetryOptions struct {
 	AutoSwitchHost bool
 }
 type Config struct {
-	EnableCRC        bool
-	RequestBodyClose bool
-	RetryOpt         RetryOptions
+	EnableCRC              bool
+	RequestBodyClose       bool
+	RetryOpt               RetryOptions
+	ObjectKeySimplifyCheck bool
 }
 
 // Client is a client manages communication with the COS API.
@@ -157,6 +161,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 				Interval:       time.Duration(0),
 				AutoSwitchHost: false,
 			},
+			ObjectKeySimplifyCheck: true,
 		},
 	}
 	c.common.client = c
@@ -525,6 +530,14 @@ func checkURL(baseURL *url.URL) bool {
 	}
 	host := baseURL.String()
 	if hostSuffix.MatchString(host) && !hostPrefix.MatchString(host) {
+		return false
+	}
+	return true
+}
+
+func CheckObjectKeySimplify(key string) bool {
+	res, err := filepath.Abs(key)
+	if res == "/" || err != nil {
 		return false
 	}
 	return true

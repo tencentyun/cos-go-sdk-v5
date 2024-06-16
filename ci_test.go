@@ -622,6 +622,33 @@ func TestCIService_Put(t *testing.T) {
 	if !reflect.DeepEqual(res, want) {
 		t.Errorf("CI.ImageProcess failed, return:%v, want:%v", res, want)
 	}
+
+	// reader is nil
+	res, _, err = client.CI.Put(context.Background(), name, nil, opt)
+	if err == nil || err.Error() != "reader is nil" {
+		t.Fatalf("CI.Put returned error: %v", err)
+	}
+
+	// 没法获取 totalBytes
+	opt.Listener = &DefaultProgressListener{}
+	tr := &tmpOtherReader{
+		Reader: bytes.NewReader(data),
+	}
+	res, _, err = client.CI.Put(context.Background(), name, tr, opt)
+	if err == nil || err.Error() != "can't get reader content length, unkown reader type" {
+		t.Fatalf("CI.Put returned error: %v", err)
+	}
+
+	// 成功，通过ContentLength获取totalBytes
+	opt.ContentLength = int64(len(data))
+	res, _, err = client.CI.Put(context.Background(), name, tr, opt)
+	if err != nil {
+		t.Fatalf("CI.Put returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.ImageProcess failed, return:%v, want:%v", res, want)
+	}
+
 }
 
 func TestCIService_PutFromFile(t *testing.T) {
@@ -798,6 +825,29 @@ func TestCIService_Get(t *testing.T) {
 		}
 		teardown()
 	}
+
+	{
+		setup()
+		mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, http.MethodGet)
+			vs := values{
+				"imageMogr2/thumbnail/!50p": "",
+				"versionId":                 "1.1",
+			}
+			testFormValues(t, r, vs)
+			w.Header().Add("Content-Length", fmt.Sprintf("%v", len("test")))
+			fmt.Fprintf(w, "test")
+		})
+		opt := &ObjectGetOptions{
+			Listener: &DefaultProgressListener{},
+		}
+		_, err := client.CI.Get(context.Background(), "test.jpg", "imageMogr2/thumbnail/!50p", opt, "1.1")
+		if err != nil {
+			t.Fatalf("CI.Get returned error: %v", err)
+		}
+		teardown()
+	}
+
 }
 
 func TestCIService_GetToFile(t *testing.T) {

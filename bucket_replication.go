@@ -27,7 +27,7 @@ type PutBucketReplicationOptions struct {
 	Rule    []BucketReplicationRule `xml:"Rule"`
 }
 
-//  GetBucketReplicationResult is the result of GetBucketReplication
+// GetBucketReplicationResult is the result of GetBucketReplication
 type GetBucketReplicationResult PutBucketReplicationOptions
 
 // PutBucketReplication https://cloud.tencent.com/document/product/436/19223

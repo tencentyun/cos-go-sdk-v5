@@ -1439,9 +1439,9 @@ type GetMediaInfoResult struct {
 func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*GetMediaInfoResult, *Response, error) {
 	var u string
 	if len(id) == 1 {
-		u = fmt.Sprintf("/%s?versionId=%s&ci-process=videoinfo", encodeURIComponent(name), id[0])
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=videoinfo", encodeURIComponent(name, []byte{'/'}), id[0])
 	} else if len(id) == 0 {
-		u = fmt.Sprintf("/%s?ci-process=videoinfo", encodeURIComponent(name))
+		u = fmt.Sprintf("/%s?ci-process=videoinfo", encodeURIComponent(name, []byte{'/'}))
 	} else {
 		return nil, nil, fmt.Errorf("wrong params")
 	}
@@ -4040,13 +4040,19 @@ type ImageOCRTextWordPolygon struct {
 }
 
 type LiveTanscodeVideo struct {
-	Codec   string `xml:"Codec"`
-	Width   string `xml:"Width,omitempty"`
-	Height  string `xml:"Height,omitempty"`
-	Fps     string `xml:"Fps,omitempty"`
-	Bitrate string `xml:"Bitrate,omitempty"`
-	Gop     string `xml:"Gop,omitempty"`
-	Maxrate string `xml:"Maxrate,omitempty"`
+	Codec         string           `xml:"Codec"`
+	Width         string           `xml:"Width,omitempty"`
+	Height        string           `xml:"Height,omitempty"`
+	Fps           string           `xml:"Fps,omitempty"`
+	Profile       string           `xml:"Profile,omitempty"`
+	Bitrate       string           `xml:"Bitrate,omitempty"`
+	Gop           string           `xml:"Gop,omitempty"`
+	Maxrate       string           `xml:"Maxrate,omitempty"`
+	Crf           string           `xml:"Crf,omitempty"`
+	Pixfmt        string           `xml:"Pixfmt,omitempty"`
+	LongShortMode string           `xml:"LongShortMode,omitempty"`
+	Interlaced    string           `xml:"Interlaced,omitempty"`
+	ColorParam    *VideoColorParam `xml:"ColorParam,omitempty"`
 }
 
 type LiveTanscodeTransConfig struct {

@@ -17,11 +17,11 @@ func TestBucketService_PutInventory(t *testing.T) {
 		ID:                     "list1",
 		IsEnabled:              "True",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{
+		Filter: &BucketInventoryFilter{
 			Prefix: "myPrefix",
 			Period: nil,
 		},
-		Schedule:               &BucketInventorySchedule{"Daily"},
+		Schedule: &BucketInventorySchedule{"Daily"},
 		Destination: &BucketInventoryDestination{
 			Bucket:     "qcs::cos:ap-guangzhou::examplebucket-1250000000",
 			AccountId:  "100000000001",
@@ -113,11 +113,11 @@ func TestBucketService_GetInventory(t *testing.T) {
 		ID:                     "list1",
 		IsEnabled:              "True",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{
+		Filter: &BucketInventoryFilter{
 			Prefix: "myPrefix",
 			Period: nil,
 		},
-		Schedule:               &BucketInventorySchedule{"Daily"},
+		Schedule: &BucketInventorySchedule{"Daily"},
 		Destination: &BucketInventoryDestination{
 			Bucket:    "qcs::cos:ap-guangzhou::examplebucket-1250000000",
 			AccountId: "100000000001",
@@ -145,10 +145,15 @@ func TestBucketService_ListInventory(t *testing.T) {
 	setup()
 	defer teardown()
 
+	var useToken bool
+	continueToken := "continueToken"
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		vs := values{
 			"inventory": "",
+		}
+		if useToken {
+			vs["continuation-token"] = encodeURIComponent(continueToken)
 		}
 		testFormValues(t, r, vs)
 		fmt.Fprint(w, `<ListInventoryConfigurationResult>
@@ -216,10 +221,6 @@ func TestBucketService_ListInventory(t *testing.T) {
 </ListInventoryConfigurationResult>`)
 	})
 
-	res, _, err := client.Bucket.ListInventoryConfigurations(context.Background(), "")
-	if err != nil {
-		t.Fatalf("Bucket.ListInventory failed, error: %v", err)
-	}
 	want := &ListBucketInventoryConfigResult{
 		XMLName:               xml.Name{Local: "ListInventoryConfigurationResult"},
 		IsTruncated:           true,
@@ -231,11 +232,11 @@ func TestBucketService_ListInventory(t *testing.T) {
 				ID:                     "list1",
 				IsEnabled:              "True",
 				IncludedObjectVersions: "All",
-				Filter:                 &BucketInventoryFilter{
+				Filter: &BucketInventoryFilter{
 					Prefix: "myPrefix",
 					Period: nil,
 				},
-				Schedule:               &BucketInventorySchedule{"Daily"},
+				Schedule: &BucketInventorySchedule{"Daily"},
 				Destination: &BucketInventoryDestination{
 					Bucket:     "qcs::cos:ap-beijing::examplebucket-1250000000",
 					AccountId:  "1250000000",
@@ -259,11 +260,11 @@ func TestBucketService_ListInventory(t *testing.T) {
 				ID:                     "list2",
 				IsEnabled:              "True",
 				IncludedObjectVersions: "All",
-				Filter:                 &BucketInventoryFilter{
-					Prefix:"myPrefix2",
+				Filter: &BucketInventoryFilter{
+					Prefix: "myPrefix2",
 					Period: nil,
 				},
-				Schedule:               &BucketInventorySchedule{"Weekly"},
+				Schedule: &BucketInventorySchedule{"Weekly"},
 				Destination: &BucketInventoryDestination{
 					Bucket:    "qcs::cos:ap-beijing::examplebucket-1250000000",
 					AccountId: "1250000000",
@@ -281,9 +282,26 @@ func TestBucketService_ListInventory(t *testing.T) {
 			},
 		},
 	}
+
+	res, _, err := client.Bucket.ListInventoryConfigurations(context.Background(), "")
+	if err != nil {
+		t.Fatalf("Bucket.ListInventory failed, error: %v", err)
+	}
+
 	if !reflect.DeepEqual(res, want) {
 		t.Fatalf("Bucket.ListInventory failed, \nwant: %+v\nres: %+v", want, res)
 	}
+
+	useToken = true
+	res, _, err = client.Bucket.ListInventoryConfigurations(context.Background(), continueToken)
+	if err != nil {
+		t.Fatalf("Bucket.ListInventory failed, error: %v", err)
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Fatalf("Bucket.ListInventory failed, \nwant: %+v\nres: %+v", want, res)
+	}
+
 }
 
 func TestBucketService_DeleteInventory(t *testing.T) {
@@ -314,7 +332,7 @@ func TestBucketService_PostInventory(t *testing.T) {
 		XMLName:                xml.Name{Local: "InventoryConfiguration"},
 		ID:                     "list1",
 		IncludedObjectVersions: "All",
-		Filter:                 &BucketInventoryFilter{
+		Filter: &BucketInventoryFilter{
 			Prefix: "myPrefix",
 			Period: nil,
 		},
@@ -357,5 +375,3 @@ func TestBucketService_PostInventory(t *testing.T) {
 		t.Fatalf("Bucket.PostInventory failed, error: %v", err)
 	}
 }
-
-

@@ -50,6 +50,7 @@ func TestBucketService_GetIntelligentTiering(t *testing.T) {
 			"intelligenttiering": "",
 		}
 		testFormValues(t, r, vs)
+		testHeader(t, r, "x-cos-meta-test", "test")
 
 		fmt.Fprint(w, `<IntelligentTieringConfiguration>
             <Status>Enabled</Status>
@@ -58,7 +59,11 @@ func TestBucketService_GetIntelligentTiering(t *testing.T) {
             </Transition>
         </IntelligentTieringConfiguration>`)
 	})
-	res, _, err := client.Bucket.GetIntelligentTiering(context.Background())
+	opt := &BucketGetIntelligentTieringOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+	res, _, err := client.Bucket.GetIntelligentTiering(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("Bucket.GetIntelligentTiering failed, error: %v", err)
 	}

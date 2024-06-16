@@ -7,7 +7,7 @@ import (
 )
 
 type BucketEncryptionConfiguration struct {
-	SSEAlgorithm string `xml:"SSEAlgorithm"`
+	SSEAlgorithm   string `xml:"SSEAlgorithm"`
 	KMSMasterKeyID string `xml:"KMSMasterKeyID,omitempty"`
 }
 
