@@ -19,14 +19,14 @@ func TestCIService_CreateDataSet(t *testing.T) {
 		fmt.Fprint(w, "{\"Dataset\":{\"BindCount\":0,\"CreateTime\":\"2024-05-07T18:36:24.838341549+08:00\",\"DatasetName\":\"dataset\",\"Description\":\"dataset test\",\"FileCount\":0,\"TemplateId\":\"Official:COSBasicMeta\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-05-07T18:36:24.838341633+08:00\"},\"RequestId\":\"NjYzYTA0MjhfM2FiNjI5MWVfNTQyMl8yZjM4ZTI=\"}")
 	})
 
-	client.CI.CreateDataSet(context.Background(), nil)
+	client.MetaInsight.CreateDataSet(context.Background(), nil)
 
 	createJobOpt := &CreateDataSetOptions{
 		DatasetName: "adataset",
 		Description: "dataset test",
 		TemplateId:  "Official:COSBasicMeta",
 	}
-	_, _, err := client.CI.CreateDataSet(context.Background(), createJobOpt)
+	_, _, err := client.MetaInsight.CreateDataSet(context.Background(), createJobOpt)
 	if err != nil {
 		t.Fatalf("CI.CreateDataSet returned error: %v", err)
 	}
@@ -44,14 +44,14 @@ func TestCIService_UpdateDataset(t *testing.T) {
 		fmt.Fprint(w, "{\"Dataset\":{\"BindCount\":0,\"CreateTime\":\"2024-05-07T18:36:24.838341549+08:00\",\"DatasetName\":\"dataset\",\"Description\":\"dataset test\",\"FileCount\":0,\"TemplateId\":\"Official:COSBasicMeta\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-05-07T18:36:24.838341633+08:00\"},\"RequestId\":\"NjYzYTA0MjhfM2FiNjI5MWVfNTQyMl8yZjM4ZTI=\"}")
 	})
 
-	client.CI.UpdateDataset(context.Background(), nil)
+	client.MetaInsight.UpdateDataset(context.Background(), nil)
 
 	opt := &UpdateDatasetOptions{
 		DatasetName: "adataset",
 		Description: "dataset test",
 		TemplateId:  "Official:COSBasicMeta",
 	}
-	_, _, err := client.CI.UpdateDataset(context.Background(), opt)
+	_, _, err := client.MetaInsight.UpdateDataset(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.UpdateDataset returned error: %v", err)
 	}
@@ -67,12 +67,12 @@ func TestCIService_DescribeDatasets(t *testing.T) {
 		fmt.Fprint(w, "{\"Datasets\":[{\"BindCount\":0,\"CreateTime\":\"2024-05-06T19:49:17.49197866+08:00\",\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"FileCount\":0,\"TemplateId\":\"Official:COSBasicMeta\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-05-06T19:49:17.49197874+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-05-07T18:36:24.838341549+08:00\",\"DatasetName\":\"dataset\",\"Description\":\"dataset test\",\"FileCount\":0,\"TemplateId\":\"Official:COSBasicMeta\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-05-07T18:36:24.838341633+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-28T16:58:29.972112328+08:00\",\"DatasetName\":\"test111\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-28T16:58:29.972112399+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-26T19:58:28.71611987+08:00\",\"DatasetName\":\"test11111\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-26T19:58:28.716119968+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-30T19:01:00.603324265+08:00\",\"DatasetName\":\"test111111\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-30T19:01:00.603324346+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-30T19:01:28.324249664+08:00\",\"DatasetName\":\"test1111111\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-30T19:01:28.324249747+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-30T19:06:22.973049681+08:00\",\"DatasetName\":\"test11111111\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-30T19:06:22.973049766+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-28T16:41:59.766417255+08:00\",\"DatasetName\":\"test111112\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-28T16:41:59.766417337+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-28T21:34:37.469900633+08:00\",\"DatasetName\":\"test11111222\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-28T21:34:37.469900718+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-28T21:35:03.76822133+08:00\",\"DatasetName\":\"test111112222\",\"Description\":\"数据集描述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-28T21:35:03.768221411+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-28T14:11:26.88710993+08:00\",\"DatasetName\":\"test12\",\"Description\":\"\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-28T14:11:26.887110011+08:00\"},{\"BindCount\":0,\"CreateTime\":\"2024-04-30T19:06:34.117713669+08:00\",\"DatasetName\":\"test1asfdsasdfafsdfa1111111\",\"Description\":\"数asdfa据集asdf描asdfad述\",\"FileCount\":0,\"TemplateId\":\"Official:Empty\",\"TotalFileSize\":0,\"UpdateTime\":\"2024-04-30T19:06:34.117713747+08:00\"}],\"NextToken\":\"\",\"RequestId\":\"NjYzYTFlNTVfNTc2ODk0MGJfNjZkM18zNmUyZTA=\"}")
 	})
 
-	client.CI.DescribeDatasets(context.Background(), nil)
+	client.MetaInsight.DescribeDatasets(context.Background(), nil)
 
 	opt := &DescribeDatasetsOptions{
 		MaxResults: 100,
 	}
-	_, _, err := client.CI.DescribeDatasets(context.Background(), opt)
+	_, _, err := client.MetaInsight.DescribeDatasets(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DescribeDatasets returned error: %v", err)
 	}
@@ -90,12 +90,12 @@ func TestCIService_DeleteDataset(t *testing.T) {
 		fmt.Fprintf(w, "{\"Code\":\"InvalidArgument\",\"Message\":\"dataset not empty\",\"RequestId\":\"NjYzYjZiNmRfM2FiNjI5MWVfNTQyMl8zMzVkZTY=\",\"TraceId\":\"\"}")
 	})
 
-	client.CI.DeleteDataset(context.Background(), nil)
+	client.MetaInsight.DeleteDataset(context.Background(), nil)
 
 	opt := &DeleteDatasetOptions{
 		DatasetName: "adataset",
 	}
-	_, _, err := client.CI.DeleteDataset(context.Background(), opt)
+	_, _, err := client.MetaInsight.DeleteDataset(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DeleteDataset returned error: %v", err)
 	}
@@ -111,12 +111,12 @@ func TestCIService_DescribeDataset(t *testing.T) {
 		fmt.Fprint(w, "{\"Dataset\":{\"BindCount\":0,\"CreateTime\":\"2024-05-06T19:49:17.49197866+08:00\",\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"FileCount\":1,\"TemplateId\":\"Official:COSBasicMeta\",\"TotalFileSize\":495199,\"UpdateTime\":\"2024-05-06T19:49:17.49197874+08:00\"},\"RequestId\":\"NjYzYjZjYzFfNjg2ODk0MGJfNzI0M18zMmUzMzE=\"}")
 	})
 
-	client.CI.DescribeDataset(context.Background(), nil)
+	client.MetaInsight.DescribeDataset(context.Background(), nil)
 	opt := &DescribeDatasetOptions{
 		DatasetName: "adataset",
 		Statistics:  true,
 	}
-	_, _, err := client.CI.DescribeDataset(context.Background(), opt)
+	_, _, err := client.MetaInsight.DescribeDataset(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DescribeDataset returned error: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestCIService_CreateFileMetaIndex(t *testing.T) {
 		fmt.Fprint(w, "{\"EventId\":\"wi78e458510d3511ef95635254008dc19b\",\"RequestId\":\"NjYzYjZlM2VfNjg2ODk0MGJfNzIyMV8zMzA4MWE=\"}")
 	})
 
-	client.CI.CreateFileMetaIndex(context.Background(), nil)
+	client.MetaInsight.CreateFileMetaIndex(context.Background(), nil)
 
 	opt := &CreateFileMetaIndexOptions{
 		DatasetName: "adataset",
@@ -149,7 +149,7 @@ func TestCIService_CreateFileMetaIndex(t *testing.T) {
 			ContentType: "image/gif",
 		},
 	}
-	_, _, err := client.CI.CreateFileMetaIndex(context.Background(), opt)
+	_, _, err := client.MetaInsight.CreateFileMetaIndex(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.CreateFileMetaIndex returned error: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestCIService_UpdateFileMetaIndex(t *testing.T) {
 		fmt.Fprint(w, "{\"EventId\":\"wi78e458510d3511ef95635254008dc19b\",\"RequestId\":\"NjYzYjZlM2VfNjg2ODk0MGJfNzIyMV8zMzA4MWE=\"}")
 	})
 
-	client.CI.UpdateFileMetaIndex(context.Background(), nil)
+	client.MetaInsight.UpdateFileMetaIndex(context.Background(), nil)
 
 	opt := &UpdateFileMetaIndexOptions{
 		DatasetName: "adataset",
@@ -182,7 +182,7 @@ func TestCIService_UpdateFileMetaIndex(t *testing.T) {
 			ContentType: "video/gif",
 		},
 	}
-	_, _, err := client.CI.UpdateFileMetaIndex(context.Background(), opt)
+	_, _, err := client.MetaInsight.UpdateFileMetaIndex(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.UpdateFileMetaIndex returned error: %v", err)
 	}
@@ -198,13 +198,13 @@ func TestCIService_DescribeFileMetaIndex(t *testing.T) {
 		fmt.Fprint(w, "{\"Files\":[{\"COSCRC64\":\"447296710575197191\",\"COSStorageClass\":\"STANDARD\",\"ContentType\":\"image/gif\",\"CreateTime\":\"2024-05-08T20:21:18.766475412+08:00\",\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"DatasetName\":\"adataset\",\"ETag\":\"\\\"c3ad99087956ff0c3d8293ab35747030\\\"\",\"FileModifiedTime\":\"2024-05-06T20:54:07+08:00\",\"Filename\":\"1.gif\",\"MediaType\":\"video\",\"ObjectACL\":\"default\",\"ObjectId\":\"64992b92f79f8ffad132586c4ca26cd4d5dd19783b746e5f6b14dc773f1c0f20\",\"OwnerID\":\"2832742109\",\"Size\":495199,\"URI\":\"cos://test1-1250000000/1.gif\",\"UpdateTime\":\"2024-05-08T20:28:14.884074916+08:00\"}],\"RequestId\":\"NjYzYjcwOWVfMzliNjI5MWVfNmFiZV8zNGM4NDE=\"}")
 	})
 
-	client.CI.DescribeFileMetaIndex(context.Background(), nil)
+	client.MetaInsight.DescribeFileMetaIndex(context.Background(), nil)
 
 	opt := &DescribeFileMetaIndexOptions{
 		DatasetName: "adataset",
 		Uri:         "cos://test-1250000000/1.gif",
 	}
-	_, _, err := client.CI.DescribeFileMetaIndex(context.Background(), opt)
+	_, _, err := client.MetaInsight.DescribeFileMetaIndex(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DescribeFileMetaIndex returned error: %v", err)
 	}
@@ -220,13 +220,13 @@ func TestCIService_DeleteFileMetaIndex(t *testing.T) {
 		fmt.Fprint(w, "{\"RequestId\":\"NjYzYjcxMTZfMmRiNjI5MWVfYWU1XzMxMjk3NQ==\"}")
 	})
 
-	client.CI.DeleteFileMetaIndex(context.Background(), nil)
+	client.MetaInsight.DeleteFileMetaIndex(context.Background(), nil)
 
 	opt := &DeleteFileMetaIndexOptions{
 		DatasetName: "adataset",
 		Uri:         "cos://test1-1250000000/1.gif",
 	}
-	_, _, err := client.CI.DeleteFileMetaIndex(context.Background(), opt)
+	_, _, err := client.MetaInsight.DeleteFileMetaIndex(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DeleteFileMetaIndex returned error: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestCIService_DatasetSimpleQuery(t *testing.T) {
 		fmt.Fprint(w, "{\"NextToken\":\"\",\"RequestId\":\"NjYzYjczNjdfNzQ2ODk0MGJfM2NlN18zMWY3YWU=\"}")
 	})
 
-	client.CI.DatasetSimpleQuery(context.Background(), nil)
+	client.MetaInsight.DatasetSimpleQuery(context.Background(), nil)
 
 	opt := &DatasetSimpleQueryOptions{
 		DatasetName: "adataset",
@@ -254,7 +254,7 @@ func TestCIService_DatasetSimpleQuery(t *testing.T) {
 			Value:     "image/gif",
 		},
 	}
-	_, _, err := client.CI.DatasetSimpleQuery(context.Background(), opt)
+	_, _, err := client.MetaInsight.DatasetSimpleQuery(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DatasetSimpleQuery returned error: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestCIService_DatasetSimpleQueryAggregations(t *testing.T) {
 		fmt.Fprint(w, "{\"Aggregations\":[{\"Field\":\"ContentType\",\"Operation\":\"group\"}],\"NextToken\":\"\",\"RequestId\":\"NjYzYjc0MDFfNTc2ODk0MGJfNjZkNl8zZDA2NjU=\"}")
 	})
 
-	client.CI.DatasetSimpleQuery(context.Background(), nil)
+	client.MetaInsight.DatasetSimpleQuery(context.Background(), nil)
 
 	opt := &DatasetSimpleQueryOptions{
 		DatasetName:  "adataset",
@@ -282,7 +282,7 @@ func TestCIService_DatasetSimpleQueryAggregations(t *testing.T) {
 		Field:     "ContentType",
 		Operation: "group",
 	})
-	_, _, err := client.CI.DatasetSimpleQuery(context.Background(), opt)
+	_, _, err := client.MetaInsight.DatasetSimpleQuery(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DatasetSimpleQuery returned error: %v", err)
 	}
@@ -300,13 +300,13 @@ func TestCIService_CreateDatasetBinding(t *testing.T) {
 		fmt.Fprint(w, "{\"Binding\":{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1250000000\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"},\"RequestId\":\"NjYzYjc0NThfNmQ2ODk0MGJfYmUyXzMyZWE3ZA==\"}")
 	})
 
-	client.CI.CreateDatasetBinding(context.Background(), nil)
+	client.MetaInsight.CreateDatasetBinding(context.Background(), nil)
 
 	opt := &CreateDatasetBindingOptions{
 		DatasetName: "adataset",
 		URI:         "cos://test1-1250000000",
 	}
-	_, _, err := client.CI.CreateDatasetBinding(context.Background(), opt)
+	_, _, err := client.MetaInsight.CreateDatasetBinding(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.CreateDatasetBinding returned error: %v", err)
 	}
@@ -322,13 +322,13 @@ func TestCIService_DescribeDatasetBinding(t *testing.T) {
 		fmt.Fprint(w, "{\"Binding\":{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1250000000\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"},\"RequestId\":\"NjYzYjc0YTRfNTc2ODk0MGJfNjZkN18zYzcyNjY=\"}")
 	})
 
-	client.CI.DescribeDatasetBinding(context.Background(), nil)
+	client.MetaInsight.DescribeDatasetBinding(context.Background(), nil)
 
 	opt := &DescribeDatasetBindingOptions{
 		DatasetName: "adataset",
 		URI:         "cos://test1-1250000000",
 	}
-	_, _, err := client.CI.DescribeDatasetBinding(context.Background(), opt)
+	_, _, err := client.MetaInsight.DescribeDatasetBinding(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DescribeDatasetBinding returned error: %v", err)
 	}
@@ -344,13 +344,13 @@ func TestCIService_DescribeDatasetBindings(t *testing.T) {
 		fmt.Fprint(w, "{\"Bindings\":[{\"CreateTime\":\"2024-05-08T20:47:20.632182296+08:00\",\"DatasetName\":\"adataset\",\"Detail\":\"\",\"State\":\"Running\",\"URI\":\"cos://test1-1250000000\",\"UpdateTime\":\"2024-05-08T20:47:20.632182375+08:00\"}],\"NextToken\":\"\",\"RequestId\":\"NjYzYjc1MDBfNmQ2ODk0MGJfYmUyXzMyZWRlNQ==\"}")
 	})
 
-	client.CI.DescribeDatasetBindings(context.Background(), nil)
+	client.MetaInsight.DescribeDatasetBindings(context.Background(), nil)
 
 	opt := &DescribeDatasetBindingsOptions{
 		DatasetName: "adataset",
 		// MaxResults: 3,
 	}
-	_, _, err := client.CI.DescribeDatasetBindings(context.Background(), opt)
+	_, _, err := client.MetaInsight.DescribeDatasetBindings(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DescribeDatasetBindings returned error: %v", err)
 	}
@@ -368,13 +368,13 @@ func TestCIService_DeleteDatasetBinding(t *testing.T) {
 		fmt.Fprint(w, "{\"RequestId\":\"NjYzYjc1NDZfNTc2ODk0MGJfNjZkNF8zYzA2MTI=\"}")
 	})
 
-	client.CI.DeleteDatasetBinding(context.Background(), nil)
+	client.MetaInsight.DeleteDatasetBinding(context.Background(), nil)
 
 	opt := &DeleteDatasetBindingOptions{
 		DatasetName: "adataset",
 		URI:         "cos://test1-1250000000",
 	}
-	_, _, err := client.CI.DeleteDatasetBinding(context.Background(), opt)
+	_, _, err := client.MetaInsight.DeleteDatasetBinding(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.DeleteDatasetBinding returned error: %v", err)
 	}

@@ -42,6 +42,7 @@ var (
 	// {<http://>|<https://>}{bucketname-appid}.{cos|cos-internal|cos-website|ci}.{region}.{myqcloud.com/tencentcos.cn}{/}
 	hostSuffix       = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	hostPrefix       = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	metaInsightHostPrefix = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	invalidBucketErr = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
 	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
@@ -64,6 +65,8 @@ type BaseURL struct {
 	CIURL *url.URL
 	// 访问 Fetch Task 的基础 URL
 	FetchURL *url.URL
+	// 访问 MetaInsight 的基础 URL
+	MetaInsightURL *url.URL
 }
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
@@ -123,6 +126,7 @@ type Client struct {
 	Object  *ObjectService
 	Batch   *BatchService
 	CI      *CIService
+	MetaInsight *MetaInsightService
 
 	Conf *Config
 }
@@ -144,6 +148,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		baseURL.BatchURL = uri.BatchURL
 		baseURL.CIURL = uri.CIURL
 		baseURL.FetchURL = uri.FetchURL
+		baseURL.MetaInsightURL = uri.MetaInsightURL
 	}
 	if baseURL.ServiceURL == nil {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)
@@ -170,6 +175,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	c.Object = (*ObjectService)(&c.common)
 	c.Batch = (*BatchService)(&c.common)
 	c.CI = (*CIService)(&c.common)
+	c.MetaInsight = (*MetaInsightService)(&c.common)
 	return c
 }
 
@@ -213,7 +219,10 @@ func (c *Client) GetCredential() *Credential {
 
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
 	if !checkURL(baseURL) {
-		return nil, invalidBucketErr
+		host := baseURL.String()
+		if c.BaseURL.MetaInsightURL != baseURL || !metaInsightHostPrefix.MatchString(host) {
+			return nil, invalidBucketErr
+		}
 	}
 	uri, err = addURLOptions(uri, optQuery)
 	if err != nil {
