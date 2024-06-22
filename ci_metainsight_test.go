@@ -368,3 +368,57 @@ func TestCIService_DeleteDatasetBinding(t *testing.T) {
 		t.Fatalf("CI.DeleteDatasetBinding returned error: %v", err)
 	}
 }
+
+func TestCIService_DatasetFaceSearch(t *testing.T) {
+	setup()
+	defer teardown()
+	// wantBody := "{\"DatasetName\":\"adataset\",\"URI\":\"cos://test1-1250000000\"}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"facesearch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		// testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"RequestId\":\"NjYzYjc1NDZfNTc2ODk0MGJfNjZkNF8zYzA2MTI=\"}")
+	})
+
+	client.MetaInsight.DatasetFaceSearch(context.Background(), nil)
+
+	opt := &DatasetFaceSearchOptions{
+		DatasetName:    "test",
+		URI:            "cos://examplebucket-1250000000/test.jpg",
+		MaxFaceNum:     1,
+		Limit:          10,
+		MatchThreshold: 10,
+	}
+	_, _, err := client.MetaInsight.DatasetFaceSearch(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DatasetFaceSearch returned error: %v", err)
+	}
+}
+
+func TestCIService_SearchImage(t *testing.T) {
+	setup()
+	defer teardown()
+	// wantBody := "{\"DatasetName\":\"adataset\",\"URI\":\"cos://test1-1250000000\"}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"imagesearch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		// testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"RequestId\":\"NjYzYjc1NDZfNTc2ODk0MGJfNjZkNF8zYzA2MTI=\"}")
+	})
+
+	client.MetaInsight.SearchImage(context.Background(), nil)
+
+	opt := &SearchImageOptions{
+		DatasetName:    "ImageSearch001",
+		Mode:           "pic",
+		URI:            "cos://facesearch-1258726280/huge_base.jpg",
+		Limit:          10,
+		MatchThreshold: 1,
+	}
+	_, _, err := client.MetaInsight.SearchImage(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.SearchImage returned error: %v", err)
+	}
+}
