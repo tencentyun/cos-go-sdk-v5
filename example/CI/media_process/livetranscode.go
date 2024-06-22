@@ -77,7 +77,7 @@ func GenerateToken(appId string, bucketId string, objectKey string, secret []byt
 }
 
 // CI验证环境
-func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) string {
+func GetCIDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, bucketId string, region string, objectKey string, jwtToken string) string {
 	// 固定为getplaylist
 	name := "getplaylist"
 
@@ -98,14 +98,12 @@ func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucke
 		fmt.Printf("Error: %v\n", err)
 		return ""
 	}
-	// 生成token
-	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	resultUrl := presignedURL.String() + "&tokenType=JwtToken&expires=3600&object=" + url.QueryEscape(objectKey) + "&token=" + generateToken
+	resultUrl := presignedURL.String() + "&tokenType=JwtToken&expires=3600&object=" + url.QueryEscape(objectKey) + "&token=" + jwtToken
 	return resultUrl
 }
 
 // COS环境
-func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) string {
+func GetCOSDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, bucketId string, region string, objectKey string, jwtToken string) string {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
@@ -123,19 +121,45 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 		fmt.Printf("Error: %v\n", err)
 		return ""
 	}
-	// 生成token
-	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + generateToken
+
+	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + jwtToken
+	return resultUrl
+}
+
+// COS环境
+func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string) string {
+	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:     tak,
+			SecretKey:    tsk,
+			SessionToken: token.SessionToken,
+		},
+	})
+	ctx := context.Background()
+
+	// 获取预签名
+	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return ""
+	}
+	resultUrl := presignedURL.String() + "&ci-process=getplaylist&signType=cos&expires=43200"
 	return resultUrl
 }
 
 // CDN域名
-func GetCDNDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) string {
+func GetCDNDomainVideoEncryptionURL(cdn string, objectKey string, jwtToken string) string {
+	url := cdn + "/" + objectKey
+	resultUrl := url + "?ci-process=getplaylist&signType=no&expires=43200&&tokenType=JwtToken&token=" + jwtToken
+	return resultUrl
+}
 
-	url := "http://abc.cdn.com/" + objectKey
-	// 生成token
-	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	resultUrl := url + "?ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + generateToken
+// CDN域名
+func GetCDNDomainURL(cdn string, objectKey string) string {
+	url := cdn + "/" + objectKey
+	resultUrl := url + "?ci-process=getplaylist&signType=no"
 	return resultUrl
 }
 
@@ -240,8 +264,15 @@ func main() {
 	region := "ap-chongqing"
 	// 替换成您需要播放的视频名称
 	objectKey := "live/a.m3u8"
+
+	GetCOSDomainURL(tak, tsk, token, appId, bucketId, region, objectKey)
+	// 替换为自己cdn域名
+	cdn := "http://abc.cdn.com"
+	GetCDNDomainURL(cdn, objectKey)
 	// 替换为自己播放密钥，控制台可以查询
-	var secret = []byte("aaaaaaaaaaa")
-	GetCIDomainURL(tak, tsk, token, appId, bucketId, region, objectKey, secret)
-	// GetCOSDomainURL(tak, tsk, token, appId, bucketId, region, objectKey, secret)
+	// var playkey = []byte("aaaaaaaaaaa")
+	// 生成token
+	// jwtToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
+	// GetCOSDomainVideoEncryptionURL(tak, tsk, token, bucketId, region, objectKey, jwtToken)
+	// GetCDNDomainURL(cdn, objectKey, jwtToken)
 }
