@@ -32,12 +32,13 @@ type ListMultipartUploadsResult struct {
 
 // ListMultipartUploadsOptions is the option of ListMultipartUploads
 type ListMultipartUploadsOptions struct {
-	Delimiter      string `url:"delimiter,omitempty"`
-	EncodingType   string `url:"encoding-type,omitempty"`
-	Prefix         string `url:"prefix,omitempty"`
-	MaxUploads     int    `url:"max-uploads,omitempty"`
-	KeyMarker      string `url:"key-marker,omitempty"`
-	UploadIDMarker string `url:"upload-id-marker,omitempty"`
+	Delimiter      string       `url:"delimiter,omitempty"`
+	EncodingType   string       `url:"encoding-type,omitempty"`
+	Prefix         string       `url:"prefix,omitempty"`
+	MaxUploads     int          `url:"max-uploads,omitempty"`
+	KeyMarker      string       `url:"key-marker,omitempty"`
+	UploadIDMarker string       `url:"upload-id-marker,omitempty"`
+	XOptionHeader  *http.Header `header:"-,omitempty" url:"-" xml:"-"`
 }
 
 // ListMultipartUploads 用来查询正在进行中的分块上传。单次最多列出1000个正在进行中的分块上传。
@@ -46,11 +47,12 @@ type ListMultipartUploadsOptions struct {
 func (s *BucketService) ListMultipartUploads(ctx context.Context, opt *ListMultipartUploadsOptions) (*ListMultipartUploadsResult, *Response, error) {
 	var res ListMultipartUploadsResult
 	sendOpt := sendOptions{
-		baseURL:  s.client.BaseURL.BucketURL,
-		uri:      "/?uploads",
-		method:   http.MethodGet,
-		result:   &res,
-		optQuery: opt,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/?uploads",
+		method:    http.MethodGet,
+		result:    &res,
+		optQuery:  opt,
+		optHeader: opt,
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err

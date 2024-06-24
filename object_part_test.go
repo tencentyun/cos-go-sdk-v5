@@ -34,8 +34,23 @@ func TestObjectService_AbortMultipartUpload(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	_, err := client.Object.AbortMultipartUpload(context.Background(),
-		name, uploadID)
+	_, err := client.Object.AbortMultipartUpload(context.Background(), name, uploadID)
+	if err != nil {
+		t.Fatalf("Object.AbortMultipartUpload returned error: %v", err)
+	}
+	_, err = client.Object.AbortMultipartUpload(context.Background(), "/", uploadID)
+	if err == nil || err.Error() != "empty object name" {
+		t.Fatalf("Object.AbortMultipartUpload expect error: %v", err)
+	}
+	_, err = client.Object.AbortMultipartUpload(context.Background(), "//", uploadID)
+	if err != ObjectKeySimplifyCheckErr {
+		t.Fatalf("Object.AbortMultipartUpload expect error: %v", err)
+	}
+	opt := &AbortMultipartUploadOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "value")
+	_, err = client.Object.AbortMultipartUpload(context.Background(), name, uploadID, opt)
 	if err != nil {
 		t.Fatalf("Object.AbortMultipartUpload returned error: %v", err)
 	}

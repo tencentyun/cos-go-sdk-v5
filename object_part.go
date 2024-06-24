@@ -286,21 +286,35 @@ func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploa
 	return &res, resp, err
 }
 
+type AbortMultipartUploadOptions struct {
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
 // AbortMultipartUpload 用来实现舍弃一个分块上传并删除已上传的块。当您调用Abort Multipart Upload时，
 // 如果有正在使用这个Upload Parts上传块的请求，则Upload Parts会返回失败。当该UploadID不存在时，会返回404 NoSuchUpload。
 //
 // 建议您及时完成分块上传或者舍弃分块上传，因为已上传但是未终止的块会占用存储空间进而产生存储费用。
 //
 // https://www.qcloud.com/document/product/436/7740
-func (s *ObjectService) AbortMultipartUpload(ctx context.Context, name, uploadID string) (*Response, error) {
+func (s *ObjectService) AbortMultipartUpload(ctx context.Context, name, uploadID string, opt ...*AbortMultipartUploadOptions) (*Response, error) {
 	if len(name) == 0 || name == "/" {
 		return nil, errors.New("empty object name")
 	}
+	// When use "" string might call the delete bucket interface
+	if s.client.Conf.ObjectKeySimplifyCheck && !CheckObjectKeySimplify("/"+name) {
+		return nil, ObjectKeySimplifyCheckErr
+	}
+
+	var optHeader *AbortMultipartUploadOptions
+	if len(opt) > 0 {
+		optHeader = opt[0]
+	}
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     u,
-		method:  http.MethodDelete,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       u,
+		method:    http.MethodDelete,
+		optHeader: optHeader,
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
