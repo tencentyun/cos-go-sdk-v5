@@ -30,9 +30,9 @@ func log_status(err error) {
 	}
 }
 func getClient() *cos.Client {
-	u, _ := url.Parse("https://test-125000000.cos.ap-beijing.myqcloud.com")
-	cu, _ := url.Parse("https://ci.ap-beijing.myqcloud.com")
-	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	u, _ := url.Parse("https://test1-1250000000.cos.ap-beijing.myqcloud.com")
+	metaInsight, _ := url.Parse("https://1250000000.ci.ap-beijing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, MetaInsightURL: metaInsight}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  os.Getenv("COS_SECRETID"),
@@ -51,12 +51,12 @@ func getClient() *cos.Client {
 
 func CreateDataSet() {
 	c := getClient()
-	opt := &cos.CreateDataSetOptions{
-		DatasetName: "adataset",
+	opt := &cos.CreateDatasetOptions{
+		DatasetName: "dataset1",
 		Description: "dataset test",
 		TemplateId:  "Official:COSBasicMeta",
 	}
-	res, _, err := c.CI.CreateDataSet(context.Background(), opt)
+	res, _, err := c.MetaInsight.CreateDataset(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -64,9 +64,9 @@ func CreateDataSet() {
 func DescribeDatasets() {
 	c := getClient()
 	opt := &cos.DescribeDatasetsOptions{
-		MaxResults: 100,
+		Maxresults: 100,
 	}
-	res, _, err := c.CI.DescribeDatasets(context.Background(), opt)
+	res, _, err := c.MetaInsight.DescribeDatasets(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -78,7 +78,7 @@ func UpdateDataset() {
 		Description: "adataset test",
 		TemplateId:  "Official:COSBasicMeta",
 	}
-	res, _, err := c.CI.UpdateDataset(context.Background(), opt)
+	res, _, err := c.MetaInsight.UpdateDataset(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -86,9 +86,9 @@ func UpdateDataset() {
 func DeleteDataset() {
 	c := getClient()
 	opt := &cos.DeleteDatasetOptions{
-		DatasetName: "adataset",
+		DatasetName: "dataset1",
 	}
-	res, _, err := c.CI.DeleteDataset(context.Background(), opt)
+	res, _, err := c.MetaInsight.DeleteDataset(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -96,10 +96,10 @@ func DeleteDataset() {
 func DescribeDataset() {
 	c := getClient()
 	opt := &cos.DescribeDatasetOptions{
-		DatasetName: "adataset",
+		Datasetname: "adataset",
 		Statistics:  true,
 	}
-	res, _, err := c.CI.DescribeDataset(context.Background(), opt)
+	res, _, err := c.MetaInsight.DescribeDataset(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -109,8 +109,8 @@ func CreateFileMetaIndex() {
 	opt := &cos.CreateFileMetaIndexOptions{
 		DatasetName: "adataset",
 		File: &cos.File{
-			URI:      "cos://test-125000000/12.gif",
-			CustomID: "123",
+			URI:      "cos://bj-test-1250000000/5.gif",
+			CustomId: "123",
 			CustomLabels: &map[string]string{
 				"age":   "18",
 				"level": "18",
@@ -119,7 +119,7 @@ func CreateFileMetaIndex() {
 			ContentType: "image/gif",
 		},
 	}
-	res, _, err := c.CI.CreateFileMetaIndex(context.Background(), opt)
+	res, _, err := c.MetaInsight.CreateFileMetaIndex(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -129,8 +129,8 @@ func UpdateFileMetaIndex() {
 	opt := &cos.UpdateFileMetaIndexOptions{
 		DatasetName: "adataset",
 		File: &cos.File{
-			URI:      "cos://test-125000000/1.gif",
-			CustomID: "123",
+			URI:      "cos://test1-1250000000/1.gif",
+			CustomId: "123",
 			CustomLabels: &map[string]string{
 				"age":   "18",
 				"level": "18",
@@ -139,7 +139,7 @@ func UpdateFileMetaIndex() {
 			ContentType: "video/gif",
 		},
 	}
-	res, _, err := c.CI.UpdateFileMetaIndex(context.Background(), opt)
+	res, _, err := c.MetaInsight.UpdateFileMetaIndex(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -147,10 +147,10 @@ func UpdateFileMetaIndex() {
 func DescribeFileMetaIndex() {
 	c := getClient()
 	opt := &cos.DescribeFileMetaIndexOptions{
-		DatasetName: "adataset",
-		Uri:         "cos://test-125000000/1.gif",
+		Datasetname: "adataset",
+		Uri:         "cos://test1-1250000000/1.gif",
 	}
-	res, _, err := c.CI.DescribeFileMetaIndex(context.Background(), opt)
+	res, _, err := c.MetaInsight.DescribeFileMetaIndex(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -159,9 +159,9 @@ func DeleteFileMetaIndex() {
 	c := getClient()
 	opt := &cos.DeleteFileMetaIndexOptions{
 		DatasetName: "adataset",
-		Uri:         "cos://test-125000000/1.gif",
+		URI:         "cos://test1-1250000000/1.gif",
 	}
-	res, _, err := c.CI.DeleteFileMetaIndex(context.Background(), opt)
+	res, _, err := c.MetaInsight.DeleteFileMetaIndex(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -176,7 +176,7 @@ func DatasetSimpleQuery() {
 			Value:     "image/gif",
 		},
 	}
-	res, _, err := c.CI.DatasetSimpleQuery(context.Background(), opt)
+	res, _, err := c.MetaInsight.DatasetSimpleQuery(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -185,24 +185,28 @@ func DatasetSimpleQueryAggregations() {
 	c := getClient()
 	opt := &cos.DatasetSimpleQueryOptions{
 		DatasetName:  "adataset",
-		Aggregations: []*cos.Aggregation{},
+		Aggregations: []*cos.Aggregations{},
 	}
-	opt.Aggregations = append(opt.Aggregations, &cos.Aggregation{
+	opt.Aggregations = append(opt.Aggregations, &cos.Aggregations{
 		Field:     "ContentType",
 		Operation: "group",
 	})
-	res, _, err := c.CI.DatasetSimpleQuery(context.Background(), opt)
+	res, _, err := c.MetaInsight.DatasetSimpleQuery(context.Background(), opt)
 	log_status(err)
-	fmt.Printf("%+v\n", res)
+	for _, v := range res.Aggregations {
+		for _, gp := range v.Groups {
+			fmt.Printf("%+v\n", gp)
+		}
+	}
 }
 
 func CreateDatasetBinding() {
 	c := getClient()
 	opt := &cos.CreateDatasetBindingOptions{
 		DatasetName: "adataset",
-		URI:         "cos://test-125000000",
+		URI:         "cos://test1-1250000000",
 	}
-	res, _, err := c.CI.CreateDatasetBinding(context.Background(), opt)
+	res, _, err := c.MetaInsight.CreateDatasetBinding(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -210,10 +214,10 @@ func CreateDatasetBinding() {
 func DescribeDatasetBinding() {
 	c := getClient()
 	opt := &cos.DescribeDatasetBindingOptions{
-		DatasetName: "adataset",
-		URI:         "cos://test-125000000",
+		Datasetname: "adataset",
+		Uri:         "cos://test1-1250000000",
 	}
-	res, _, err := c.CI.DescribeDatasetBinding(context.Background(), opt)
+	res, _, err := c.MetaInsight.DescribeDatasetBinding(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -221,10 +225,10 @@ func DescribeDatasetBinding() {
 func DescribeDatasetBindings() {
 	c := getClient()
 	opt := &cos.DescribeDatasetBindingsOptions{
-		DatasetName: "adataset",
-		// MaxResults: 3,
+		Datasetname: "adataset",
+		Maxresults:  3,
 	}
-	res, _, err := c.CI.DescribeDatasetBindings(context.Background(), opt)
+	res, _, err := c.MetaInsight.DescribeDatasetBindings(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -233,9 +237,32 @@ func DeleteDatasetBinding() {
 	c := getClient()
 	opt := &cos.DeleteDatasetBindingOptions{
 		DatasetName: "adataset",
-		URI:         "cos://test-125000000",
+		URI:         "cos://test1-1250000000",
 	}
-	res, _, err := c.CI.DeleteDatasetBinding(context.Background(), opt)
+	res, _, err := c.MetaInsight.DeleteDatasetBinding(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func DatasetFaceSearch() {
+	c := getClient()
+	opt := &cos.DatasetFaceSearchOptions{
+		DatasetName: "ci-sdk-face-search",
+		URI:         "cos://bj-test-1250000000/face.jpeg",
+	}
+	res, _, err := c.MetaInsight.DatasetFaceSearch(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func SearchImage() {
+	c := getClient()
+	opt := &cos.SearchImageOptions{
+		DatasetName: "ci-sdk-image-search",
+		URI:         "cos://bj-test-1250000000/face.jpeg",
+		Mode:        "pic",
+	}
+	res, _, err := c.MetaInsight.SearchImage(context.Background(), opt)
 	log_status(err)
 	fmt.Printf("%+v\n", res)
 }
@@ -256,4 +283,6 @@ func main() {
 	// DescribeDatasetBinding()
 	// DescribeDatasetBindings()
 	// DeleteDatasetBinding()
+	// DatasetFaceSearch()
+	// SearchImage()
 }

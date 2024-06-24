@@ -113,7 +113,7 @@ func TestObjectService_GetRetry(t *testing.T) {
 	setup()
 	defer teardown()
 	u, _ := url.Parse(server.URL)
-	client := NewClient(&BaseURL{u, u, u, u, u}, &http.Client{
+	client := NewClient(&BaseURL{u, u, u, u, u, u}, &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
@@ -309,7 +309,7 @@ func TestObjectService_GetPresignedURL2(t *testing.T) {
 	defer teardown()
 
 	u, _ := url.Parse(server.URL)
-	client := NewClient(&BaseURL{u, u, u, u, u}, &http.Client{
+	client := NewClient(&BaseURL{u, u, u, u, u, u}, &http.Client{
 		Transport: &AuthorizationTransport{
 			SecretID:  "QmFzZTY0IGlzIGEgZ*******",
 			SecretKey: "ZfbOA78asKUYBcXFrJD0a1I*******",
@@ -389,7 +389,7 @@ func TestObjectService_GetPresignedURL3(t *testing.T) {
 	defer teardown()
 
 	u, _ := url.Parse(server.URL)
-	client := NewClient(&BaseURL{u, u, u, u, u}, &http.Client{
+	client := NewClient(&BaseURL{u, u, u, u, u, u}, &http.Client{
 		Transport: &AuthorizationTransport{
 			SecretID:  "QmFzZTY0IGlzIGEgZ*******",
 			SecretKey: "ZfbOA78asKUYBcXFrJD0a1I*******",

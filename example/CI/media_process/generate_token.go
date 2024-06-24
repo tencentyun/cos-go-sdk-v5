@@ -77,8 +77,8 @@ func GenerateToken(appId string, bucketId string, objectKey string, secret []byt
 
 // 验证环境url
 func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) {
-	// 固定为getplaylist
-	name := "getplaylist"
+	// 固定为pm3u8
+	name := "pm3u8"
 
 	u, _ := url.Parse("https://" + bucketId + ".ci." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -124,8 +124,15 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 	}
 	// 生成token
 	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + generateToken
+	resultUrl := presignedURL.String() + "&ci-process=pm3u8&expires=43200&&tokenType=JwtToken&token=" + generateToken
 	fmt.Println(resultUrl)
+}
+
+// CDN域名
+func GetCDNDomainVideoEncryptionURL(cdn string, objectKey string, jwtToken string) string {
+	url := cdn + "/" + objectKey
+	resultUrl := url + "?ci-process=pm3u8&signType=no&expires=43200&&tokenType=JwtToken&token=" + jwtToken
+	return resultUrl
 }
 
 func main() {
