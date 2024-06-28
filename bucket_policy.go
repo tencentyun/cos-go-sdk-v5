@@ -14,6 +14,7 @@ type BucketStatement struct {
 	Effect    string                            `json:"effect,omitempty"`
 	Resource  []string                          `json:"resource,omitempty"`
 	Condition map[string]map[string]interface{} `json:"condition,omitempty"`
+	Sid       string                            `json:"sid,omitempty"`
 }
 
 type BucketPutPolicyOptions struct {
