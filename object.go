@@ -161,7 +161,7 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 			}
 		}
 	}
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
 	}
 
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
 	}
 
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +371,7 @@ func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, 
 			sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
 		}
 	}
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader)
+	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
 	if err != nil {
 		return ""
 	}
@@ -771,7 +771,7 @@ type CASJobParameters struct {
 // ObjectRestoreOptions is the option of object restore
 type ObjectRestoreOptions struct {
 	XMLName       xml.Name          `xml:"RestoreRequest" header:"-" url:"-"`
-	Days          int               `xml:"Days" header:"-" url:"-"`
+	Days          int               `xml:"Days,omitempty" header:"-" url:"-"`
 	Tier          *CASJobParameters `xml:"CASJobParameters" header:"-" url:"-"`
 	XOptionHeader *http.Header      `xml:"-" header:",omitempty" url:"-"`
 }
@@ -1368,6 +1368,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 				partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
 				partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
 				partOpt.XCosTrafficLimit = optini.XCosTrafficLimit
+				partOpt.XOptionHeader = optini.XOptionHeader
 			}
 			job := &Jobs{
 				Name:       name,

@@ -25,7 +25,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.50"
+	Version               = "0.7.52"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -40,10 +40,10 @@ var (
 	)
 
 	// {<http://>|<https://>}{bucketname-appid}.{cos|cos-internal|cos-website|ci}.{region}.{myqcloud.com/tencentcos.cn}{/}
-	hostSuffix       = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
-	hostPrefix       = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	hostSuffix            = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	hostPrefix            = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	metaInsightHostPrefix = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
-	invalidBucketErr = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
+	invalidBucketErr      = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
 	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
 	accelerateDomainSuffix = "accelerate.myqcloud.com"
@@ -121,11 +121,11 @@ type Client struct {
 
 	common service
 
-	Service *ServiceService
-	Bucket  *BucketService
-	Object  *ObjectService
-	Batch   *BatchService
-	CI      *CIService
+	Service     *ServiceService
+	Bucket      *BucketService
+	Object      *ObjectService
+	Batch       *BatchService
+	CI          *CIService
 	MetaInsight *MetaInsightService
 
 	Conf *Config
@@ -217,7 +217,7 @@ func (c *Client) GetCredential() *Credential {
 	return nil
 }
 
-func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}) (req *http.Request, err error) {
+func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}, isRetry bool) (req *http.Request, err error) {
 	if !checkURL(baseURL) {
 		host := baseURL.String()
 		if c.BaseURL.MetaInsightURL != baseURL || !metaInsightHostPrefix.MatchString(host) {
@@ -272,6 +272,9 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	}
 	if req.Header.Get("Content-Type") == "" && contentType != "" {
 		req.Header.Set("Content-Type", contentType)
+	}
+	if isRetry {
+		req.Header.Set("X-Cos-Sdk-Retry", "true")
 	}
 	if c.Host != "" {
 		req.Host = c.Host
@@ -370,6 +373,8 @@ type sendOptions struct {
 	// 是否禁用自动调用 resp.Body.Close()
 	// 自动调用 Close() 是为了能够重用连接
 	disableCloseBody bool
+	// 是否重试
+	isRetry bool
 }
 
 func toSwitchHost(oldURL *url.URL) *url.URL {
@@ -428,6 +433,7 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 		if err != nil {
 			retryErr.Add(err)
 		}
+		opt.isRetry = nr > 0
 		resp, err = c.send(ctx, opt)
 		opt.baseURL, retrieable = c.CheckRetrieable(opt.baseURL, resp, err, nr >= count-2)
 		if retrieable {
@@ -449,7 +455,7 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 }
 
 func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
-	req, err := c.newRequest(ctx, opt.baseURL, opt.uri, opt.method, opt.body, opt.optQuery, opt.optHeader)
+	req, err := c.newRequest(ctx, opt.baseURL, opt.uri, opt.method, opt.body, opt.optQuery, opt.optHeader, opt.isRetry)
 	if err != nil {
 		return
 	}
