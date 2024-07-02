@@ -382,7 +382,7 @@ func isDeliverHeader(key string) bool {
 			return true
 		}
 	}
-	return strings.HasPrefix(key, privateHeaderPrefix)
+	return strings.HasPrefix(key, privateHeaderPrefix) || strings.HasPrefix(key, "x-")
 }
 
 func deliverInitOptions(opt *InitiateMultipartUploadOptions) (*http.Header, error) {
