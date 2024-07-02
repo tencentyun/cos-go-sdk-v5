@@ -92,7 +92,7 @@ func TestCIService_ZipPreview(t *testing.T) {
 		testMethod(t, r, http.MethodGet)
 		v := values{
 			"ci-process":     "zippreview",
-			"uncompress_key": "xxx",
+			"uncompress-key": "xxx",
 		}
 		testFormValues(t, r, v)
 	})
