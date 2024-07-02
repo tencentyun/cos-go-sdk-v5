@@ -60,7 +60,7 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 type ObjectUploadPartOptions struct {
 	Expect                string `header:"Expect,omitempty" url:"-"`
 	XCosContentSHA1       string `header:"x-cos-content-sha1,omitempty" url:"-"`
-	ContentLength         int64  `header:"Content-Length,omitempty" url:"-"`
+	ContentLength         int64  `header:"Content-Length" url:"-"`
 	ContentMD5            string `header:"Content-MD5,omitempty" url:"-"`
 	XCosSSECustomerAglo   string `header:"x-cos-server-side-encryption-customer-algorithm,omitempty" url:"-" xml:"-"`
 	XCosSSECustomerKey    string `header:"x-cos-server-side-encryption-customer-key,omitempty" url:"-" xml:"-"`

@@ -460,6 +460,10 @@ func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, er
 		return
 	}
 
+	if req.Header.Get("Content-Length") == "0" {
+		req.Body = nil
+	}
+
 	resp, err = c.doAPI(ctx, req, opt.result, !opt.disableCloseBody)
 	return
 }
