@@ -87,15 +87,17 @@ func TestCIService_ZipPreview(t *testing.T) {
 	defer teardown()
 
 	name := "test.zip"
+	uncompress_key := "xxx"
 	mux.HandleFunc("/"+name, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		v := values{
-			"ci-process": "zippreview",
+			"ci-process":     "zippreview",
+			"uncompress-key": "xxx",
 		}
 		testFormValues(t, r, v)
 	})
 
-	_, _, err := client.CI.ZipPreview(context.Background(), name)
+	_, _, err := client.CI.ZipPreview(context.Background(), name, uncompress_key)
 	if err != nil {
 		t.Fatalf("CI.ZipPreview returned error: %v", err)
 	}

@@ -39,23 +39,37 @@ type FileUncompressResult struct {
 	FileCount string `xml:",omitempty"`
 }
 
+type KeyConfig struct {
+	Key         string `xml:",omitempty"`
+	Folder      string `xml:",omitempty"`
+	Rename      string `xml:",omitempty"`
+	ImageParams string `xml:",omitempty"`
+}
+
 type FileCompressConfig struct {
-	Flatten     string   `xml:",omitempty"`
-	Format      string   `xml:",omitempty"`
-	UrlList     string   `xml:",omitempty"`
-	Prefix      string   `xml:",omitempty"`
-	Key         []string `xml:",omitempty"`
-	Type        string   `xml:",omitempty"`
-	CompressKey string   `xml:",omitempty"`
-	IgnoreError string   `xml:",omitempty"`
+	Flatten     string      `xml:",omitempty"`
+	Format      string      `xml:",omitempty"`
+	UrlList     string      `xml:",omitempty"`
+	Prefix      string      `xml:",omitempty"`
+	Key         []string    `xml:",omitempty"`
+	Type        string      `xml:",omitempty"`
+	CompressKey string      `xml:",omitempty"`
+	IgnoreError string      `xml:",omitempty"`
+	KeyConfig   []KeyConfig `xml:",omitempty"`
 }
 
 type FileCompressResult struct {
-	Region            string `xml:",omitempty"`
-	Bucket            string `xml:",omitempty"`
-	Object            string `xml:",omitempty"`
-	CompressFileCount int    `xml:",omitempty"`
-	ErrorCount        int    `xml:",omitempty"`
+	Region            string       `xml:",omitempty"`
+	Bucket            string       `xml:",omitempty"`
+	Object            string       `xml:",omitempty"`
+	CompressFileCount int          `xml:",omitempty"`
+	ErrorCount        int          `xml:",omitempty"`
+	ErrorDetail       *ErrorDetail `xml:",omitempty"`
+}
+
+type ErrorDetail struct {
+	ErrorCount string   `xml:",omitempty"`
+	ErrorFile  []string `xml:",omitempty"`
 }
 
 type FileProcessInput FileCompressResult
@@ -175,11 +189,15 @@ type ZipPreviewResult struct {
 }
 
 // ZipPreview 压缩包预览
-func (s *CIService) ZipPreview(ctx context.Context, name string) (*ZipPreviewResult, *Response, error) {
+func (s *CIService) ZipPreview(ctx context.Context, name, uncompress_key string) (*ZipPreviewResult, *Response, error) {
 	var res ZipPreviewResult
+	uriStr := "/" + encodeURIComponent(name) + "?ci-process=zippreview"
+	if uncompress_key != "" {
+		uriStr += "&uncompress-key=" + encodeURIComponent(uncompress_key)
+	}
 	sendOpt := sendOptions{
 		baseURL: s.client.BaseURL.BucketURL,
-		uri:     "/" + encodeURIComponent(name) + "?ci-process=zippreview",
+		uri:     uriStr,
 		method:  http.MethodGet,
 		result:  &res,
 	}
