@@ -85,8 +85,8 @@ type ObjectUploadPartOptions struct {
 //
 // https://www.qcloud.com/document/product/436/7750
 func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, partNumber int, r io.Reader, uopt *ObjectUploadPartOptions) (*Response, error) {
-	if r == nil {
-		return nil, fmt.Errorf("reader is nil")
+	if (r == nil || r == http.NoBody) && uopt != nil && uopt.ContentLength != 0 {
+		return nil, fmt.Errorf("ContentLength must be 0 when reader is nil or http.NoBody.")
 	}
 	if err := CheckReaderLen(r); err != nil {
 		return nil, err
@@ -125,12 +125,16 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 	}
 	retryErr := &RetryError{}
 	for nr := 0; nr < count; nr++ {
-		reader := TeeReader(r, nil, totalBytes, nil)
-		if s.client.Conf.EnableCRC {
-			reader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
-		}
-		if opt != nil && opt.Listener != nil {
-			reader.listener = opt.Listener
+		var reader io.Reader
+		if r != nil && r != http.NoBody {
+			tReader := TeeReader(r, nil, totalBytes, nil)
+			if s.client.Conf.EnableCRC {
+				tReader.writer = crc64.New(crc64.MakeTable(crc64.ECMA))
+			}
+			if opt != nil && opt.Listener != nil {
+				tReader.listener = opt.Listener
+			}
+			reader = tReader
 		}
 		u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
 		sendOpt := sendOptions{
