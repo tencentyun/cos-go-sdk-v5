@@ -7,8 +7,11 @@ import (
 )
 
 type BucketLifecycleAndOperator struct {
-	Prefix string             `xml:"Prefix,omitempty" header:"-"`
-	Tag    []BucketTaggingTag `xml:"Tag,omitempty" header:"-"`
+	Prefix                string             `xml:"Prefix,omitempty" header:"-"`
+	Tag                   []BucketTaggingTag `xml:"Tag,omitempty" header:"-"`
+	PrefixNotEquals       string             `xml:"PrefixNotEquals,omitempty" header:"-"`
+	ObjectSizeGreaterThan int64              `xml:"ObjectSizeGreaterThan,omitempty" header:"-"`
+	ObjectSizeLessThan    int64              `xml:"ObjectSizeLessThan,omitempty" header:"-"`
 }
 
 // BucketLifecycleFilter is the param of BucketLifecycleRule
@@ -25,16 +28,23 @@ type BucketLifecycleExpiration struct {
 	ExpiredObjectDeleteMarker bool   `xml:"ExpiredObjectDeleteMarker,omitempty" header:"-"`
 }
 
+type BucketAccessFrequency struct {
+	AccessCountLessThan int `xml:"AccessCountLessThan,omitempty" header:"-"`
+	RecentDays          int `xml:"RecentDays,omitempty" header:"-"`
+}
+
 // BucketLifecycleTransition is the param of BucketLifecycleRule
 type BucketLifecycleTransition struct {
-	Date         string `xml:"Date,omitempty" header:"-"`
-	Days         int    `xml:"Days,omitempty" header:"-"`
-	StorageClass string `xml:"StorageClass,omitempty" header:"-"`
+	Date            string                 `xml:"Date,omitempty" header:"-"`
+	Days            int                    `xml:"Days,omitempty" header:"-"`
+	StorageClass    string                 `xml:"StorageClass,omitempty" header:"-"`
+	AccessFrequency *BucketAccessFrequency `xml:"AccessFrequency,omitempty" header:"-"`
 }
 
 type BucketLifecycleNoncurrentVersion struct {
-	NoncurrentDays int    `xml:"NoncurrentDays,omitempty" header:"-"`
-	StorageClass   string `xml:"StorageClass,omitempty" header:"-"`
+	NoncurrentDays  int                    `xml:"NoncurrentDays,omitempty" header:"-"`
+	StorageClass    string                 `xml:"StorageClass,omitempty" header:"-"`
+	AccessFrequency *BucketAccessFrequency `xml:"AccessFrequency,omitempty" header:"-"`
 }
 
 // BucketLifecycleAbortIncompleteMultipartUpload is the param of BucketLifecycleRule

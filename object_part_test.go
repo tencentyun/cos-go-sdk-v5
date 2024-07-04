@@ -195,6 +195,52 @@ func TestObjectService_UploadPart(t *testing.T) {
 
 }
 
+func TestObjectService_UploadPartWithEmptyData(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "test/hello.txt"
+	uploadID := "xxxxx"
+	partNumber := 1
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		vs := values{
+			"uploadId":   uploadID,
+			"partNumber": "1",
+		}
+		testFormValues(t, r, vs)
+		if r.Header.Get("Content-Length") != "0" {
+			t.Fatalf("UploadPart Content-Length is not 0")
+		}
+		b, _ := ioutil.ReadAll(r.Body)
+		if len(b) != 0 {
+			t.Fatalf("data is not empty")
+		}
+	})
+
+	_, err := client.Object.UploadPart(context.Background(),
+		name, uploadID, partNumber, nil, nil)
+	if err != nil {
+		t.Fatalf("Object.UploadPart returned error: %v", err)
+	}
+
+	_, err = client.Object.UploadPart(context.Background(),
+		name, uploadID, partNumber, http.NoBody, nil)
+	if err != nil {
+		t.Fatalf("Object.UploadPart returned error: %v", err)
+	}
+
+	_, err = client.Object.UploadPart(context.Background(),
+		name, uploadID, partNumber, http.NoBody, &ObjectUploadPartOptions{
+			ContentLength: 1,
+		})
+	if err == nil || err.Error() != "ContentLength must be 0 when reader is nil or http.NoBody." {
+		t.Fatalf("Object.UploadPart returned error: %v", err)
+	}
+
+}
+
 func TestObjectService_ListUploads(t *testing.T) {
 	setup()
 	defer teardown()
