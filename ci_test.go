@@ -2958,3 +2958,39 @@ func TestCIService_AIGameRec(t *testing.T) {
 		t.Fatalf("CI.AIGameRec returned error: %v", err)
 	}
 }
+
+func TestCIService_AIPicMatting(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIPicMatting",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.AIPicMatting(context.Background(), "test.jpg", nil)
+	if err != nil {
+		t.Fatalf("CI.AIPicMatting returned error: %v", err)
+	}
+}
+
+func TestCIService_AIPortraitMatting(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "AIPortraitMatting",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.AIPortraitMatting(context.Background(), "test.jpg", nil)
+	if err != nil {
+		t.Fatalf("CI.AIPortraitMatting returned error: %v", err)
+	}
+}

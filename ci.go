@@ -2581,3 +2581,46 @@ func (s *CIService) AIGameRec(ctx context.Context, obj string, opt *AIGameRecOpt
 	resp, err := s.client.send(ctx, sendOpt)
 	return &res, resp, err
 }
+
+type AIPicMattingOptions struct {
+	DetectUrl     string      `url:"detect-url, omitempty" json:"-"`     // 您可以通过填写 detect-url 处理任意公网可访问的图片链接。不填写 detect-url 时，后台会默认处理 ObjectKey ，填写了 detect-url 时，后台会处理 detect-url 链接，无需再填写 ObjectKey detect-url 示例：http://www.example.com/abc.jpg ，需要进行 UrlEncode，处理后为http%25253A%25252F%25252Fwww.example.com%25252Fabc.jpg。
+	CenterLayout  int         `url:"center-layout, omitempty" json:"-"`  // 抠图主体居中显示；值为1时居中显示，值为0不做处理，默认为0
+	PaddingLayout string      `url:"padding-layout, omitempty" json:"-"` // 将处理后的图片四边进行留白，形式为 padding-layout=<dx>x<dy>，左右两边各进行 dx 像素的留白，上下两边各进行 dy 像素的留白，例如：padding-layout=20x10默认不进行留白操作，dx、dy 最大值为1000像素。
+	OptHeaders    *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+}
+
+// 通用抠图
+// https://cloud.tencent.com/document/product/460/106750
+func (s *CIService) AIPicMatting(ctx context.Context, ObjectKey string, opt *AIPicMattingOptions) (*Response, error) {
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(ObjectKey) + "?ci-process=AIPicMatting",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}
+
+type AIPortraitMattingOptions struct {
+	DetectUrl     string      `url:"detect-url, omitempty" json:"-"`     // 您可以通过填写 detect-url 处理任意公网可访问的图片链接。不填写 detect-url 时，后台会默认处理 ObjectKey ，填写了 detect-url 时，后台会处理 detect-url 链接，无需再填写 ObjectKey。 detect-url 示例：http://www.example.com/abc.jpg，需要进行 UrlEncode，处理后为http%25253A%25252F%25252Fwww.example.com%25252Fabc.jpg。
+	CenterLayout  int         `url:"center-layout, omitempty" json:"-"`  // 抠图主体居中显示；值为1时居中显示，值为0不做处理，默认为0
+	PaddingLayout string      `url:"padding-layout, omitempty" json:"-"` // 将处理后的图片四边进行留白，形式为 padding-layout=x，左右两边各进行 dx 像素的留白，上下两边各进行 dy 像素的留白，例如：padding-layout=20x10默认不进行留白操作，dx、dy最大值为1000像素。
+	OptHeaders    *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+}
+
+// 人像抠图
+// https://cloud.tencent.com/document/product/460/106751
+func (s *CIService) AIPortraitMatting(ctx context.Context, ObjectKey string, opt *AIPortraitMattingOptions) (*Response, error) {
+
+	sendOpt := sendOptions{
+		baseURL:          s.client.BaseURL.BucketURL,
+		uri:              "/" + encodeURIComponent(ObjectKey) + "?ci-process=AIPortraitMatting",
+		method:           http.MethodGet,
+		optQuery:         opt,
+		disableCloseBody: true,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return resp, err
+}

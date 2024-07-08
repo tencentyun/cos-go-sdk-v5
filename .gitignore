@@ -32,4 +32,8 @@ coverage.html
 example/CI/media_process/test*
 example/CI/workflow_and_job/test*
 example/CI/metainsight/test*
+example/CI/ai_recognition/test*
+example/CI/image_process/test*
+example/CI/doc_preview/test*
+example/CI/content_auditing/test*
 .vscode
