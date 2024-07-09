@@ -1910,11 +1910,15 @@ func (s *ObjectService) PutSymlink(ctx context.Context, name string, opt *Object
 	if opt == nil || opt.SymlinkTarget == "" {
 		return nil, errors.New("SymlinkTarget is empty")
 	}
+	copt := &ObjectPutSymlinkOptions{
+		SymlinkTarget: encodeURIComponent(opt.SymlinkTarget),
+		XOptionHeader: opt.XOptionHeader,
+	}
 	sendOpt := &sendOptions{
 		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodeURIComponent(name) + "?symlink",
 		method:    http.MethodPut,
-		optHeader: opt,
+		optHeader: copt,
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err
