@@ -2,6 +2,7 @@ package cos
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"net/http"
@@ -84,5 +85,26 @@ func TestBucketService_PutReferer(t *testing.T) {
 	_, err := client.Bucket.PutReferer(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("Bucket.PutReferer returned error: %v", err)
+	}
+}
+
+func TestBucketService_DeleteReferer(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "PUT")
+		vs := values{
+			"referer": "",
+		}
+		testFormValues(t, r, vs)
+		if r.Header.Get("Content-Md5") != base64.StdEncoding.EncodeToString(calMD5Digest([]byte(""))) {
+			t.Errorf("Bucket.DeleteReferer Md5 error")
+		}
+	})
+
+	_, err := client.Bucket.DeleteReferer(context.Background())
+	if err != nil {
+		t.Fatalf("Bucket.DeleteReferer returned error: %v", err)
 	}
 }
