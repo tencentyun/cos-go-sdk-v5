@@ -36,14 +36,7 @@ func main() {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-	// Get object by presinged url
-	resp, err := http.Get(presignedURL.String())
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	defer resp.Body.Close()
 	fmt.Println(presignedURL.String())
-	fmt.Printf("resp:%v\n", resp)
 
 	// 方法2 通过 PresignedURLOptions 设置 x-cos-security-token
 	opt := &cos.PresignedURLOptions{
@@ -57,12 +50,5 @@ func main() {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-	// Get object by presinged url
-	resp, err = http.Get(presignedURL.String())
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	defer resp.Body.Close()
 	fmt.Println(presignedURL.String())
-	fmt.Printf("resp:%v\n", resp)
 }

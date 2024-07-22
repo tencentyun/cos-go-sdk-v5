@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -55,23 +53,8 @@ func main() {
 	name := "test"
 	ctx := context.Background()
 
-	// Normal header way to get object
-	resp, err := c.Object.Get(ctx, name, nil)
-	log_status(err)
-	bs, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-
 	// Get presigned
 	presignedURL, err := c.Object.GetPresignedURL(ctx, http.MethodGet, name, ak, sk, time.Hour, nil)
 	log_status(err)
-
-	// Get object by presinged url
-	resp2, err := http.Get(presignedURL.String())
-	log_status(err)
-	bs2, _ := ioutil.ReadAll(resp2.Body)
-	resp2.Body.Close()
-	fmt.Printf("result2 is : %s\n", string(bs2))
-
-	fmt.Printf("%v\n\n", bytes.Compare(bs2, bs) == 0)
-
+	fmt.Println(presignedURL.String())
 }

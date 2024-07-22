@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -35,15 +34,4 @@ func main() {
 		return
 	}
 	fmt.Printf("url: %v\n", presignedURL.String())
-	// 通过预签名方式上传对象
-	data := "test upload with presignedURL"
-	f := strings.NewReader(data)
-	req, err := http.NewRequest(http.MethodPut, presignedURL.String(), f)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
-	_, err = http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-	}
 }
