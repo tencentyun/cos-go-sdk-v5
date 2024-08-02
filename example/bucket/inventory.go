@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -38,9 +38,9 @@ func main() {
 		Transport: &cos.AuthorizationTransport{
 			// 通过环境变量获取密钥
 			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretID: os.Getenv("COS_SECRETID"),
+			SecretID: os.Getenv("SECRETID"),
 			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -66,5 +66,5 @@ func main() {
 		},
 	}
 	_, err := client.Bucket.PostInventory(context.Background(), "test_id", opt)
-	log_status(err)
+	logStatus(err)
 }

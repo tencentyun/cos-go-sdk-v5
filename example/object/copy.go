@@ -16,13 +16,13 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
 	if cos.IsNotFoundError(err) {
 		// WARN
-        fmt.Println("WARN: Resource is not existed")
+		fmt.Println("WARN: Resource is not existed")
 	} else if e, ok := cos.IsCOSError(err); ok {
 		fmt.Printf("ERROR: Code: %v\n", e.Code)
 		fmt.Printf("ERROR: Message: %v\n", e.Message)
@@ -43,10 +43,10 @@ func main() {
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			// 通过环境变量获取密钥
-			// 环境变量 COS_SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretID:  os.Getenv("COS_SECRETID"),
-			// 环境变量 COS_SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretID: os.Getenv("SECRETID"),
+			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretKey: os.Getenv("SECRETKEY"),
 			// Debug 模式，把对应 请求头部、请求内容、响应头部、响应内容 输出到标准输出
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
@@ -62,19 +62,19 @@ func main() {
 	f := strings.NewReader(expected)
 
 	_, err := c.Object.Put(context.Background(), source, f, nil)
-	log_status(err)
+	logStatus(err)
 
 	soruceURL := fmt.Sprintf("%s/%s", u.Host, source)
 	dest := fmt.Sprintf("test/objectMove_%d.go", time.Now().Nanosecond())
 	//opt := &cos.ObjectCopyOptions{}
 	res, _, err := c.Object.Copy(context.Background(), dest, soruceURL, nil)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("%+v\n\n", res)
 
 	resp, err := c.Object.Get(context.Background(), dest, nil)
-	log_status(err)
+	logStatus(err)
 
-    bs, _ := ioutil.ReadAll(resp.Body)
+	bs, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	result := string(bs)
 	if result != expected {

@@ -11,7 +11,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -37,8 +37,8 @@ func main() {
 	}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    false,
@@ -55,9 +55,9 @@ func main() {
 		},
 	}
 	_, err := c.Bucket.PutIntelligentTiering(context.Background(), opt)
-	log_status(err)
+	logStatus(err)
 	res, _, err := c.Bucket.GetIntelligentTiering(context.Background())
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("%+v\n", res)
 	fmt.Printf("%+v\n", res.Status)
 	fmt.Printf("%+v\n", res.Transition.Days)

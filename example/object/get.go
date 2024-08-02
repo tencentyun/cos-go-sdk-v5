@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -40,10 +40,10 @@ func main() {
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			// 通过环境变量获取密钥
-			// 环境变量 COS_SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretID: os.Getenv("COS_SECRETID"),
-			// 环境变量 COS_SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretID: os.Getenv("SECRETID"),
+			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretKey: os.Getenv("SECRETKEY"),
 			// Debug 模式，把对应 请求头部、请求内容、响应头部、响应内容 输出到标准输出
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
@@ -57,7 +57,7 @@ func main() {
 	// Case1 通过resp.Body下载对象，Body需要关闭
 	name := "test/example"
 	resp, err := c.Object.Get(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 
 	bs, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
@@ -65,18 +65,18 @@ func main() {
 
 	// Case2 下载对象到文件. Body需要关闭
 	fd, err := os.OpenFile("test", os.O_WRONLY|os.O_CREATE, 0660)
-	log_status(err)
+	logStatus(err)
 
 	defer fd.Close()
 	resp, err = c.Object.Get(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 
 	io.Copy(fd, resp.Body)
 	resp.Body.Close()
 
 	// Case3 下载对象到文件
 	_, err = c.Object.GetToFile(context.Background(), name, "test", nil)
-	log_status(err)
+	logStatus(err)
 
 	// Case4 range下载对象，可以根据range实现并发下载
 	opt := &cos.ObjectGetOptions{
@@ -84,7 +84,7 @@ func main() {
 		Range:               "bytes=0-3",
 	}
 	resp, err = c.Object.Get(context.Background(), name, opt)
-	log_status(err)
+	logStatus(err)
 	bs, _ = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	fmt.Printf("%s\n", string(bs))
@@ -94,5 +94,5 @@ func main() {
 		Listener: &cos.DefaultProgressListener{},
 	}
 	_, err = c.Object.GetToFile(context.Background(), name, "test", opt)
-	log_status(err)
+	logStatus(err)
 }

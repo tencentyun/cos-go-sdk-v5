@@ -14,7 +14,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -35,7 +35,7 @@ func log_status(err error) {
 
 func initUpload(c *cos.Client, name string) *cos.InitiateMultipartUploadResult {
 	v, _, err := c.Object.InitiateMultipartUpload(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("%#v\n", v)
 	return v
 }
@@ -44,7 +44,7 @@ func uploadPart(c *cos.Client, name string, uploadID string, blockSize, n int) s
 
 	b := make([]byte, blockSize)
 	if _, err := rand.Read(b); err != nil {
-		log_status(err)
+		logStatus(err)
 	}
 	s := fmt.Sprintf("%X", b)
 	f := strings.NewReader(s)
@@ -52,7 +52,7 @@ func uploadPart(c *cos.Client, name string, uploadID string, blockSize, n int) s
 	resp, err := c.Object.UploadPart(
 		context.Background(), name, uploadID, n, f, nil,
 	)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("%s\n", resp.Status)
 	return resp.Header.Get("Etag")
 }
@@ -62,8 +62,8 @@ func main() {
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    false,
@@ -82,12 +82,12 @@ func main() {
 		uploadPart(c, name, uploadID, blockSize, i)
 	}
 	opt := &cos.ObjectListUploadsOptions{
-		Prefix:       "test/test_list_parts",
-		MaxUploads:   1,
+		Prefix:     "test/test_list_parts",
+		MaxUploads: 1,
 	}
 	v, _, err := c.Object.ListUploads(context.Background(), opt)
 	if err != nil {
-		log_status(err)
+		logStatus(err)
 		return
 	}
 	fmt.Printf("%+v\n", v)

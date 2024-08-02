@@ -12,7 +12,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -32,8 +32,13 @@ func log_status(err error) {
 }
 
 func main() {
-	ak := os.Getenv("COS_SECRETID")
-	sk := os.Getenv("COS_SECRETKEY")
+	// 通过环境变量获取密钥
+	// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+	ak := os.Getenv("SECRETID")
+	// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+	sk := os.Getenv("SECRETKEY")
+	// 存储桶名称，由bucketname-appid 组成，appid必须填入，可以在COS控制台查看存储桶名称。 https://console.cloud.tencent.com/cos5/bucket
+	// 替换为用户的 region，存储桶region可以在COS控制台“存储桶概览”查看 https://console.cloud.tencent.com/ ，关于地域的详情见 https://cloud.tencent.com/document/product/436/6224 。
 	u, _ := url.Parse("https://test-1253846586.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
@@ -55,6 +60,6 @@ func main() {
 
 	// Get presigned
 	presignedURL, err := c.Object.GetPresignedURL(ctx, http.MethodGet, name, ak, sk, time.Hour, nil)
-	log_status(err)
+	logStatus(err)
 	fmt.Println(presignedURL.String())
 }

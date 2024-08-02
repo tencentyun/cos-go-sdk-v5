@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -33,8 +33,8 @@ func log_status(err error) {
 }
 
 func main() {
-	ak := os.Getenv("COS_SECRETID")
-	sk := os.Getenv("COS_SECRETKEY")
+	ak := os.Getenv("SECRETID")
+	sk := os.Getenv("SECRETKEY")
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, nil)
@@ -68,6 +68,6 @@ func main() {
 	req.Header.Add("Authorization", auth)
 
 	resp, err := cli.Do(req)
-	log_status(err)
+	logStatus(err)
 	defer resp.Body.Close()
 }

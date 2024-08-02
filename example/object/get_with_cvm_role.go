@@ -11,7 +11,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -48,5 +48,5 @@ func main() {
 
 	name := "exampleobject"
 	_, err := c.Object.Get(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 }

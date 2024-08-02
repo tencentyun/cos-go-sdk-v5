@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -32,6 +32,7 @@ func log_status(err error) {
 	}
 }
 
+// 恢复多版本桶srcBucket的数据
 var (
 	srcBucket       = "test-1259654469"
 	srcBucketRegion = "ap-guangzhou"
@@ -48,8 +49,8 @@ func newClient(bucket, region string) *cos.Client {
 	}
 	return cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  false,
 				RequestBody:    false,
@@ -60,11 +61,12 @@ func newClient(bucket, region string) *cos.Client {
 	})
 }
 
+// 恢复数据
 func recoverObj(key, versionId string) {
 	sourceURL := fmt.Sprintf("%v.cos.%v.myqcloud.com/%v?versionId=%v", srcBucket, srcBucketRegion, key, versionId)
 	_, _, err := srcCosClient.Object.MultiCopy(context.Background(), key, sourceURL, nil)
 	if err != nil {
-		log_status(err)
+		logStatus(err)
 	}
 }
 
@@ -82,7 +84,7 @@ func main() {
 		opt.VersionIdMarker = versionIdMarker
 		v, _, err := srcCosClient.Bucket.GetObjectVersions(context.Background(), opt)
 		if err != nil {
-			log_status(err)
+			logStatus(err)
 			break
 		}
 		for _, vc := range v.DeleteMarker {

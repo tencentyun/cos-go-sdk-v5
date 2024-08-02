@@ -17,8 +17,8 @@ type URLToken struct {
 
 func main() {
 	// 替换成您的临时密钥
-	tak := os.Getenv("COS_SECRETID")
-	tsk := os.Getenv("COS_SECRETKEY")
+	tak := os.Getenv("SECRETID")
+	tsk := os.Getenv("SECRETKEY")
 	token := &URLToken{
 		SessionToken: "<token>",
 	}

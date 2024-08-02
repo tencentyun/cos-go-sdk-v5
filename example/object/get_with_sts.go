@@ -11,7 +11,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -37,8 +37,8 @@ func main() {
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.StsCredentialTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -69,5 +69,5 @@ func main() {
 	name := "example"
 	// Case3 通过本地文件上传对象
 	_, err := c.Object.GetToFile(context.Background(), name, "./test", nil) // 请求的超时时间为 min{context超时时间， HTTP超时时间}
-	log_status(err)
+	logStatus(err)
 }
