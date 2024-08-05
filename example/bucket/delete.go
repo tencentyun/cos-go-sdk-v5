@@ -18,8 +18,8 @@ func main() {
 	}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,

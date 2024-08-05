@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -36,10 +36,10 @@ func main() {
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			// 通过环境变量获取密钥
-			// 环境变量 COS_SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretID: os.Getenv("COS_SECRETID"),
-			// 环境变量 COS_SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretID: os.Getenv("SECRETID"),
+			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretKey: os.Getenv("SECRETKEY"),
 			// 1、不设置 Transport 时：
 			//		1）对于内部域名，Transport 默认使用 &cos.DNSScatterTransport, cos.DNSScatterTransport 获取DNS响应后，随机获取IP
 			//		2）对于其他域名，Transport 默认使用 &http.DefaultTransport (go http 库默认 Transport)
@@ -50,5 +50,5 @@ func main() {
 
 	name := "exampleobject"
 	_, err := c.Object.Get(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 }

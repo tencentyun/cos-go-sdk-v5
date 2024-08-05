@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -37,8 +37,8 @@ func main() {
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -50,6 +50,6 @@ func main() {
 
 	name := "test_multipart" + time.Now().Format(time.RFC3339)
 	v, _, err := c.Object.InitiateMultipartUpload(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("%s\n", v.UploadID)
 }

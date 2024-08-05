@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -37,8 +37,8 @@ func main() {
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -61,6 +61,6 @@ func main() {
 	soruceURL := fmt.Sprintf("%s/%s", u.Host, source)
 	dest := fmt.Sprintf("destobject")
 	res, _, err := c.Object.MultiCopy(context.Background(), dest, soruceURL, opt)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("res:%+v\n", res)
 }

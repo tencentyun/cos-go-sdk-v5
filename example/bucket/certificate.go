@@ -12,7 +12,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -38,8 +38,8 @@ func main() {
 	}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -48,8 +48,11 @@ func main() {
 			},
 		},
 	})
+	domain := "www.qq.com"
+	domainPemPath := domain + ".pem"
+	domainKeyPath := domain + ".key"
 
-	fd, err := os.Open("www.qq.com.pem")
+	fd, err := os.Open(domainPemPath)
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +61,7 @@ func main() {
 		panic(err)
 	}
 	fd.Close()
-	fd, err = os.Open("www.qq.com.key")
+	fd, err = os.Open(domainKeyPath)
 	if err != nil {
 		panic(err)
 	}
@@ -77,24 +80,24 @@ func main() {
 			},
 		},
 		DomainList: []string{
-			"www.qq.com",
+			domain,
 		},
 	}
 
 	_, err = c.Bucket.PutDomainCertificate(context.Background(), opt)
-	log_status(err)
+	logStatus(err)
 
 	gopt := &cos.BucketGetDomainCertificateOptions{
-		DomainName: "www.qq.com",
+		DomainName: domain,
 	}
 	res, _, err := c.Bucket.GetDomainCertificate(context.Background(), gopt)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("%+v\n", res)
 
 	dopt := &cos.BucketDeleteDomainCertificateOptions{
-		DomainName: "www.qq.com",
+		DomainName: domain,
 	}
 	_, err = c.Bucket.DeleteDomainCertificate(context.Background(), dopt)
-	log_status(err)
+	logStatus(err)
 
 }

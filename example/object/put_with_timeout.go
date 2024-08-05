@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -40,10 +40,10 @@ func main() {
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
 			// 通过环境变量获取密钥
-			// 环境变量 COS_SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretID:  os.Getenv("COS_SECRETID"),
-			// 环境变量 COS_SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretID: os.Getenv("SECRETID"),
+			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretKey: os.Getenv("SECRETKEY"),
 			// Debug 模式，把对应 请求头部、请求内容、响应头部、响应内容 输出到标准输出
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader: true,
@@ -61,5 +61,5 @@ func main() {
 	// Case3 通过本地文件上传对象
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second) // context超时时间
 	_, err := c.Object.PutFromFile(ctx, name, "./test", nil)           // 请求的超时时间为 min{context超时时间， HTTP超时时间}
-	log_status(err)
+	logStatus(err)
 }
