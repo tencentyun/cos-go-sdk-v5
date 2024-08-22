@@ -13,7 +13,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -32,6 +32,7 @@ func log_status(err error) {
 	}
 }
 
+// 恢复桶srcBucket的数据到桶dstBucket
 var (
 	srcBucket       = "test-1259654469"
 	dstBucket       = "test2-1259654469"
@@ -49,8 +50,8 @@ func newClient(bucket, region string) *cos.Client {
 	}
 	return cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  false,
 				RequestBody:    false,
@@ -65,11 +66,12 @@ func recoverObj(key, versionId string) {
 	sourceURL := fmt.Sprintf("%v.cos.%v.myqcloud.com/%v?versionId=%v", srcBucket, srcBucketRegion, key, versionId)
 	_, _, err := dstCosClient.Object.MultiCopy(context.Background(), key, sourceURL, nil)
 	if err != nil {
-		log_status(err)
+		logStatus(err)
 	}
 }
 
 func main() {
+	// 创建客户端
 	srcCosClient = newClient(srcBucket, srcBucketRegion)
 	dstCosClient = newClient(dstBucket, dstBucketRegion)
 
@@ -80,16 +82,17 @@ func main() {
 		EncodingType: "url",
 	}
 	var preKey string
+	// 遍历桶scrBucket的多版本文件
 	for isTruncated {
 		opt.KeyMarker = keyMarker
 		opt.VersionIdMarker = versionIdMarker
 		v, _, err := srcCosClient.Bucket.GetObjectVersions(context.Background(), opt)
 		if err != nil {
-			log_status(err)
+			logStatus(err)
 			break
 		}
 		for _, vc := range v.Version {
-			// 最新非deletemarker对象
+			// 每个对象找到第一个非deletemarker的版本，进行复制
 			if preKey != vc.Key {
 				preKey = vc.Key
 				key, _ := cos.DecodeURIComponent(vc.Key)

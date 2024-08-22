@@ -12,7 +12,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -36,11 +36,11 @@ type Credential struct {
 
 // 需实现 CredentialIface 三个方法
 func (c *Credential) GetSecretId() string {
-	return os.Getenv("COS_SECRETID")
+	return os.Getenv("SECRETID")
 }
 
 func (c *Credential) GetSecretKey() string {
-	return os.Getenv("COS_SECRETKEY")
+	return os.Getenv("SECRETKEY")
 }
 
 func (c *Credential) GetToken() string {
@@ -67,5 +67,5 @@ func main() {
 
 	name := "exampleobject"
 	_, err := c.Object.Get(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 }

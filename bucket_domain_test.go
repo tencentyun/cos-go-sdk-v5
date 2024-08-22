@@ -19,6 +19,7 @@ func TestBucketService_GetDomain(t *testing.T) {
 		vs := values{
 			"domain": "",
 		}
+		testHeader(t, r, "x-cos-meta-test", "test")
 		testFormValues(t, r, vs)
 		rt++
 		if rt < 3 {
@@ -35,7 +36,11 @@ func TestBucketService_GetDomain(t *testing.T) {
 </DomainConfiguration>`)
 	})
 
-	res, _, err := client.Bucket.GetDomain(context.Background())
+	opt := &BucketGetDomainOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+	res, _, err := client.Bucket.GetDomain(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("Bucket.GetDomain returned error %v", err)
 	}
@@ -109,10 +114,16 @@ func TestBucketService_DeleteDomain(t *testing.T) {
 			"domain": "",
 		}
 		testFormValues(t, r, vs)
+		testHeader(t, r, "x-cos-meta-test", "test")
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	_, err := client.Bucket.DeleteDomain(context.Background())
+	opt := &BucketDeleteDomainOptions{
+		XOptionHeader: &http.Header{},
+	}
+	opt.XOptionHeader.Add("x-cos-meta-test", "test")
+
+	_, err := client.Bucket.DeleteDomain(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("Bucket.DeleteDomain returned error: %v", err)
 	}

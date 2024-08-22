@@ -11,7 +11,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -54,7 +54,7 @@ func main() {
 	upload(c, name)
 
 	resp, err := c.Object.Get(context.Background(), name, nil)
-	log_status(err)
+	logStatus(err)
 	bs, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	fmt.Printf("%s\n", string(bs))

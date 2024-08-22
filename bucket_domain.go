@@ -30,23 +30,41 @@ func (s *BucketService) PutDomain(ctx context.Context, opt *BucketPutDomainOptio
 	return resp, err
 }
 
-func (s *BucketService) GetDomain(ctx context.Context) (*BucketGetDomainResult, *Response, error) {
+type BucketGetDomainOptions struct {
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
+func (s *BucketService) GetDomain(ctx context.Context, opt ...*BucketGetDomainOptions) (*BucketGetDomainResult, *Response, error) {
+	var gopt *BucketGetDomainOptions
+	if len(opt) > 0 {
+		gopt = opt[0]
+	}
 	var res BucketGetDomainResult
 	sendOpt := &sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     "/?domain",
-		method:  http.MethodGet,
-		result:  &res,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/?domain",
+		method:    http.MethodGet,
+		result:    &res,
+		optHeader: gopt,
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
 }
 
-func (s *BucketService) DeleteDomain(ctx context.Context) (*Response, error) {
+type BucketDeleteDomainOptions struct {
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
+func (s *BucketService) DeleteDomain(ctx context.Context, opt ...*BucketDeleteDomainOptions) (*Response, error) {
+	var dopt *BucketDeleteDomainOptions
+	if len(opt) > 0 {
+		dopt = opt[0]
+	}
 	sendOpt := &sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     "/?domain",
-		method:  http.MethodDelete,
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/?domain",
+		method:    http.MethodDelete,
+		optHeader: dopt,
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return resp, err

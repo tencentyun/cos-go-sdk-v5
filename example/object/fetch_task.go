@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -37,8 +37,8 @@ func main() {
 	b := &cos.BaseURL{BucketURL: bu, FetchURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -53,21 +53,21 @@ func main() {
 		// COS中的文件路径，不需要url encode
 		Key: "exampleobject",
 		/*
-		MD5: 文件 MD5 校验值, 可选
-		SuccessCallbackUrl: 回源拉取成功的回调地址，可选
-		FailureCallbackUrl: 回源拉取失败的回调地址，可选
+			MD5: 文件 MD5 校验值, 可选
+			SuccessCallbackUrl: 回源拉取成功的回调地址，可选
+			FailureCallbackUrl: 回源拉取失败的回调地址，可选
 		*/
 	}
 
 	// 发起离线回源
 	res, _, err := c.Object.PutFetchTask(context.Background(), bucket, opt)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("res: %+v\n", res)
 
 	time.Sleep(time.Second * 3)
 
 	// 查询回源进度
 	rs, _, err := c.Object.GetFetchTask(context.Background(), bucket, res.Data.TaskId)
-	log_status(err)
+	logStatus(err)
 	fmt.Printf("res: %+v\n", rs)
 }

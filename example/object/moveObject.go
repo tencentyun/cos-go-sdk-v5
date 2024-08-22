@@ -14,7 +14,7 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
-func log_status(err error) {
+func logStatus(err error) {
 	if err == nil {
 		return
 	}
@@ -38,8 +38,8 @@ func main() {
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
 		Transport: &cos.AuthorizationTransport{
-			SecretID:  os.Getenv("COS_SECRETID"),
-			SecretKey: os.Getenv("COS_SECRETKEY"),
+			SecretID:  os.Getenv("SECRETID"),
+			SecretKey: os.Getenv("SECRETKEY"),
 			Transport: &debug.DebugRequestTransport{
 				RequestHeader:  true,
 				RequestBody:    true,
@@ -54,15 +54,15 @@ func main() {
 
 	// 上传文件
 	_, err := c.Object.Put(context.Background(), source, f, nil)
-	log_status(err)
+	logStatus(err)
 
 	// 重命名
 	dest := "test/newfile"
 	soruceURL := fmt.Sprintf("%s/%s", u.Host, source)
 	_, _, err = c.Object.Copy(context.Background(), dest, soruceURL, nil)
-	log_status(err)
+	logStatus(err)
 	if err == nil {
 		_, err = c.Object.Delete(context.Background(), source, nil)
-		log_status(err)
+		logStatus(err)
 	}
 }

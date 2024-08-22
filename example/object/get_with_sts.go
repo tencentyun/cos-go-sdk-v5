@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
-	"time"
-
-	"net/http"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
@@ -38,28 +36,38 @@ func main() {
 	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
-		Transport: &cos.AuthorizationTransport{
-			// 通过环境变量获取密钥
-			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
-			SecretID: os.Getenv("SECRETID"),
-			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+		Transport: &cos.StsCredentialTransport{
+			SecretID:  os.Getenv("SECRETID"),
 			SecretKey: os.Getenv("SECRETKEY"),
-			// Debug 模式，把对应 请求头部、请求内容、响应头部、响应内容 输出到标准输出
 			Transport: &debug.DebugRequestTransport{
-				RequestHeader: true,
-				// Notice when put a large file and set need the request body, might happend out of memory error.
-				RequestBody:    false,
+				RequestHeader:  true,
+				RequestBody:    true,
 				ResponseHeader: true,
 				ResponseBody:   false,
 			},
+			Policy: &cos.CredentialPolicy{
+				Statement: []cos.CredentialPolicyStatement{
+					{
+						// 密钥的权限列表。简单上传和分片需要以下的权限，其他权限列表请看 https://cloud.tencent.com/document/product/436/31923
+						Action: []string{
+							// 简单上传
+							"name/cos:GetObject",
+						},
+						Effect: "allow",
+						Resource: []string{
+							// 这里改成允许的路径前缀，可以根据自己网站的用户登录态判断允许上传的具体路径，例子： a.jpg 或者 a/* 或者 * (使用通配符*存在重大安全风险, 请谨慎评估使用)
+							// 存储桶的命名格式为 BucketName-APPID，此处填写的 bucket 必须为此格式
+							"qcs::cos:ap-guangzhou:uid/1259654469:test-1259654469/example",
+						},
+					},
+				},
+			},
 		},
-		Timeout: 5 * time.Second, // HTTP超时时间
 	})
 
 	// Case1 上传对象
-	name := "test/example"
+	name := "example"
 	// Case3 通过本地文件上传对象
-	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second) // context超时时间
-	_, err := c.Object.PutFromFile(ctx, name, "./test", nil)           // 请求的超时时间为 min{context超时时间， HTTP超时时间}
+	_, err := c.Object.GetToFile(context.Background(), name, "./test", nil) // 请求的超时时间为 min{context超时时间， HTTP超时时间}
 	logStatus(err)
 }

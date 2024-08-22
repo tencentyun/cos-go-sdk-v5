@@ -1475,6 +1475,37 @@ func SplitSizeIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error)
 	return chunks, int(partNum), nil
 }
 
+func SplitSizeIntoChunksToDownload(totalBytes int64, partSize int64) ([]Chunk, int, error) {
+	var partNum int64
+	if partSize > 0 {
+		if partSize < 1024*1024 {
+			return nil, 0, errors.New("partSize>=1048576 is required")
+		}
+		partNum = totalBytes / partSize
+	} else {
+		partNum, partSize = DividePart(totalBytes, 16)
+	}
+
+	var chunks []Chunk
+	var chunk = Chunk{}
+	for i := int64(0); i < partNum; i++ {
+		chunk.Number = int(i + 1)
+		chunk.OffSet = i * partSize
+		chunk.Size = partSize
+		chunks = append(chunks, chunk)
+	}
+
+	if totalBytes%partSize > 0 {
+		chunk.Number = len(chunks) + 1
+		chunk.OffSet = int64(len(chunks)) * partSize
+		chunk.Size = totalBytes % partSize
+		chunks = append(chunks, chunk)
+		partNum++
+	}
+
+	return chunks, int(partNum), nil
+}
+
 func (s *ObjectService) checkDownloadedParts(opt *MultiDownloadCPInfo, chfile string, chunks []Chunk) (*MultiDownloadCPInfo, bool) {
 	var defaultRes MultiDownloadCPInfo
 	defaultRes = *opt
@@ -1551,7 +1582,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	}
 
 	// 切分
-	chunks, partNum, err := SplitSizeIntoChunks(totalBytes, opt.PartSize*1024*1024)
+	chunks, partNum, err := SplitSizeIntoChunksToDownload(totalBytes, opt.PartSize*1024*1024)
 	if err != nil {
 		return resp, err
 	}
