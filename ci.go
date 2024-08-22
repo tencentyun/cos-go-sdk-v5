@@ -2624,3 +2624,109 @@ func (s *CIService) AIPortraitMatting(ctx context.Context, ObjectKey string, opt
 	resp, err := s.client.send(ctx, &sendOpt)
 	return resp, err
 }
+
+type AIRecognitionResult struct {
+	XMLName xml.Name `xml:"Response" json:"response,omitempty"`
+	// BodyJointsDetect struct {
+	// 	BodyJointsResults []struct {
+	// 		BodyJoints []struct {
+	// 			KeyPointType string `xml:"KeyPointType"`
+	// 			X            string `xml:"X"`
+	// 			Y            string `xml:"Y"`
+	// 		} `xml:"BodyJoints" json:"bodyjoints,omitempty"`
+	// 		BoundBox struct {
+	// 			Height string `xml:"Height"`
+	// 			Width  string `xml:"Width"`
+	// 			X      string `xml:"X"`
+	// 			Y      string `xml:"Y"`
+	// 		} `xml:"BoundBox" json:"boundbox,omitempty"`
+	// 		Confidence string `xml:"Confidence"`
+	// 	} `xml:"BodyJointsResults" json:"bodyjointsresults,omitempty"`
+	// 	RequestId string `xml:"RequestId"`
+	// } `xml:"BodyJointsDetect" json:"bodyjointsdetect,omitempty"`
+	// DetectLabel struct {
+	// 	Labels []struct {
+	// 		Confidence string `xml:"Confidence"`
+	// 		Name       string `xml:"Name"`
+	// 	} `xml:"Labels" json:"labels,omitempty"`
+	// } `xml:"DetectLabel" json:"detectlabel,omitempty"`
+	// OCR struct {
+	// 	Angel          string `xml:"Angel"`
+	// 	Language       string `xml:"Language"`
+	// 	PdfPageSize    string `xml:"PdfPageSize"`
+	// 	RequestId      string `xml:"RequestId"`
+	// 	TextDetections []struct {
+	// 		Confidence   string `xml:"Confidence"`
+	// 		DetectedText string `xml:"DetectedText"`
+	// 		ItemPolygon  struct {
+	// 			Height string `xml:"Height"`
+	// 			Width  string `xml:"Width"`
+	// 			X      string `xml:"X"`
+	// 			Y      string `xml:"Y"`
+	// 		} `xml:"ItemPolygon" json:"itempolygon,omitempty"`
+	// 		Polygon []struct {
+	// 			X string `xml:"X"`
+	// 			Y string `xml:"Y"`
+	// 		} `xml:"Polygon" json:"polygon,omitempty"`
+	// 		Words string `xml:"Words"`
+	// 	} `xml:"TextDetections" json:"textdetections,omitempty"`
+	// } `xml:"OCR" json:"ocr,omitempty"`
+	// EnhanceImage struct {
+	// 	EnhancedImage string `xml:"EnhancedImage"`
+	// } `xml:"EnhanceImage" json:"enhanceimage,omitempty"`
+	DetectVehicle struct {
+		Vehicles []struct {
+			Location struct {
+				Height int `xml:"Height"`
+				Width  int `xml:"Width"`
+				X      int `xml:"X"`
+				Y      int `xml:"Y"`
+			} `xml:"Location" json:"location,omitempty"`
+			Name  string `xml:"Name"`
+			Score int    `xml:"Score"`
+		} `xml:"Vehicles" json:"vehicles,omitempty"`
+	} `xml:"DetectVehicle" json:"detectvehicle,omitempty"`
+	DetectPedestrian struct {
+		Pedestrians []struct {
+			Location struct {
+				Height int `xml:"Height"`
+				Width  int `xml:"Width"`
+				X      int `xml:"X"`
+				Y      int `xml:"Y"`
+			} `xml:"Location" json:"location,omitempty"`
+			Name  string `xml:"Name"`
+			Score int    `xml:"Score"`
+		} `xml:"Pedestrians" json:"pedestrians,omitempty"`
+	} `xml:"DetectPedestrian" json:"detectpedestrian,omitempty"`
+	DetectPet struct {
+		Pets []struct {
+			Location struct {
+				Height int `xml:"Height"`
+				Width  int `xml:"Width"`
+				X      int `xml:"X"`
+				Y      int `xml:"Y"`
+			} `xml:"Location" json:"location,omitempty"`
+			Name  string `xml:"Name"`
+			Score int    `xml:"Score"`
+		} `xml:"Pets" json:"pets,omitempty"`
+	} `xml:"DetectPet" json:"detectpet,omitempty"`
+}
+
+type AIRecognitionOptions struct {
+	DetectType string      `url:"detect-type, omitempty" json:"-"`
+	OptHeaders *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+}
+
+// 多AI接口合一
+func (s *CIService) AIRecognition(ctx context.Context, ObjectKey string, opt *AIRecognitionOptions) (*AIRecognitionResult, *Response, error) {
+	var res AIRecognitionResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.BucketURL,
+		uri:      "/" + encodeURIComponent(ObjectKey) + "?ci-process=ai-recognition",
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
