@@ -249,7 +249,7 @@ func InvokeGeneratePlayListJob() {
 }
 
 func main() {
-	InvokeGeneratePlayListJob()
+	// InvokeGeneratePlayListJob()
 	// 替换成您的密钥
 	tak := os.Getenv("COS_SECRETID")
 	tsk := os.Getenv("COS_SECRETKEY")
@@ -265,14 +265,20 @@ func main() {
 	// 替换成您需要播放的视频名称
 	objectKey := "live/a.m3u8"
 
-	GetCOSDomainURL(tak, tsk, token, appId, bucketId, region, objectKey)
+	playUrl := ""
+
+	playUrl = GetCOSDomainURL(tak, tsk, token, appId, bucketId, region, objectKey)
+	fmt.Println(playUrl)
 	// 替换为自己cdn域名
 	cdn := "http://abc.cdn.com"
-	GetCDNDomainURL(cdn, objectKey)
-	// 替换为自己播放密钥，控制台可以查询
+	playUrl = GetCDNDomainURL(cdn, objectKey)
+	fmt.Println(playUrl)
+	// // 替换为自己播放密钥，控制台可以查询
 	// var playkey = []byte("aaaaaaaaaaa")
-	// 生成token
+	// // 生成token
 	// jwtToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	// GetCOSDomainVideoEncryptionURL(tak, tsk, token, bucketId, region, objectKey, jwtToken)
-	// GetCDNDomainURL(cdn, objectKey, jwtToken)
+	// playUrl = GetCOSDomainVideoEncryptionURL(tak, tsk, token, bucketId, region, objectKey, jwtToken)
+	// fmt.Println(playUrl)
+	// playUrl = GetCDNDomainVideoEncryptionURL(cdn, objectKey, jwtToken)
+	// fmt.Println(playUrl)
 }
