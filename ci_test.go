@@ -2994,3 +2994,23 @@ func TestCIService_AIPortraitMatting(t *testing.T) {
 		t.Fatalf("CI.AIPortraitMatting returned error: %v", err)
 	}
 }
+
+func TestCIService_AIRecognition(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process":  "ai-recognition",
+			"detect-type": "",
+		}
+		testFormValues(t, r, v)
+	})
+	opt := &AIRecognitionOptions{}
+
+	_, _, err := client.CI.AIRecognition(context.Background(), "test.jpg", opt)
+	if err != nil {
+		t.Fatalf("CI.AIRecognition returned error: %v", err)
+	}
+}
