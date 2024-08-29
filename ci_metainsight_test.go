@@ -286,7 +286,7 @@ func TestCIService_DatasetSimpleQueryAggregations(t *testing.T) {
 func TestCIService_CreateDatasetBinding(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"URI\":\"cos://test1-1250000000\"}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"URI\":\"cos://test1-1250000000\",\"Mode\":0}"
 
 	mux.HandleFunc("/datasetbinding", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -298,6 +298,7 @@ func TestCIService_CreateDatasetBinding(t *testing.T) {
 	opt := &CreateDatasetBindingOptions{
 		DatasetName: "adataset",
 		URI:         "cos://test1-1250000000",
+		Mode:        0,
 	}
 	_, _, err := client.MetaInsight.CreateDatasetBinding(context.Background(), opt)
 	if err != nil {

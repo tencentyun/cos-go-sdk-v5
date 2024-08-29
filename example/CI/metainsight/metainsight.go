@@ -205,6 +205,7 @@ func CreateDatasetBinding() {
 	opt := &cos.CreateDatasetBindingOptions{
 		DatasetName: "adataset",
 		URI:         "cos://test1-1250000000",
+		Mode:        0,
 	}
 	res, _, err := c.MetaInsight.CreateDatasetBinding(context.Background(), opt)
 	log_status(err)
