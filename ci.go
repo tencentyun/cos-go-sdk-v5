@@ -2744,7 +2744,12 @@ type ImageSlim struct {
 	Suffixs  *ImageSlimSuffixs `xml:"Suffixs,omitempty"`
 }
 
-type ImageSlimResult ImageSlim
+type ImageSlimResult struct {
+	XMLName  xml.Name          `xml:"ImageSlim"`
+	SlimMode string            `xml:"SlimMode,omitempty"`
+	Status   string            `xml:"Status,omitempty"`
+	Suffixs  *ImageSlimSuffixs `xml:"Suffixs,omitempty"`
+}
 
 type ImageSlimOptions ImageSlim
 
