@@ -78,8 +78,8 @@ func enhanceImageWhenUpload() {
 		},
 	})
 	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
+		ACLHeaderOptions: nil,
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			XOptionHeader: &http.Header{},
 		},
 	}

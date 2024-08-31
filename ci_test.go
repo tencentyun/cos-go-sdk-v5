@@ -3014,3 +3014,77 @@ func TestCIService_AIRecognition(t *testing.T) {
 		t.Fatalf("CI.AIRecognition returned error: %v", err)
 	}
 }
+
+func TestBucketService_GetImageSlim(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"image-slim": "",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprint(w, `<ImageSlim><SlimMode>Auto</SlimMode><Suffixs><Suffix>jpg</Suffix><Suffix>png</Suffix></Suffixs></ImageSlim>`)
+	})
+
+	res, _, err := client.CI.GetImageSlim(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetImageSlim returned error %v", err)
+	}
+
+	want := &ImageSlimResult{
+		XMLName:  xml.Name{Local: "ImageSlim"},
+		SlimMode: "Auto",
+		Suffixs: &ImageSlimSuffixs{
+			Suffix: []string{"jpg", "png"},
+		},
+	}
+
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetImageSlim %+v, want %+v", res, want)
+	}
+}
+
+func TestBucketService_PutImageSlim(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "PUT")
+		vs := values{
+			"image-slim": "",
+		}
+		testFormValues(t, r, vs)
+	})
+	opt := &ImageSlimOptions{
+		SlimMode: "Auto",
+		Suffixs: &ImageSlimSuffixs{
+			Suffix: []string{"jpg", "png"},
+		},
+	}
+
+	_, err := client.CI.PutImageSlim(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.PutImageSlim returned error: %v", err)
+	}
+}
+
+func TestBucketService_DeleteImageSlim(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "DELETE")
+		vs := values{
+			"image-slim": "",
+		}
+		testFormValues(t, r, vs)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	_, err := client.CI.DeleteImageSlim(context.Background())
+	if err != nil {
+		t.Fatalf("CI.DeleteImageSlim returned error: %v", err)
+	}
+}

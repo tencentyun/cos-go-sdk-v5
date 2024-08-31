@@ -43,6 +43,9 @@ type ImageProcessResult struct {
 	XMLName        xml.Name           `xml:"UploadResult"`
 	OriginalInfo   *PicOriginalInfo   `xml:"OriginalInfo,omitempty"`
 	ProcessResults []PicProcessObject `xml:"ProcessResults>Object,omitempty"`
+	// 历史兼容考虑不建议抽象单独struct防止客户使用影响
+	ProcessResultsText                string `xml:"ProcessResults>Text,omitempty"`
+	ProcessResultsWatermarkStatusCode int    `xml:"ProcessResults>WatermarkStatusCode,omitempty"`
 }
 type PicOriginalInfo struct {
 	Key       string        `xml:"Key,omitempty"`
@@ -2729,4 +2732,54 @@ func (s *CIService) AIRecognition(ctx context.Context, ObjectKey string, opt *AI
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+type ImageSlimSuffixs struct {
+	Suffix []string `xml:"Suffix,omitempty"`
+}
+
+type ImageSlim struct {
+	XMLName  xml.Name          `xml:"ImageSlim"`
+	SlimMode string            `xml:"SlimMode,omitempty"`
+	Suffixs  *ImageSlimSuffixs `xml:"Suffixs,omitempty"`
+}
+
+type ImageSlimResult ImageSlim
+
+type ImageSlimOptions ImageSlim
+
+// 开通 极智压缩ImageSlim https://cloud.tencent.com/document/product/460/95042
+func (s *CIService) PutImageSlim(ctx context.Context, opt *ImageSlimOptions) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?image-slim",
+		method:  http.MethodPut,
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+// 查询 极智压缩ImageSlim https://cloud.tencent.com/document/product/460/95043
+func (s *CIService) GetImageSlim(ctx context.Context) (*ImageSlimResult, *Response, error) {
+	var res ImageSlimResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?image-slim",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+// 关闭 极智压缩ImageSlim https://cloud.tencent.com/document/product/460/95044
+func (s *CIService) DeleteImageSlim(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?image-slim",
+		method:  http.MethodDelete,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
 }

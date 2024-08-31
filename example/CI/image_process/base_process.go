@@ -68,8 +68,8 @@ func processWhenUpload(ctx context.Context, rawurl, obj, localpath string, pic *
 	})
 
 	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
+		ACLHeaderOptions: nil,
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			XOptionHeader: &http.Header{},
 		},
 	}
@@ -941,6 +941,74 @@ func commonProcess() {
 				{
 					FileId: "pipe/pipe_80%.jpg",
 					Rule:   "imageMogr2/xxx",
+				},
+			},
+		}
+		processWhenCloud(context.Background(), rawurl, obj, pic)
+	}
+}
+
+// 添加文件盲水印3.0
+func blindWatermark3() {
+	rawurl := "https://test-1234567890.cos.ap-beijing.myqcloud.com"
+	// 上传时处理
+	{
+		obj := "test_slim_blindWatermark3.png"
+		filepath := "./test_slim.png"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "test_slim_blindWatermark3_upload.jpg",
+					Rule:   "watermark/3/type/3/text/5L2g5aW95LiH6LGh/version/3.0",
+				},
+			},
+		}
+		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
+	}
+	// 云上数据处理
+	{
+		obj := "test_slim.png"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "test_slim_blindWatermark3_cloud.png",
+					Rule:   "watermark/3/type/3/text/5L2g5aW95LiH6LGh/version/3.0",
+				},
+			},
+		}
+		processWhenCloud(context.Background(), rawurl, obj, pic)
+	}
+}
+
+// 提取文字盲水印3.0
+func extractBlindWatermark3() {
+	rawurl := "https://test-1234567890.cos.ap-beijing.myqcloud.com"
+	// 上传时处理
+	{
+		obj := "test_slim.png"
+		filepath := "./test_slim.png"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "empty",
+					Rule:   "watermark/4/type/3/version/3.0",
+				},
+			},
+		}
+		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
+	}
+	// 云上数据处理
+	{
+		obj := "test_slim_blindWatermark3_cloud.png"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "empty",
+					Rule:   "watermark/4/type/3/version/3.0",
 				},
 			},
 		}
