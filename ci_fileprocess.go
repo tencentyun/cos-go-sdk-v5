@@ -113,6 +113,7 @@ type FileProcessJobsDetail struct {
 	StartTime    string                   `xml:",omitempty"`
 	EndTime      string                   `xml:",omitempty"`
 	QueueId      string                   `xml:",omitempty"`
+	Progress     int                      `xml:",omitempty"`
 	Input        *FileProcessInput        `xml:",omitempty"`
 	Operation    *FileProcessJobOperation `xml:",omitempty"`
 }
