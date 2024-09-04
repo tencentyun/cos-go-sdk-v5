@@ -30,6 +30,26 @@ func log_status(err error) {
 	}
 }
 
+func getClient() *cos.Client {
+	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
+	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader: true,
+				// Notice when put a large file and set need the request body, might happend out of memory error.
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   false,
+			},
+		},
+	})
+	return c
+}
+
 // 开启 Guetzli
 func openGuetzli() {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-guangzhou.myqcloud.com")
@@ -135,8 +155,8 @@ func compressWhenUpload(ctx context.Context, rawurl, obj, localpath string, pic 
 	})
 
 	opt := &cos.ObjectPutOptions{
-		nil,
-		&cos.ObjectPutHeaderOptions{
+		ACLHeaderOptions: nil,
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			XOptionHeader: &http.Header{},
 		},
 	}
@@ -329,6 +349,74 @@ func avif() {
 				{
 					FileId: "avif/deer1.avif",
 					Rule:   "imageMogr2/format/avif",
+				},
+			},
+		}
+		compressWhenCloud(context.Background(), rawurl, obj, pic)
+	}
+}
+
+// 开启 ImageSlim
+func openImageSlim() {
+	c := getClient()
+	opt := &cos.ImageSlimOptions{
+		SlimMode: "Auto,API",
+		Suffixs: &cos.ImageSlimSuffixs{
+			Suffix: []string{"png"},
+		},
+	}
+	_, err := c.CI.PutImageSlim(context.Background(), opt)
+	log_status(err)
+}
+
+// 查询 ImageSlim
+func getImageSlim() {
+	c := getClient()
+	res, _, err := c.CI.GetImageSlim(context.Background())
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+// 关闭 ImageSlim
+func closeImageSlim() {
+	c := getClient()
+	_, err := c.CI.DeleteImageSlim(context.Background())
+	log_status(err)
+}
+
+func imageslim() {
+	rawurl := "https://test-1234567890.cos.ap-beijing.myqcloud.com"
+	// 下载时压缩
+	{
+		obj := "test_slim.png"
+		filepath := "./test_slim.slim.png"
+		operation := "imageSlim"
+		compressWhenDownload(context.Background(), rawurl, obj, filepath, operation, nil)
+	}
+	// 上传时压缩
+	{
+		obj := "test_slim.upload.src.png"
+		filepath := "./test_slim.png"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "test_slim.upload.png",
+					Rule:   "imageSlim",
+				},
+			},
+		}
+		compressWhenUpload(context.Background(), rawurl, obj, filepath, pic)
+	}
+	// 云上数据压缩
+	{
+		obj := "test_slim.png"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "test_slim.cloud.png",
+					Rule:   "imageSlim",
 				},
 			},
 		}

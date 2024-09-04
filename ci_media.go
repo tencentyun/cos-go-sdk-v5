@@ -2436,18 +2436,41 @@ type CreateVideoTargetRecTemplateOptions struct {
 	VideoTargetRec *VideoTargetRec `xml:"VideoTargetRec,omitempty" json:"VideoTargetRec,omitempty"`
 }
 
+// VTRTranscode TODO
+type VTRTranscode struct {
+	Container *Container `xml:"Container,omitempty"`
+	Video     *VTRVideo  `xml:"Video,omitempty"`
+}
+
+// VTRVideo TODO
+type VTRVideo struct {
+	Codec   string `xml:"Codec"`
+	Bitrate string `xml:"Bitrate,omitempty"`
+	Crf     string `xml:"Crf,omitempty"`
+	Width   string `xml:"Width,omitempty"`
+	Height  string `xml:"Height,omitempty"`
+	Fps     string `xml:"Fps,omitempty"`
+}
+
 // VideoTargetRec TODO
 type VideoTargetRec struct {
-	Body string `xml:"Body,omitempty"`
-	Pet  string `xml:"Pet,omitempty"`
-	Car  string `xml:"Car,omitempty"`
+	Body        string        `xml:"Body,omitempty"`
+	Pet         string        `xml:"Pet,omitempty"`
+	Car         string        `xml:"Car,omitempty"`
+	Face        string        `xml:"Face,omitempty"`
+	Plate       string        `xml:"Plate,omitempty"`
+	ProcessType string        `xml:"ProcessType,omitempty"`
+	TransTpl    *VTRTranscode `xml:"TransTpl,omitempty"`
 }
 
 // VideoTargetRecResult TODO
 type VideoTargetRecResult struct {
-	BodyRecognition []*BodyRecognition `xml:"BodyRecognition,omitempty"`
-	PetRecognition  []*PetRecognition  `xml:"PetRecognition,omitempty"`
-	CarRecognition  []*CarRecognition  `xml:"CarRecognition,omitempty"`
+	BodyRecognition          []*BodyRecognition          `xml:"BodyRecognition,omitempty"`
+	PetRecognition           []*PetRecognition           `xml:"PetRecognition,omitempty"`
+	CarRecognition           []*CarRecognition           `xml:"CarRecognition,omitempty"`
+	FaceRecognition          []*FaceRecognition          `xml:"FaceRecognition,omitempty"`
+	LicenseRecognitionResult []*LicenseRecognitionResult `xml:"LicenseRecognitionResult,omitempty"`
+	Sensitive                string                      `xml:"Sensitive,omitempty"`
 }
 
 // BodyRecognition TODO
@@ -2469,6 +2492,20 @@ type CarRecognition struct {
 	Time    string                `xml:"Time,omitempty"`
 	Url     string                `xml:"Url,omitempty"`
 	CarInfo []*VideoTargetRecInfo `xml:"CarInfo,omitempty"`
+}
+
+// FaceRecognition TODO
+type FaceRecognition struct {
+	Time     string                `xml:"Time,omitempty"`
+	Url      string                `xml:"Url,omitempty"`
+	FaceInfo []*VideoTargetRecInfo `xml:"FaceInfo,omitempty"`
+}
+
+// LicenseRecognitionResult TODO
+type LicenseRecognitionResult struct {
+	Time      string                `xml:"Time,omitempty"`
+	Url       string                `xml:"Url,omitempty"`
+	PlateInfo []*VideoTargetRecInfo `xml:"PlateInfo,omitempty"`
 }
 
 // BodyInfo TODO

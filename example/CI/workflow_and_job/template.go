@@ -768,9 +768,22 @@ func CreateVideoTargetRecTemplate() {
 		Tag:  "VideoTargetRec",
 		Name: "VideoTargetRec-" + strconv.Itoa(rand.Intn(100)),
 		VideoTargetRec: &cos.VideoTargetRec{
-			Body: "true",
-			Pet:  "true",
-			Car:  "true",
+			Body:        "false",
+			Pet:         "false",
+			Car:         "false",
+			Face:        "false",
+			Plate:       "true",
+			ProcessType: "Mosaic",
+			TransTpl: &cos.VTRTranscode{
+				Container: &cos.Container{
+					Format: "mp4",
+				},
+				Video: &cos.VTRVideo{
+					Codec: "h.264",
+					Width: "1280",
+					Fps:   "30",
+				},
+			},
 		},
 	}
 	createTplRes, _, err := c.CI.CreateVideoTargetRecTemplate(context.Background(), createTplOpt)
@@ -787,12 +800,25 @@ func UpdateVideoTargetRecTemplate() {
 		Tag:  "VideoTargetRec",
 		Name: "VideoTargetRec-" + strconv.Itoa(rand.Intn(100)),
 		VideoTargetRec: &cos.VideoTargetRec{
-			Body: "true",
-			Pet:  "true",
-			Car:  "true",
+			Body:        "false",
+			Pet:         "false",
+			Car:         "false",
+			Face:        "false",
+			Plate:       "true",
+			ProcessType: "Mosaic",
+			TransTpl: &cos.VTRTranscode{
+				Container: &cos.Container{
+					Format: "mp4",
+				},
+				Video: &cos.VTRVideo{
+					Codec: "h.264",
+					Width: "720",
+					Fps:   "20",
+				},
+			},
 		},
 	}
-	templateId := "t10d7cdebcea61426e9b7bd701fb2f2fdc"
+	templateId := "t11dea26033caf4b728c7e9352d3b1acc1"
 	updateTplRes, _, err := c.CI.UpdateVideoTargetRecTemplate(context.Background(), updateTplOpt, templateId)
 	log_status(err)
 	fmt.Printf("%+v\n", updateTplRes.Template)

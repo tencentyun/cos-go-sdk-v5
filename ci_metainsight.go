@@ -327,7 +327,8 @@ func (s *MetaInsightService) DeleteFileMetaIndex(ctx context.Context, opt *Delet
 
 type CreateDatasetBindingOptions struct {
 	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	URI         string      `json:"URI, omitempty" url:"-" `         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶，字段规则：cos://<BucketName>，其中BucketName表示COS存储桶名称，例如：cos://examplebucket-1250000000
+	URI         string      `json:"URI, omitempty" url:"-" `         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶的资源，字段规则：cos://<BucketName>/<Path>，其中BucketName表示COS存储桶名称，Path表示资源路径，例如：cos://examplebucket-1250000000/test/。
+	Mode        int         `json:"Mode", omitempty" url:"-" `       // 建立绑定后，以何种方式进行文件索引特征的提取，有效值：0，表示仅对增量文件建立索引；1，表示在对增量文件建立索引的同时，也会对存储桶中存量文件建立索引，存量文件索引建立的时长与存量文件数有关；默认值为0。
 	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
 }
 
@@ -339,6 +340,7 @@ type CreateDatasetBindingResult struct {
 type Binding struct {
 	URI         string `json:"URI"`         //  资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶，字段规则：cos://，其中BucketName表示COS存储桶名称，例如：cos://examplebucket-1250000000
 	State       string `json:"State"`       //  数据集和 COS Bucket绑定关系的状态。取值范围如下：Running：绑定关系运行中。
+	StockState  string `json:"StockState"`  //  当前绑定的存储桶对应的存量索引的状态：有效值：NoIndexing（未进行存量建立索引）、Indexing（存量索引建立中）、Success（存量索引已建立完成）。
 	CreateTime  string `json:"CreateTime"`  //  数据集和 COS Bucket绑定关系创建时间的时间戳，格式为RFC3339Nano。
 	UpdateTime  string `json:"UpdateTime"`  //  数据集和 COS Bucket的绑定关系修改时间的时间戳，格式为RFC3339Nano。创建绑定关系后，如果未暂停或者未重启过绑定关系，则绑定关系修改时间的时间戳和绑定关系创建时间的时间戳相同。
 	DatasetName string `json:"DatasetName"` // 数据集名称。
