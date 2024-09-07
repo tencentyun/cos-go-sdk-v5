@@ -783,16 +783,17 @@ type MediaProcessJobOperation struct {
 
 // CreatePicJobsOptions TODO
 type CreatePicJobsOptions struct {
-	XMLName          xml.Name                      `xml:"Request"`
-	Tag              string                        `xml:"Tag,omitempty"`
-	Input            *JobInput                     `xml:"Input,omitempty"`
-	Operation        *PicProcessJobOperation       `xml:"Operation,omitempty"`
-	QueueId          string                        `xml:"QueueId,omitempty"`
-	CallBack         string                        `xml:"CallBack,omitempty"`
-	QueueType        string                        `xml:"QueueType,omitempty"`
-	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
-	CallBackType     string                        `xml:"CallBackType,omitempty"`
-	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	XMLName             xml.Name                      `xml:"Request"`
+	Tag                 string                        `xml:"Tag,omitempty"`
+	Input               *JobInput                     `xml:"Input,omitempty"`
+	Operation           *PicProcessJobOperation       `xml:"Operation,omitempty"`
+	QueueId             string                        `xml:"QueueId,omitempty"`
+	CallBack            string                        `xml:"CallBack,omitempty"`
+	QueueType           string                        `xml:"QueueType,omitempty"`
+	CallBackFormat      string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                        `xml:"CallBackType,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                  `xml:"CallBackKafkaConfig,omitempty"`
 }
 
 // CreateAIJobsOptions TODO
@@ -800,16 +801,17 @@ type CreateAIJobsOptions CreateMediaJobsOptions
 
 // CreateMediaJobsOptions TODO
 type CreateMediaJobsOptions struct {
-	XMLName          xml.Name                      `xml:"Request"`
-	Tag              string                        `xml:"Tag,omitempty"`
-	Input            *JobInput                     `xml:"Input,omitempty"`
-	Operation        *MediaProcessJobOperation     `xml:"Operation,omitempty"`
-	QueueId          string                        `xml:"QueueId,omitempty"`
-	QueueType        string                        `xml:"QueueType,omitempty"`
-	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
-	CallBackType     string                        `xml:"CallBackType,omitempty"`
-	CallBack         string                        `xml:"CallBack,omitempty"`
-	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	XMLName             xml.Name                      `xml:"Request"`
+	Tag                 string                        `xml:"Tag,omitempty"`
+	Input               *JobInput                     `xml:"Input,omitempty"`
+	Operation           *MediaProcessJobOperation     `xml:"Operation,omitempty"`
+	QueueId             string                        `xml:"QueueId,omitempty"`
+	QueueType           string                        `xml:"QueueType,omitempty"`
+	CallBackFormat      string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                        `xml:"CallBackType,omitempty"`
+	CallBack            string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                  `xml:"CallBackKafkaConfig,omitempty"`
 }
 
 // NotifyConfigCallBackMqConfig TODO
@@ -856,16 +858,17 @@ type CreateMediaJobsResult struct {
 
 // CreateMultiMediaJobsOptions TODO
 type CreateMultiMediaJobsOptions struct {
-	XMLName          xml.Name                      `xml:"Request"`
-	Tag              string                        `xml:"Tag,omitempty"`
-	Input            *JobInput                     `xml:"Input,omitempty"`
-	Operation        []MediaProcessJobOperation    `xml:"Operation,omitempty"`
-	QueueId          string                        `xml:"QueueId,omitempty"`
-	QueueType        string                        `xml:"QueueType,omitempty"`
-	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
-	CallBackType     string                        `xml:"CallBackType,omitempty"`
-	CallBack         string                        `xml:"CallBack,omitempty"`
-	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	XMLName             xml.Name                      `xml:"Request"`
+	Tag                 string                        `xml:"Tag,omitempty"`
+	Input               *JobInput                     `xml:"Input,omitempty"`
+	Operation           []MediaProcessJobOperation    `xml:"Operation,omitempty"`
+	QueueId             string                        `xml:"QueueId,omitempty"`
+	QueueType           string                        `xml:"QueueType,omitempty"`
+	CallBackFormat      string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                        `xml:"CallBackType,omitempty"`
+	CallBack            string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                  `xml:"CallBackKafkaConfig,omitempty"`
 }
 
 // CreateMultiMediaJobsResult TODO
@@ -1144,14 +1147,21 @@ type MediaProcessQueue struct {
 
 // MediaProcessQueueNotifyConfig TODO
 type MediaProcessQueueNotifyConfig struct {
-	Url          string `xml:"Url,omitempty"`
-	State        string `xml:"State,omitempty"`
-	Type         string `xml:"Type,omitempty"`
-	Event        string `xml:"Event,omitempty"`
-	ResultFormat string `xml:"ResultFormat,omitempty"`
-	MqMode       string `xml:"MqMode,omitempty"`
-	MqRegion     string `xml:"MqRegion,omitempty"`
-	MqName       string `xml:"MqName,omitempty"`
+	Url          string       `xml:"Url,omitempty"`
+	State        string       `xml:"State,omitempty"`
+	Type         string       `xml:"Type,omitempty"`
+	Event        string       `xml:"Event,omitempty"`
+	ResultFormat string       `xml:"ResultFormat,omitempty"`
+	MqMode       string       `xml:"MqMode,omitempty"`
+	MqRegion     string       `xml:"MqRegion,omitempty"`
+	MqName       string       `xml:"MqName,omitempty"`
+	KafkaConfig  *KafkaConfig `xml:"KafkaConfig,omitempty"`
+}
+
+type KafkaConfig struct {
+	Region     string `xml:"Region,omitempty"`
+	InstanceId string `xml:"InstanceId,omitempty"`
+	Topic      string `xml:"Topic,omitempty"`
 }
 
 // DescribeMediaProcessQueues TODO
@@ -1804,10 +1814,12 @@ func (s *CIService) DescribeWorkflowExecutions(ctx context.Context, opt *Describ
 
 // NotifyConfig TODO
 type NotifyConfig struct {
-	URL          string `xml:"Url,omitempty"`
-	Event        string `xml:"Event,omitempty"`
-	Type         string `xml:"Type,omitempty"`
-	ResultFormat string `xml:"ResultFormat,omitempty"`
+	URL          string       `xml:"Url,omitempty"`
+	Event        string       `xml:"Event,omitempty"`
+	Type         string       `xml:"Type,omitempty"`
+	ResultFormat string       `xml:"ResultFormat,omitempty"`
+	State        string       `xml:"State,omitempty"`
+	KafkaConfig  *KafkaConfig `xml:"KafkaConfig,omitempty" json:"KafkaConfig,omitempty"`
 }
 
 // ExtFilter TODO
@@ -2127,16 +2139,17 @@ type ASRJobOperation struct {
 
 // CreateASRJobsOptions TODO
 type CreateASRJobsOptions struct {
-	XMLName          xml.Name                      `xml:"Request"`
-	Tag              string                        `xml:"Tag,omitempty"`
-	Input            *JobInput                     `xml:"Input,omitempty"`
-	Operation        *ASRJobOperation              `xml:"Operation,omitempty"`
-	QueueId          string                        `xml:"QueueId,omitempty"`
-	CallBack         string                        `xml:"CallBack,omitempty"`
-	QueueType        string                        `xml:"QueueType,omitempty"`
-	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
-	CallBackType     string                        `xml:"CallBackType,omitempty"`
-	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	XMLName             xml.Name                      `xml:"Request"`
+	Tag                 string                        `xml:"Tag,omitempty"`
+	Input               *JobInput                     `xml:"Input,omitempty"`
+	Operation           *ASRJobOperation              `xml:"Operation,omitempty"`
+	QueueId             string                        `xml:"QueueId,omitempty"`
+	CallBack            string                        `xml:"CallBack,omitempty"`
+	QueueType           string                        `xml:"QueueType,omitempty"`
+	CallBackFormat      string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                        `xml:"CallBackType,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                  `xml:"CallBackKafkaConfig,omitempty"`
 }
 
 // ASRJobDetail TODO
@@ -4117,16 +4130,17 @@ type GeneratePlayListJobOperation struct {
 }
 
 type CreateGeneratePlayListJobOptions struct {
-	XMLName          xml.Name                      `xml:"Request"`
-	Tag              string                        `xml:"Tag,omitempty"`
-	Input            *JobInput                     `xml:"Input,omitempty"`
-	Operation        *GeneratePlayListJobOperation `xml:"Operation,omitempty"`
-	QueueId          string                        `xml:"QueueId,omitempty"`
-	QueueType        string                        `xml:"QueueType,omitempty"`
-	CallBackFormat   string                        `xml:"CallBackFormat,omitempty"`
-	CallBackType     string                        `xml:"CallBackType,omitempty"`
-	CallBack         string                        `xml:"CallBack,omitempty"`
-	CallBackMqConfig *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	XMLName             xml.Name                      `xml:"Request"`
+	Tag                 string                        `xml:"Tag,omitempty"`
+	Input               *JobInput                     `xml:"Input,omitempty"`
+	Operation           *GeneratePlayListJobOperation `xml:"Operation,omitempty"`
+	QueueId             string                        `xml:"QueueId,omitempty"`
+	QueueType           string                        `xml:"QueueType,omitempty"`
+	CallBackFormat      string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                        `xml:"CallBackType,omitempty"`
+	CallBack            string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                  `xml:"CallBackKafkaConfig,omitempty"`
 }
 
 func (s *CIService) CreateGeneratePlayListJob(ctx context.Context, opt *CreateGeneratePlayListJobOptions) (*CreateJobsResult, *Response, error) {
