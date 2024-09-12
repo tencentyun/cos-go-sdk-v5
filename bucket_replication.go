@@ -29,6 +29,7 @@ type PutBucketReplicationOptions struct {
 
 // GetBucketReplicationResult is the result of GetBucketReplication
 type GetBucketReplicationResult PutBucketReplicationOptions
+type BucketGetReplicationResult = GetBucketReplicationResult
 
 // PutBucketReplication https://cloud.tencent.com/document/product/436/19223
 func (s *BucketService) PutBucketReplication(ctx context.Context, opt *PutBucketReplicationOptions) (*Response, error) {

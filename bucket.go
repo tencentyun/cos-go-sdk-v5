@@ -1,8 +1,10 @@
 package cos
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"net/http"
 )
 
@@ -211,4 +213,154 @@ func (s *BucketService) GetObjectVersions(ctx context.Context, opt *BucketGetObj
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
+}
+
+type BucketGetMetadataResult struct {
+	BucketUrl          string
+	BucketName         string
+	Location           string
+	MAZ                bool
+	OFS                bool
+	Encryption         *BucketGetEncryptionResult
+	ACL                *BucketGetACLResult
+	Website            *BucketGetWebsiteResult
+	Logging            *BucketGetLoggingResult
+	CORS               *BucketGetCORSResult
+	Versioning         *BucketGetVersionResult
+	Lifecycle          *BucketGetLifecycleResult
+	IntelligentTiering *ListIntelligentTieringConfigurations
+	Tagging            *BucketGetTaggingResult
+	ObjectLock         *BucketGetObjectLockResult
+	Replication        *BucketGetReplicationResult
+}
+
+func (s *BucketService) GetMeta(ctx context.Context, bucket ...string) (*BucketGetMetadataResult, *Response, error) {
+	if s.client.BaseURL.BucketURL == nil {
+		return nil, nil, errors.New("BucketURL is empty")
+	}
+	var customDomain bool
+	if !hostPrefix.MatchString(s.client.BaseURL.BucketURL.String()) {
+		customDomain = true
+		if len(bucket) == 0 || !bucketChecker.MatchString(bucket[0]) {
+			return nil, nil, errors.New("you must provide bucket-appid param in using custom domain")
+		}
+	}
+	var err error
+	var resp *Response
+	var res BucketGetMetadataResult
+
+	resp, err = s.Head(ctx)
+	if err != nil {
+		return nil, resp, err
+	}
+	// 非自定义域名
+	if !customDomain {
+		res.BucketName, res.Location = GetBucketRegionFromUrl(s.client.BaseURL.BucketURL)
+	} else {
+		res.BucketName, res.Location = bucket[0], resp.Header.Get("X-Cos-Bucket-Region")
+	}
+	w := bytes.NewBuffer(nil)
+	bucketURLTemplate.Execute(w, struct {
+		Schema     string
+		BucketName string
+		Region     string
+	}{"https", res.BucketName, res.Location})
+	res.BucketUrl = w.String()
+
+	if resp.Header.Get("X-Cos-Bucket-Az-Type") == "MAZ" {
+		res.MAZ = true
+	}
+	if resp.Header.Get("X-Cos-Bucket-Arch") == "OFS" {
+		res.OFS = true
+	}
+
+	res.Encryption, resp, err = s.GetEncryption(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Encryption = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.ACL, resp, err = s.GetACL(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.ACL = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.Website, resp, err = s.GetWebsite(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Website = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.Logging, resp, err = s.GetLogging(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Logging = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.CORS, resp, err = s.GetCORS(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.CORS = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.Versioning, resp, err = s.GetVersioning(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Versioning = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.Lifecycle, resp, err = s.GetLifecycle(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Lifecycle = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.IntelligentTiering, resp, err = s.ListIntelligentTiering(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.IntelligentTiering = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.Tagging, resp, err = s.GetTagging(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Tagging = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.ObjectLock, resp, err = s.GetObjectLockConfiguration(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.ObjectLock = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	res.Replication, resp, err = s.GetBucketReplication(ctx)
+	if err != nil {
+		if IsNotFoundError(err) {
+			res.Replication = nil
+		} else {
+			return nil, resp, err
+		}
+	}
+	return &res, resp, nil
 }

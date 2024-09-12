@@ -345,3 +345,500 @@ func TestBucketService_GetObjectVersions(t *testing.T) {
 	}
 
 }
+
+func TestBucketService_GetMeta(t *testing.T) {
+	setup()
+	defer teardown()
+	want := &BucketGetMetadataResult{
+        BucketUrl: "https://test-125000000.cos.ap-guangzhou.myqcloud.com",
+        BucketName: "test-125000000",
+        Location: "ap-guangzhou",
+        MAZ: true,
+        OFS: true,
+		Encryption: &BucketGetEncryptionResult{
+			XMLName: xml.Name{Local: "ServerSideEncryptionConfiguration"},
+			Rule: &BucketEncryptionConfiguration{
+				SSEAlgorithm: "AES256",
+			},
+		},
+		ACL: &BucketGetACLResult{
+			XMLName: xml.Name{Local: "AccessControlPolicy"},
+			Owner: &Owner{
+				ID:          "qcs::cam::uin/100000760461:uin/100000760461",
+				DisplayName: "qcs::cam::uin/100000760461:uin/100000760461",
+			},
+			AccessControlList: []ACLGrant{
+				{
+					Grantee: &ACLGrantee{
+						Type:        "RootAccount",
+						ID:          "qcs::cam::uin/100000760461:uin/100000760461",
+						DisplayName: "qcs::cam::uin/100000760461:uin/100000760461",
+					},
+					Permission: "FULL_CONTROL",
+				},
+				{
+					Grantee: &ACLGrantee{
+						Type:        "RootAccount",
+						ID:          "qcs::cam::uin/100000760461:uin/100000760461",
+						DisplayName: "qcs::cam::uin/100000760461:uin/100000760461",
+					},
+					Permission: "READ",
+				},
+			},
+		},
+		Website: &BucketGetWebsiteResult{
+			XMLName: xml.Name{Local: "WebsiteConfiguration"},
+			Index:   "index.html",
+			RedirectProtocol: &RedirectRequestsProtocol{
+				"https",
+			},
+			RoutingRules: &WebsiteRoutingRules{
+				Rules: []WebsiteRoutingRule{
+					{
+						ConditionErrorCode: "404",
+						RedirectProtocol:   "https",
+						RedirectReplaceKey: "404.html",
+					},
+				},
+			},
+		},
+		Logging: &BucketGetLoggingResult{
+			XMLName: xml.Name{Local: "BucketLoggingStatus"},
+			LoggingEnabled: &BucketLoggingEnabled{
+				TargetBucket: "logs",
+				TargetPrefix: "mylogs",
+			},
+		},
+		CORS: &BucketGetCORSResult{
+			XMLName: xml.Name{Local: "CORSConfiguration"},
+			Rules: []BucketCORSRule{
+				{
+					AllowedOrigins: []string{"http://www.qq.com"},
+					AllowedMethods: []string{"PUT", "GET"},
+					AllowedHeaders: []string{"x-cos-meta-test", "x-cos-xx"},
+					MaxAgeSeconds:  500,
+					ExposeHeaders:  []string{"x-cos-meta-test1"},
+				},
+			},
+		},
+		Versioning: &BucketGetVersionResult{
+			XMLName: xml.Name{Local: "VersioningConfiguration"},
+			Status:  "Suspended",
+		},
+		Lifecycle: &BucketGetLifecycleResult{
+			XMLName: xml.Name{Local: "LifecycleConfiguration"},
+			Rules: []BucketLifecycleRule{
+				{
+					ID: "1234",
+					Filter: &BucketLifecycleFilter{
+						And: &BucketLifecycleAndOperator{
+							Prefix: "test",
+							Tag: []BucketTaggingTag{
+								{Key: "key", Value: "value"},
+							},
+						},
+					},
+					Status: "Enabled",
+					Transition: []BucketLifecycleTransition{
+						{Days: 10, StorageClass: "Standard"},
+					},
+					Expiration: &BucketLifecycleExpiration{Days: 10},
+					NoncurrentVersionExpiration: &BucketLifecycleNoncurrentVersion{
+						NoncurrentDays: 360,
+					},
+					NoncurrentVersionTransition: []BucketLifecycleNoncurrentVersion{
+						{
+							NoncurrentDays: 90,
+							StorageClass:   "ARCHIVE",
+						},
+					},
+				},
+				{
+					ID:         "123422",
+					Filter:     &BucketLifecycleFilter{Prefix: "gg"},
+					Status:     "Disabled",
+					Expiration: &BucketLifecycleExpiration{Days: 10},
+				},
+			},
+		},
+		IntelligentTiering: &ListIntelligentTieringConfigurations{
+			XMLName: xml.Name{Local: "ListBucketIntelligentTieringConfigurationsOutput"},
+			Configurations: []*IntelligentTieringConfiguration{
+				{
+					Id:     "default",
+					Status: "Enabled",
+					Tiering: []*BucketIntelligentTieringTransition{
+						{
+							AccessTier:      "INFREQUENT",
+							Days:            30,
+							RequestFrequent: 1,
+						},
+					},
+				},
+				{
+					Id:     "1",
+					Status: "Enabled",
+					Filter: &BucketIntelligentTieringFilter{
+						And: &BucketIntelligentTieringFilterAnd{
+							Prefix: "test",
+							Tag: []*BucketTaggingTag{
+								{
+									Key:   "k1",
+									Value: "v1",
+								},
+							},
+						},
+					},
+					Tiering: []*BucketIntelligentTieringTransition{
+						{
+							AccessTier: "ARCHIVE_ACCESS",
+							Days:       30,
+						},
+					},
+				},
+			},
+		},
+		Tagging: &BucketGetTaggingResult{
+			XMLName: xml.Name{Local: "Tagging"},
+			TagSet: []BucketTaggingTag{
+				{"test_k2", "test_v2"},
+			},
+		},
+		ObjectLock: &BucketGetObjectLockResult{
+			XMLName:           xml.Name{Local: "ObjectLockConfiguration"},
+			ObjectLockEnabled: "Enabled",
+			Rule: &ObjectLockRule{
+				Days: 30,
+			},
+		},
+		Replication: &GetBucketReplicationResult{
+			XMLName: xml.Name{Local: "ReplicationConfiguration"},
+			Role:    "qcs::cam::uin/100000000001:uin/100000000001",
+			Rule: []BucketReplicationRule{
+				{
+					Status: "Disabled",
+					Prefix: "prefix",
+					Destination: &ReplicationDestination{
+						Bucket: "qcs::cos:ap-beijing-1::examplebucket-1250000000",
+					},
+				},
+			},
+		},
+	}
+
+	//var head, encryption, acl, website, logging, cors, versioning, lifecycle, intelligenttiering, tagging, lock, replication int
+	actionMap := map[string]func(http.ResponseWriter, *http.Request){
+		"encryption": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<ServerSideEncryptionConfiguration>
+                <Rule>
+                    <ApplyServerSideEncryptionByDefault>
+                        <SSEAlgorithm>AES256</SSEAlgorithm>
+                    </ApplyServerSideEncryptionByDefault>
+                </Rule>
+            </ServerSideEncryptionConfiguration>`)
+		},
+		"acl": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<AccessControlPolicy>
+	<Owner>
+		<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+		<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+	</Owner>
+	<AccessControlList>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+				<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+			</Grantee>
+			<Permission>FULL_CONTROL</Permission>
+		</Grant>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+				<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+			</Grantee>
+			<Permission>READ</Permission>
+		</Grant>
+	</AccessControlList>
+</AccessControlPolicy>`)
+		},
+		"website": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<WebsiteConfiguration>
+	<IndexDocument>
+		<Suffix>index.html</Suffix>
+	</IndexDocument>
+	<RedirectAllRequestsTo>
+		<Protocol>https</Protocol>
+	</RedirectAllRequestsTo>
+	<RoutingRules>
+		<RoutingRule>
+			<Condition>
+				<HttpErrorCodeReturnedEquals>404</HttpErrorCodeReturnedEquals>
+			</Condition>
+			<Redirect>
+				<Protocol>https</Protocol>
+				<ReplaceKeyWith>404.html</ReplaceKeyWith>
+			</Redirect>
+		</RoutingRule>
+	</RoutingRules>
+</WebsiteConfiguration>`)
+
+		},
+		"logging": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<BucketLoggingStatus>
+    <LoggingEnabled>
+        <TargetBucket>logs</TargetBucket>
+        <TargetPrefix>mylogs</TargetPrefix>
+    </LoggingEnabled>
+</BucketLoggingStatus>`)
+
+		},
+		"cors": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<?xml version='1.0' encoding='utf-8' ?>
+<CORSConfiguration>
+	<CORSRule>
+		<AllowedOrigin>http://www.qq.com</AllowedOrigin>
+		<AllowedMethod>PUT</AllowedMethod>
+		<AllowedMethod>GET</AllowedMethod>
+		<AllowedHeader>x-cos-meta-test</AllowedHeader>
+		<AllowedHeader>x-cos-xx</AllowedHeader>
+		<ExposeHeader>x-cos-meta-test1</ExposeHeader>
+		<MaxAgeSeconds>500</MaxAgeSeconds>
+	</CORSRule>
+</CORSConfiguration>`)
+
+		},
+		"versioning": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<VersioningConfiguration>
+    <Status>Suspended</Status>
+</VersioningConfiguration>`)
+
+		},
+		"lifecycle": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<LifecycleConfiguration>
+	<Rule>
+		<ID>1234</ID>
+		<Filter>
+            <And>
+                <Prefix>test</Prefix>
+                <Tag>
+                    <Key>key</Key>
+                    <Value>value</Value>
+                </Tag>
+            </And>
+		</Filter>
+		<Status>Enabled</Status>
+		<Transition>
+			<Days>10</Days>
+			<StorageClass>Standard</StorageClass>
+		</Transition>
+		<Expiration>
+			<Days>10</Days>
+		</Expiration>
+		<NoncurrentVersionTransition>
+			<NoncurrentDays>90</NoncurrentDays>
+			<StorageClass>ARCHIVE</StorageClass>
+		</NoncurrentVersionTransition>
+		<NoncurrentVersionExpiration>
+			<NoncurrentDays>360</NoncurrentDays>
+		</NoncurrentVersionExpiration>
+	</Rule>
+	<Rule>
+		<ID>123422</ID>
+		<Filter>
+			<Prefix>gg</Prefix>
+		</Filter>
+		<Status>Disabled</Status>
+		<Expiration>
+			<Days>10</Days>
+		</Expiration>
+	</Rule>
+</LifecycleConfiguration>`)
+
+		},
+		"intelligent-tiering": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<ListBucketIntelligentTieringConfigurationsOutput>
+    <IntelligentTieringConfiguration>
+        <Id>default</Id>
+        <Status>Enabled</Status>
+        <Tiering>
+            <AccessTier>INFREQUENT</AccessTier>
+            <Days>30</Days>
+            <RequestFrequent>1</RequestFrequent>
+        </Tiering>
+    </IntelligentTieringConfiguration>
+    <IntelligentTieringConfiguration>
+        <Id>1</Id>
+        <Status>Enabled</Status>
+        <Filter>
+            <And>
+                <Prefix>test</Prefix>
+                <Tag>
+                    <Key>k1</Key>
+                    <Value>v1</Value>
+                </Tag>
+            </And>
+        </Filter>
+        <Tiering>
+            <AccessTier>ARCHIVE_ACCESS</AccessTier>
+            <Days>30</Days>
+        </Tiering>
+    </IntelligentTieringConfiguration>
+</ListBucketIntelligentTieringConfigurationsOutput>`)
+		},
+		"tagging": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<Tagging>
+	<TagSet>
+		<Tag>
+			<Key>test_k2</Key>
+			<Value>test_v2</Value>
+		</Tag>
+	</TagSet>
+</Tagging>`)
+
+		},
+		"object-lock": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<ObjectLockConfiguration>
+	<ObjectLockEnabled>Enabled</ObjectLockEnabled> 
+	<Rule> 
+		<DefaultRetention>
+			<Days>30</Days> 
+		</DefaultRetention> 
+	</Rule> 
+</ObjectLockConfiguration>`)
+
+		},
+		"replication": func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `<ReplicationConfiguration>
+    <Role>qcs::cam::uin/100000000001:uin/100000000001</Role>
+    <Rule>
+        <Status>Disabled</Status>
+        <ID></ID>
+        <Prefix>prefix</Prefix>
+        <Destination>
+            <Bucket>qcs::cos:ap-beijing-1::examplebucket-1250000000</Bucket>
+        </Destination>
+    </Rule>
+</ReplicationConfiguration>`)
+		},
+	}
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("X-Cos-Bucket-Az-Type", "MAZ")
+			w.Header().Add("X-Cos-Bucket-Arch", "OFS")
+			w.Header().Add("X-Cos-Bucket-Region", "ap-guangzhou")
+		} else {
+			r.ParseForm()
+			for key, _ := range r.Form {
+				if fn, ok := actionMap[key]; ok {
+					fn(w, r)
+				}
+			}
+		}
+	})
+	// BucketURL为空
+	tmpUrl := client.BaseURL.BucketURL
+	client.BaseURL.BucketURL = nil
+	_, _, err := client.Bucket.GetMeta(context.Background())
+	if err == nil || err.Error() != "BucketURL is empty" {
+		t.Fatalf("Bucket.GetMeta returned error: %v", err)
+	}
+	client.BaseURL.BucketURL = tmpUrl
+	// 没有提供bucketname
+	_, _, err = client.Bucket.GetMeta(context.Background())
+	if err == nil || err.Error() != "you must provide bucket-appid param in using custom domain" {
+		t.Fatalf("Bucket.GetMeta returned error: %v", err)
+	}
+    // 成功
+	res, _, err := client.Bucket.GetMeta(context.Background(), "test-125000000")
+    if err != nil {
+        t.Fatalf("Bucket.GetMeta returned error: %v", err)
+    }
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("Bucket.GetObjectVersions returned\n%+v\nwant\n%+v", res, want)
+	}
+}
+
+func TestBucketService_GetMeta404(t *testing.T) {
+	setup()
+	defer teardown()
+	want := &BucketGetMetadataResult{
+        BucketUrl: "https://test-125000000.cos.ap-guangzhou.myqcloud.com",
+        BucketName: "test-125000000",
+        Location: "ap-guangzhou",
+        MAZ: true,
+        OFS: true,
+	}
+
+	//var head, encryption, acl, website, logging, cors, versioning, lifecycle, intelligenttiering, tagging, lock, replication int
+	actionMap := map[string]func(http.ResponseWriter, *http.Request){
+		"encryption": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"acl": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"website": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"logging": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"cors": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"versioning": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"lifecycle": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"intelligent-tiering": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"tagging": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"object-lock": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+		"replication": func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNotFound)
+		},
+	}
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("X-Cos-Bucket-Az-Type", "MAZ")
+			w.Header().Add("X-Cos-Bucket-Arch", "OFS")
+			w.Header().Add("X-Cos-Bucket-Region", "ap-guangzhou")
+		} else {
+			r.ParseForm()
+			for key, _ := range r.Form {
+				if fn, ok := actionMap[key]; ok {
+					fn(w, r)
+				}
+			}
+		}
+	})
+	// BucketURL为空
+	tmpUrl := client.BaseURL.BucketURL
+	client.BaseURL.BucketURL = nil
+	_, _, err := client.Bucket.GetMeta(context.Background())
+	if err == nil || err.Error() != "BucketURL is empty" {
+		t.Fatalf("Bucket.GetMeta returned error: %v", err)
+	}
+	client.BaseURL.BucketURL = tmpUrl
+	// 没有提供bucketname
+	_, _, err = client.Bucket.GetMeta(context.Background())
+	if err == nil || err.Error() != "you must provide bucket-appid param in using custom domain" {
+		t.Fatalf("Bucket.GetMeta returned error: %v", err)
+	}
+    // 成功
+	res, _, err := client.Bucket.GetMeta(context.Background(), "test-125000000")
+    if err != nil {
+        t.Fatalf("Bucket.GetMeta returned error: %v", err)
+    }
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("Bucket.GetObjectVersions returned\n%+v\nwant\n%+v", res, want)
+	}
+}
+

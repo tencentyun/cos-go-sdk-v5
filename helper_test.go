@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
 )
@@ -320,5 +321,22 @@ func Test_GetRange(t *testing.T) {
 	res, err := GetRangeOptions(&ObjectGetOptions{})
 	if err != nil || res != nil {
 		t.Errorf("GetRangeOptions failed: %v, %v", res, err)
+	}
+}
+
+func Test_GetBucketRegionFromUrl(t *testing.T) {
+	bucket, region := GetBucketRegionFromUrl(nil)
+	if bucket != "" || region != "" {
+		t.Errorf("GetBucketRegionFromUrl failed")
+	}
+	u, _ := url.Parse("http://test-125000000.cos.ap-guangzhou.myqcloud.com")
+	bucket, region = GetBucketRegionFromUrl(u)
+	if bucket != "test-125000000" && region != "ap-guangzhou" {
+		t.Errorf("GetBucketRegionFromUrl failed")
+	}
+	u, _ = url.Parse("http://test-125000000.com")
+	bucket, region = GetBucketRegionFromUrl(u)
+	if bucket != "" || region != "" {
+		t.Errorf("GetBucketRegionFromUrl failed")
 	}
 }
