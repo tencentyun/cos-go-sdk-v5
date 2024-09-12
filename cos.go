@@ -25,7 +25,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.54"
+	Version               = "0.7.55"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -43,6 +43,7 @@ var (
 	hostSuffix            = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	hostPrefix            = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	metaInsightHostPrefix = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+    bucketChecker         = regexp.MustCompile(`^[a-z0-9-]+-[0-9]+$`)
 	invalidBucketErr      = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
 	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
@@ -591,12 +592,13 @@ type ACLHeaderOptions struct {
 
 // ACLGrantee is the param of ACLGrant
 type ACLGrantee struct {
-	Type        string `xml:"type,attr"`
-	UIN         string `xml:"uin,omitempty"`
-	URI         string `xml:"URI,omitempty"`
-	ID          string `xml:",omitempty"`
-	DisplayName string `xml:",omitempty"`
-	SubAccount  string `xml:"Subaccount,omitempty"`
+	TypeAttr    xml.Attr `xml:",attr,omitempty"`
+	Type        string   `xml:"type,attr,omitempty"`
+	UIN         string   `xml:"uin,omitempty"`
+	URI         string   `xml:"URI,omitempty"`
+	ID          string   `xml:",omitempty"`
+	DisplayName string   `xml:",omitempty"`
+	SubAccount  string   `xml:"Subaccount,omitempty"`
 }
 
 // ACLGrant is the param of ACLXml
