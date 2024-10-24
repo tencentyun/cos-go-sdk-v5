@@ -1111,6 +1111,82 @@ func JobNotifyCallback() {
 	}
 }
 
+func InvokeMultiGeneratePlayListJobs() {
+	c := getClient()
+	createJobOpt := &cos.CreateMultiGeneratePlayListJobsOptions{
+		Tag: "GeneratePlayList",
+		Input: &cos.JobInput{
+			Object: "speed.mp4",
+		},
+		Operation: []cos.GeneratePlayListJobOperation{
+			{
+				Tag: "GeneratePlayList",
+				Output: &cos.JobOutput{
+					Region: "ap-beijing",
+					Bucket: "test-1234567890",
+					Object: "live/a.m3u8",
+				},
+				Transcode: &cos.LiveTanscode{
+					Video: &cos.LiveTanscodeVideo{
+						Codec:   "H.264",
+						Width:   "1280", // 设置480、720、960、1080
+						Bitrate: "293",
+						Maxrate: "5000",
+						Fps:     "25",
+					},
+					Container: &cos.Container{
+						Format: "hls",
+						ClipConfig: &cos.ClipConfig{
+							Duration: "3",
+						},
+					},
+					TransConfig: &cos.LiveTanscodeTransConfig{
+						// HlsEncrypt: &cos.HlsEncrypt{
+						// 	IsHlsEncrypt: true,
+						// },
+						InitialClipNum: "10",
+						CosTag:         "a=a&b=b",
+					},
+				},
+			},
+			{
+				Tag: "GeneratePlayList",
+				Output: &cos.JobOutput{
+					Region: "ap-beijing",
+					Bucket: "test-1234567890",
+					Object: "live/b.m3u8",
+				},
+				Transcode: &cos.LiveTanscode{
+					Video: &cos.LiveTanscodeVideo{
+						Codec:   "H.264",
+						Width:   "1280", // 设置480、720、960、1080
+						Bitrate: "293",
+						Maxrate: "5000",
+						Fps:     "25",
+					},
+					Container: &cos.Container{
+						Format: "hls",
+						ClipConfig: &cos.ClipConfig{
+							Duration: "3",
+						},
+					},
+					TransConfig: &cos.LiveTanscodeTransConfig{
+						// HlsEncrypt: &cos.HlsEncrypt{
+						// 	IsHlsEncrypt: true,
+						// },
+						InitialClipNum: "10",
+						CosTag:         "a=a&b=b",
+					},
+				},
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateMultiGeneratePlayListJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
 func main() {
-	InvokeTranscodeJob()
+	// InvokeTranscodeJob()
+	InvokeMultiGeneratePlayListJobs()
 }
