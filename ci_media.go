@@ -4155,3 +4155,32 @@ func (s *CIService) CreateGeneratePlayListJob(ctx context.Context, opt *CreateGe
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
 }
+
+// CreateMultiGeneratePlayListJobsOptions TODO
+type CreateMultiGeneratePlayListJobsOptions struct {
+	XMLName             xml.Name                       `xml:"Request"`
+	Tag                 string                         `xml:"Tag,omitempty"`
+	Input               *JobInput                      `xml:"Input,omitempty"`
+	Operation           []GeneratePlayListJobOperation `xml:"Operation,omitempty"`
+	QueueId             string                         `xml:"QueueId,omitempty"`
+	QueueType           string                         `xml:"QueueType,omitempty"`
+	CallBackFormat      string                         `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                         `xml:"CallBackType,omitempty"`
+	CallBack            string                         `xml:"CallBack,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig  `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                   `xml:"CallBackKafkaConfig,omitempty"`
+}
+
+// CreateMultiGeneratePlayListJobs TODO
+func (s *CIService) CreateMultiGeneratePlayListJobs(ctx context.Context, opt *CreateMultiGeneratePlayListJobsOptions) (*CreateMultiMediaJobsResult, *Response, error) {
+	var res CreateMultiMediaJobsResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/jobs",
+		method:  http.MethodPost,
+		body:    opt,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}

@@ -3646,3 +3646,85 @@ func TestCIService_CreateGeneratePlayListJob(t *testing.T) {
 		t.Fatalf("CI.CreateGeneratePlayListJob returned error: %v", err)
 	}
 }
+
+func TestCIService_CreateMultiGeneratePlayListJobs(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+	})
+
+	opt := &CreateMultiGeneratePlayListJobsOptions{
+		Input: &JobInput{
+			Object: "test.mp4",
+		},
+		Operation: []GeneratePlayListJobOperation{
+			{
+				Tag: "GeneratePlayList",
+				Output: &JobOutput{
+					Region: "ap-beijing",
+					Bucket: "abc-1250000000",
+					Object: "live/a.m3u8",
+				},
+				Transcode: &LiveTanscode{
+					Video: &LiveTanscodeVideo{
+						Codec:   "H.264",
+						Width:   "960", // 设置480、720、960、1080
+						Bitrate: "2000",
+						Maxrate: "5000",
+						Fps:     "30",
+					},
+					Container: &Container{
+						Format: "hls",
+						ClipConfig: &ClipConfig{
+							Duration: "5",
+						},
+					},
+					TransConfig: &LiveTanscodeTransConfig{
+						HlsEncrypt: &HlsEncrypt{
+							IsHlsEncrypt: true,
+						},
+						InitialClipNum: "2",
+						CosTag:         "a=a&b=b",
+					},
+				},
+			},
+			{
+				Tag: "GeneratePlayList",
+				Output: &JobOutput{
+					Region: "ap-beijing",
+					Bucket: "abc-1250000000",
+					Object: "live/b.m3u8",
+				},
+				Transcode: &LiveTanscode{
+					Video: &LiveTanscodeVideo{
+						Codec:   "H.264",
+						Width:   "1080", // 设置480、720、960、1080
+						Bitrate: "2000",
+						Maxrate: "5000",
+						Fps:     "30",
+					},
+					Container: &Container{
+						Format: "hls",
+						ClipConfig: &ClipConfig{
+							Duration: "5",
+						},
+					},
+					TransConfig: &LiveTanscodeTransConfig{
+						InitialClipNum: "2",
+						CosTag:         "a=a&b=b",
+					},
+				},
+			},
+		},
+		QueueId:  "p893bcda225bf4945a378da6662e81a89",
+		CallBack: "https://www.callback.com",
+	}
+
+	_, _, err := client.CI.CreateMultiGeneratePlayListJobs(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateMultiGeneratePlayListJobs returned errors: %v", err)
+	}
+}
