@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.55"
+	Version               = "0.7.56"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -43,8 +44,15 @@ var (
 	hostSuffix            = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	hostPrefix            = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	metaInsightHostPrefix = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
-    bucketChecker         = regexp.MustCompile(`^[a-z0-9-]+-[0-9]+$`)
-	invalidBucketErr      = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
+	bucketChecker         = regexp.MustCompile(`^[a-z0-9-]+-[0-9]+$`)
+	regionChecker         = regexp.MustCompile(`^[a-z-1]+$`)
+
+	// 校验传入的url
+	domainSuffix         = regexp.MustCompile(`^.*\.(myqcloud\.com(:[0-9]+){0,1}|tencentcos\.cn(:[0-9]+){0,1})$`)
+	bucketDomainChecker  = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn)(:[0-9]+){0,1}$`)
+	serviceDomainChecker = regexp.MustCompile(`^(http://|https://){0,1}((service.cos.myqcloud.com|service.cos-internal.tencentcos.cn|service.cos.tencentcos.cn)|(cos|cos-internal)\.[a-z-1]+\.(myqcloud\.com|tencentcos\.cn))(:[0-9]+){0,1}$`)
+	batchDomainChecker   = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}cos-control\.[a-z-1]+\.(myqcloud\.com|tencentcos\.cn)(:[0-9]+){0,1}$`)
+	invalidBucketErr     = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
 	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
 	accelerateDomainSuffix = "accelerate.myqcloud.com"
@@ -70,6 +78,27 @@ type BaseURL struct {
 	MetaInsightURL *url.URL
 }
 
+func (*BaseURL) innerCheck(u *url.URL, reg *regexp.Regexp) bool {
+	if u == nil {
+		return true
+	}
+	urlStr := strings.TrimRight(u.String(), "/")
+	if !strings.HasPrefix(urlStr, "https://") && !strings.HasPrefix(urlStr, "http://") {
+		return false
+	}
+	if strings.Count(urlStr, "/") > 2 {
+		return false
+	}
+	if domainSuffix.MatchString(urlStr) && !reg.MatchString(urlStr) {
+		return false
+	}
+	return true
+}
+
+func (u *BaseURL) Check() bool {
+	return u.innerCheck(u.BucketURL, bucketDomainChecker) && u.innerCheck(u.ServiceURL, serviceDomainChecker) && u.innerCheck(u.BatchURL, batchDomainChecker)
+}
+
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
 //
 //	bucketName: bucket名称, bucket的命名规则为{name}-{appid} ，此处填写的存储桶名称必须为此格式
@@ -81,7 +110,7 @@ func NewBucketURL(bucketName, region string, secure bool) (*url.URL, error) {
 		schema = "http"
 	}
 
-	if region == "" {
+	if region == "" || !regionChecker.MatchString(region) {
 		return nil, fmt.Errorf("region[%v] is invalid", region)
 	}
 	if bucketName == "" || !strings.ContainsAny(bucketName, "-") {
@@ -130,16 +159,32 @@ type Client struct {
 	MetaInsight *MetaInsightService
 
 	Conf *Config
+
+	invalidURL bool
 }
 
 type service struct {
 	client *Client
 }
 
+// go http default CheckRedirect
+func HttpDefaultCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	return nil
+}
+
 // NewClient returns a new COS API client.
 func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{}
+	}
+	// avoid SSRF, default don't follow 3xx
+	if httpClient.CheckRedirect == nil {
+		httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
 	}
 
 	baseURL := &BaseURL{}
@@ -153,6 +198,10 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	}
 	if baseURL.ServiceURL == nil {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)
+	}
+	var invalidURL bool
+	if !baseURL.Check() {
+		invalidURL = true
 	}
 
 	c := &Client{
@@ -169,6 +218,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 			},
 			ObjectKeySimplifyCheck: true,
 		},
+		invalidURL: invalidURL,
 	}
 	c.common.client = c
 	c.Service = (*ServiceService)(&c.common)
@@ -219,6 +269,9 @@ func (c *Client) GetCredential() *Credential {
 }
 
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}, isRetry bool) (req *http.Request, err error) {
+	if c.invalidURL {
+		return nil, invalidBucketErr
+	}
 	if !checkURL(baseURL) {
 		host := baseURL.String()
 		if c.BaseURL.MetaInsightURL != baseURL || !metaInsightHostPrefix.MatchString(host) {
@@ -292,7 +345,7 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 		ctx, cancel = context.WithCancel(ctx)
 		defer cancel()
 	}
-	req = req.WithContext(ctx)
+	//req = req.WithContext(ctx)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
