@@ -2644,7 +2644,7 @@ func TestCIService_GetPosterproductionTemplates(t *testing.T) {
 	setup()
 	defer teardown()
 
-	mux.HandleFunc("/posterproduction/template/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/posterproduction/template", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		v := values{
 			"pageNumber": "1",

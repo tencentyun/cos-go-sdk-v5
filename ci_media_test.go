@@ -3394,8 +3394,8 @@ func TestCIService_CosImageInspect(t *testing.T) {
 	setup()
 	defer teardown()
 
-	name := "/test.jpg"
-	mux.HandleFunc(name, func(w http.ResponseWriter, r *http.Request) {
+	name := "test.jpg"
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		v := values{
 			"ci-process": "ImageInspect",
