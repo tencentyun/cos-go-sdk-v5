@@ -118,10 +118,11 @@ func (s *ObjectService) GetObjectURL(name string) *url.URL {
 }
 
 type PresignedURLOptions struct {
-	Query      *url.Values  `xml:"-" url:"-" header:"-"`
-	Header     *http.Header `header:"-,omitempty" url:"-" xml:"-"`
-	SignMerged bool         `xml:"-" url:"-" header:"-"`
-	AuthTime   *AuthTime    `xml:"-" url:"-" header:"-"`
+	Query           *url.Values  `xml:"-" url:"-" header:"-"`
+	Header          *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	SignMerged      bool         `xml:"-" url:"-" header:"-"`
+	AuthTime        *AuthTime    `xml:"-" url:"-" header:"-"`
+	EncodeDelimiter bool         `xml:"-" url:"-" header:"-"`
 }
 
 // GetPresignedURL get the object presigned to down or upload file by url
@@ -282,7 +283,17 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 	if name == "" {
 		return nil, fmt.Errorf("object key is empty.")
 	}
-	name = encodeURIComponent(name, []byte("/"))
+	var encodeDelimiter bool
+	if opt != nil {
+		if popt, ok := opt.(*PresignedURLOptions); ok {
+			encodeDelimiter = popt.EncodeDelimiter
+		}
+	}
+	if encodeDelimiter {
+		name = encodeURIComponent(name)
+	} else {
+		name = encodeURIComponent(name, []byte("/"))
+	}
 
 	cred := s.client.GetCredential()
 	if cred == nil {

@@ -452,6 +452,7 @@ func TestObjectService_GetPresignedURL3(t *testing.T) {
 		t.Fatalf("Wrong PreSignedURL!")
 	}
 
+	opt1.EncodeDelimiter = true
 	_, err = client.Object.GetPresignedURL3(c, http.MethodPut, "", time.Hour, opt1)
 	if err == nil {
 		t.Errorf("GetPresignedURL expect err is not null")

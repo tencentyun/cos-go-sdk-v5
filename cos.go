@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.56"
+	Version               = "0.7.57"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -96,7 +96,9 @@ func (*BaseURL) innerCheck(u *url.URL, reg *regexp.Regexp) bool {
 }
 
 func (u *BaseURL) Check() bool {
-	return u.innerCheck(u.BucketURL, bucketDomainChecker) && u.innerCheck(u.ServiceURL, serviceDomainChecker) && u.innerCheck(u.BatchURL, batchDomainChecker)
+	return u.innerCheck(u.BucketURL, bucketDomainChecker) &&
+		(u.innerCheck(u.ServiceURL, serviceDomainChecker) || u.innerCheck(u.ServiceURL, bucketDomainChecker)) &&
+		(u.innerCheck(u.BatchURL, batchDomainChecker) || u.innerCheck(u.BatchURL, bucketDomainChecker))
 }
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL

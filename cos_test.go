@@ -247,52 +247,52 @@ func Test_CheckRetrieable(t *testing.T) {
 
 func Test_BaseURL(t *testing.T) {
 	u, _ := url.Parse("https://example-125000000.cos.ap-chengdu.myqcloud.com")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos-website.ap-chengdu.myqcloud.com")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos-internal.ap-chengdu.tencentcos.cn")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu.tencentcos.cn")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos.accelerate.myqcloud.com")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos-internal.accelerate.tencentcos.cn")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("http://example-125000000.cos.ap-chengdu.myqcloud.com:8080")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("http://example-125000000.cos-internal.ap-chengdu.tencentcos.cn:80")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos-internal.accelerate.tencentcos.cn:443")
-	if !(&BaseURL{BucketURL: u}).Check() {
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 
 	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/.myqcloud.com")
-	if (&BaseURL{BucketURL: u}).Check() {
+	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/.myqcloud.com:443")
-	if (&BaseURL{BucketURL: u}).Check() {
+	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/myqcloud.com")
-	if (&BaseURL{BucketURL: u}).Check() {
+	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 
