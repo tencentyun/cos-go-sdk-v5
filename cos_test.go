@@ -291,7 +291,7 @@ func Test_BaseURL(t *testing.T) {
 	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
-	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/myqcloud.com")
+	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/.myqcloud.com")
 	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
@@ -349,7 +349,7 @@ func Test_BaseURL(t *testing.T) {
 	if (&BaseURL{BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
-	u, _ = url.Parse("http://cos-control.ap-guangzhou.myqcloud.com/www.com")
+	u, _ = url.Parse("http://cos-control.ap-guangzhou.myqcloud.com")
 	if (&BaseURL{BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
