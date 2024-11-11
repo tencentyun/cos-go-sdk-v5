@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.57"
+	Version               = "0.7.58"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -84,9 +84,6 @@ func (*BaseURL) innerCheck(u *url.URL, reg *regexp.Regexp) bool {
 	}
 	urlStr := strings.TrimRight(u.String(), "/")
 	if !strings.HasPrefix(urlStr, "https://") && !strings.HasPrefix(urlStr, "http://") {
-		return false
-	}
-	if strings.Count(urlStr, "/") > 2 {
 		return false
 	}
 	if domainSuffix.MatchString(urlStr) && !reg.MatchString(urlStr) {
@@ -232,6 +229,10 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	return c
 }
 
+func (c *Client) DisableURLCheck() {
+	c.invalidURL = false
+}
+
 type Credential struct {
 	SecretID     string
 	SecretKey    string
@@ -347,7 +348,7 @@ func (c *Client) doAPI(ctx context.Context, req *http.Request, result interface{
 		ctx, cancel = context.WithCancel(ctx)
 		defer cancel()
 	}
-	//req = req.WithContext(ctx)
+	req = req.WithContext(ctx)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
