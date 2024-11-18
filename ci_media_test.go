@@ -3728,3 +3728,103 @@ func TestCIService_CreateMultiGeneratePlayListJobs(t *testing.T) {
 		t.Fatalf("CI.CreateMultiGeneratePlayListJobs returned errors: %v", err)
 	}
 }
+
+func TestCIService_CreateAsrVocabularyTable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/asrhotvocabtable", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateAsrVocabularyTableOptions{
+		TableName:        "test",
+		TableDescription: "test",
+		VocabularyWeights: []VocabularyWeight{
+			{
+				Vocabulary: "test",
+				Weight:     10,
+			},
+		},
+		VocabularyWeightStr: "",
+	}
+	_, _, err := client.CI.CreateAsrVocabularyTable(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAsrVocabularyTable returned error: %v", err)
+	}
+}
+
+func TestCIService_DeleteAsrVocabularyTable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	tableId := "123"
+	mux.HandleFunc(fmt.Sprintf("/asrhotvocabtable/%s", tableId), func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+	})
+
+	_, err := client.CI.DeleteAsrVocabularyTable(context.Background(), tableId)
+	if err != nil {
+		t.Fatalf("CI.DeleteAsrVocabularyTable returned error: %v", err)
+	}
+}
+
+func TestCIService_UpdateAsrVocabularyTable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/asrhotvocabtable", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+	})
+
+	opt := &UpdateAsrVocabularyTableOptions{
+		TableId:          "123",
+		TableName:        "test",
+		TableDescription: "test",
+		VocabularyWeights: []VocabularyWeight{
+			{
+				Vocabulary: "test",
+				Weight:     10,
+			},
+		},
+		VocabularyWeightStr: "",
+	}
+	_, _, err := client.CI.UpdateAsrVocabularyTable(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.UpdateAsrVocabularyTable returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeAsrVocabularyTable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	tableId := "123"
+	mux.HandleFunc(fmt.Sprintf("/asrhotvocabtable/%s", tableId), func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	_, _, err := client.CI.DescribeAsrVocabularyTable(context.Background(), tableId)
+	if err != nil {
+		t.Fatalf("CI.DescribeAsrVocabularyTable returned error: %v", err)
+	}
+}
+
+func TestCIService_DescribeAsrVocabularyTables(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/asrhotvocabtable", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	opt := &DescribeAsrVocabularyTablesOptions{
+		Offset: 0,
+		Limit:  100,
+	}
+
+	_, _, err := client.CI.DescribeAsrVocabularyTables(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeAsrVocabularyTables returned error: %v", err)
+	}
+}
