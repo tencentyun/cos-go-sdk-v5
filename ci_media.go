@@ -1448,10 +1448,18 @@ type GetMediaInfoResult struct {
 // 媒体信息接口 https://cloud.tencent.com/document/product/436/55672
 func (s *CIService) GetMediaInfo(ctx context.Context, name string, opt *ObjectGetOptions, id ...string) (*GetMediaInfoResult, *Response, error) {
 	var u string
+
+	// 兼容 name 以 / 开头的情况
+	if strings.HasPrefix(name, "/") {
+		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	} else {
+		name = encodeURIComponent(name, []byte{'/'})
+	}
+
 	if len(id) == 1 {
-		u = fmt.Sprintf("/%s?versionId=%s&ci-process=videoinfo", encodeURIComponent(name, []byte{'/'}), id[0])
+		u = fmt.Sprintf("/%s?versionId=%s&ci-process=videoinfo", name, id[0])
 	} else if len(id) == 0 {
-		u = fmt.Sprintf("/%s?ci-process=videoinfo", encodeURIComponent(name, []byte{'/'}))
+		u = fmt.Sprintf("/%s?ci-process=videoinfo", name)
 	} else {
 		return nil, nil, fmt.Errorf("wrong params")
 	}
