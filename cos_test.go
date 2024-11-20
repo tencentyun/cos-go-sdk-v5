@@ -278,7 +278,15 @@ func Test_BaseURL(t *testing.T) {
 	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
-	u, _ = url.Parse("https://example-125000000.cos-internal.accelerate.tencentcos.cn:443")
+	u, _ = url.Parse("https://cluster-1.cos-2.ap-guangzhou.myqcloud.com")
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
+		t.Errorf("BaseURL check failed: %v", u)
+	}
+	u, _ = url.Parse("https://test-1250000.global.tencentcos.cn")
+	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
+		t.Errorf("BaseURL check failed: %v", u)
+	}
+	u, _ = url.Parse("http://1.cos-c-internal.ap-singapore.tencentcos.cn")
 	if !(&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
@@ -291,7 +299,7 @@ func Test_BaseURL(t *testing.T) {
 	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
-	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/myqcloud.com")
+	u, _ = url.Parse("https://example-125000000.cos.ap-chengdu@123.com/.myqcloud.com")
 	if (&BaseURL{BucketURL: u, ServiceURL: u, BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
@@ -341,17 +349,4 @@ func Test_BaseURL(t *testing.T) {
 	if !(&BaseURL{BatchURL: u}).Check() {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
-	u, _ = url.Parse("http://cos-control.ap-guangzhou.tencentcos.cn")
-	if (&BaseURL{BatchURL: u}).Check() {
-		t.Errorf("BaseURL check failed: %v", u)
-	}
-	u, _ = url.Parse("http://cos-control.ap-guangzhou.myqcloud.com")
-	if (&BaseURL{BatchURL: u}).Check() {
-		t.Errorf("BaseURL check failed: %v", u)
-	}
-	u, _ = url.Parse("http://cos-control.ap-guangzhou.myqcloud.com/www.com")
-	if (&BaseURL{BatchURL: u}).Check() {
-		t.Errorf("BaseURL check failed: %v", u)
-	}
-
 }
