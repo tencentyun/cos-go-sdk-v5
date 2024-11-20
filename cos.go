@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.58"
+	Version               = "0.7.59"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -48,11 +48,9 @@ var (
 	regionChecker         = regexp.MustCompile(`^[a-z-1]+$`)
 
 	// 校验传入的url
-	domainSuffix         = regexp.MustCompile(`^.*\.(myqcloud\.com(:[0-9]+){0,1}|tencentcos\.cn(:[0-9]+){0,1})$`)
-	bucketDomainChecker  = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn)(:[0-9]+){0,1}$`)
-	serviceDomainChecker = regexp.MustCompile(`^(http://|https://){0,1}((service.cos.myqcloud.com|service.cos-internal.tencentcos.cn|service.cos.tencentcos.cn)|(cos|cos-internal)\.[a-z-1]+\.(myqcloud\.com|tencentcos\.cn))(:[0-9]+){0,1}$`)
-	batchDomainChecker   = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}cos-control\.[a-z-1]+\.(myqcloud\.com|tencentcos\.cn)(:[0-9]+){0,1}$`)
-	invalidBucketErr     = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
+	domainSuffix        = regexp.MustCompile(`^.*\.(myqcloud\.com(:[0-9]+){0,1}|tencentcos\.cn(:[0-9]+){0,1})$`)
+	bucketDomainChecker = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+\.)+(myqcloud\.com|tencentcos\.cn)(:[0-9]+){0,1}$`)
+	invalidBucketErr    = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
 	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
 	accelerateDomainSuffix = "accelerate.myqcloud.com"
@@ -93,9 +91,7 @@ func (*BaseURL) innerCheck(u *url.URL, reg *regexp.Regexp) bool {
 }
 
 func (u *BaseURL) Check() bool {
-	return u.innerCheck(u.BucketURL, bucketDomainChecker) &&
-		(u.innerCheck(u.ServiceURL, serviceDomainChecker) || u.innerCheck(u.ServiceURL, bucketDomainChecker)) &&
-		(u.innerCheck(u.BatchURL, batchDomainChecker) || u.innerCheck(u.BatchURL, bucketDomainChecker))
+	return u.innerCheck(u.BucketURL, bucketDomainChecker) && u.innerCheck(u.ServiceURL, bucketDomainChecker) && u.innerCheck(u.BatchURL, bucketDomainChecker)
 }
 
 // NewBucketURL 生成 BaseURL 所需的 BucketURL
