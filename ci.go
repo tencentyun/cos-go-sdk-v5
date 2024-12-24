@@ -2788,3 +2788,42 @@ func (s *CIService) DeleteImageSlim(ctx context.Context) (*Response, error) {
 	resp, err := s.client.send(ctx, sendOpt)
 	return resp, err
 }
+
+// CIBucketsOptions is the option of CIBuckets
+type DescribeCIBucketsOptions struct {
+	BucketName string `url:"bucketName,omitempty"`
+	TagKey     string `url:"tagKey,omitempty"`
+	PageNumber int    `url:"pageNumber,omitempty"`
+	PageSize   int    `url:"pageSize,omitempty"`
+}
+
+type CIBucketList struct {
+	BucketId   string `xml:"BucketId,omitempty"`
+	BucketName string `xml:"BucketName,omitempty"`
+	AppId      string `xml:"AppId,omitempty"`
+	CreateTime string `xml:"CreateTime,omitempty"`
+	Region     string `xml:"Region,omitempty"`
+	Status     string `xml:"Status,omitempty"`
+}
+
+type CIBucketsResult struct {
+	XMLName      xml.Name       `xml:"Response"`
+	RequestId    string         `xml:"RequestId,omitempty"`
+	TotalCount   string         `xml:"TotalCount,omitempty"`
+	PageNumber   string         `xml:"PageNumber,omitempty"`
+	PageSize     string         `xml:"PageSize,omitempty"`
+	CIBucketList []CIBucketList `xml:"CIBucketList,omitempty"`
+}
+
+func (s *CIService) DescribeCIBuckets(ctx context.Context, opt *DescribeCIBucketsOptions) (*CIBucketsResult, *Response, error) {
+	var res CIBucketsResult
+	sendOpt := &sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/cibuckets",
+		method:   http.MethodGet,
+		optQuery: opt,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}

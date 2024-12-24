@@ -153,5 +153,16 @@ func CreateMediaProcessBucket() {
 	fmt.Printf("%+v\n", res)
 }
 
+func DescribeCIBuckets() {
+	c := getClient()
+	opt := &cos.DescribeCIBucketsOptions{
+		PageSize:   100,
+		PageNumber: 6,
+	}
+	res, _, err := c.CI.DescribeCIBuckets(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", len(res.CIBucketList))
+}
+
 func main() {
 }
