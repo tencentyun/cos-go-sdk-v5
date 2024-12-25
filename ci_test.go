@@ -3088,3 +3088,19 @@ func TestBucketService_DeleteImageSlim(t *testing.T) {
 		t.Fatalf("CI.DeleteImageSlim returned error: %v", err)
 	}
 }
+
+func TestBucketService_DescribeCIBuckets(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/cibuckets", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+	})
+
+	opt := &DescribeCIBucketsOptions{}
+
+	_, _, err := client.CI.DescribeCIBuckets(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.DescribeCIBuckets returned error: %v", err)
+	}
+}
