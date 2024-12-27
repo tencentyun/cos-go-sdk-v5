@@ -10,7 +10,7 @@ import (
 func TestCIService_CreateDataset(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\"}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"Version\":\"\",\"Volume\":0,\"TrainingMode\":0,\"TrainingDataset\":\"\",\"TrainingURI\":\"\"}"
 
 	mux.HandleFunc("/dataset", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
