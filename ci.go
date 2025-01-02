@@ -2793,6 +2793,7 @@ func (s *CIService) DeleteImageSlim(ctx context.Context) (*Response, error) {
 type DescribeCIBucketsOptions struct {
 	BucketName string `url:"bucketName,omitempty"`
 	TagKey     string `url:"tagKey,omitempty"`
+	Region     string `url:"region,omitempty"`
 	PageNumber int    `url:"pageNumber,omitempty"`
 	PageSize   int    `url:"pageSize,omitempty"`
 }

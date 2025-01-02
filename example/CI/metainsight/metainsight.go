@@ -55,6 +55,8 @@ func CreateDataSet() {
 		DatasetName: "dataset1",
 		Description: "dataset test",
 		TemplateId:  "Official:COSBasicMeta",
+		Version:     "standard",
+		Volume:      50,
 	}
 	res, _, err := c.MetaInsight.CreateDataset(context.Background(), opt)
 	log_status(err)
