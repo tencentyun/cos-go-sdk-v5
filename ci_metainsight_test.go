@@ -10,7 +10,7 @@ import (
 func TestCIService_CreateDataset(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"Version\":\"\",\"Volume\":0,\"TrainingMode\":0,\"TrainingDataset\":\"\",\"TrainingURI\":\"\"}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"Version\":\"\",\"Volume\":0,\"TrainingMode\":0,\"TrainingDataset\":\"\",\"TrainingURI\":\"\",\"SceneType\":\"general\"}"
 
 	mux.HandleFunc("/dataset", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -25,6 +25,7 @@ func TestCIService_CreateDataset(t *testing.T) {
 		DatasetName: "adataset",
 		Description: "dataset test",
 		TemplateId:  "Official:COSBasicMeta",
+		SceneType:   "general",
 	}
 	_, _, err := client.MetaInsight.CreateDataset(context.Background(), createJobOpt)
 	if err != nil {
