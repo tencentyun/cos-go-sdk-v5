@@ -65,6 +65,7 @@ type CreateDatasetOptions struct {
 	TrainingMode    int         `json:"TrainingMode, omitempty" url:"-" `    // 训练数据的来源模式。默认为0，表示训练数据来源于指定数据集，值为1时表示训练数据来源于cos某个bucket目录下文件。仅在Version为standard时生效。
 	TrainingDataset string      `json:"TrainingDataset, omitempty" url:"-" ` // 训练数据的数据集名称。仅在TrainingMode为0时生效。
 	TrainingURI     string      `json:"TrainingURI, omitempty" url:"-" `     // 训练数据的资源路径。仅在TrainingMode为1时生效。
+	SceneType       string      `json:"SceneType, omitempty" url:"-" `       // 场景类型。支持general、E-commercial、iDrive，默认为general。
 	OptHeaders      *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
 }
 
