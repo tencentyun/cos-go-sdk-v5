@@ -57,6 +57,7 @@ func CreateDataSet() {
 		TemplateId:  "Official:COSBasicMeta",
 		Version:     "standard",
 		Volume:      50,
+		SceneType:   "general",
 	}
 	res, _, err := c.MetaInsight.CreateDataset(context.Background(), opt)
 	log_status(err)
