@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	sha1SignAlgorithm   = "sha1"
-	privateHeaderPrefix = "x-cos-"
-	defaultAuthExpire   = time.Hour
+	sha1SignAlgorithm     = "sha1"
+	privateHeaderPrefix   = "x-cos-"
+	privateCIHeaderPrefix = "x-ci-"
+	defaultAuthExpire     = time.Hour
 )
 
 var (
@@ -321,6 +322,9 @@ func isSignHeader(key string) bool {
 		if key == k && v {
 			return true
 		}
+	}
+	if strings.HasPrefix(key, privateCIHeaderPrefix) {
+		return true
 	}
 	return strings.HasPrefix(key, privateHeaderPrefix)
 }
