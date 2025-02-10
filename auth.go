@@ -219,13 +219,12 @@ func AddAuthorizationHeader(secretID, secretKey string, sessionToken string, req
 	if secretID == "" {
 		return
 	}
-
-	auth := newAuthorization(secretID, secretKey, req,
-		authTime, true,
-	)
 	if len(sessionToken) > 0 {
 		req.Header.Set("x-cos-security-token", sessionToken)
 	}
+	auth := newAuthorization(secretID, secretKey, req,
+		authTime, true,
+	)
 	req.Header.Set("Authorization", auth)
 }
 
