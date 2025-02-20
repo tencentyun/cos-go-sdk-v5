@@ -126,6 +126,7 @@ func TestCVMCredentialTransport(t *testing.T) {
 		host := strings.TrimLeft(uri, "http://")
 		req, _ := http.NewRequest("GET", uri, nil)
 		req.Header.Add("Host", host)
+		req.Header.Add("x-cos-security-token", token)
 		expect := newAuthorization(ak, sk, req, authTime, true)
 		if expect != auth {
 			t.Errorf("CVMCredentialTransport Authorization error, want:%v, return:%v\n", expect, auth)
@@ -350,6 +351,7 @@ func TestStsCredentialTransport(t *testing.T) {
 		host := strings.TrimLeft(uri, "http://")
 		req, _ := http.NewRequest("GET", uri, nil)
 		req.Header.Add("Host", host)
+		req.Header.Add("x-cos-security-token", token)
 		expect := newAuthorization(ak, sk, req, authTime, true)
 		if expect != auth {
 			t.Errorf("StsCredentialTransport Authorization error, want:%v, return:%v\n", expect, auth)

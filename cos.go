@@ -287,6 +287,7 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	var reader io.Reader
 	contentType := ""
 	contentMD5 := ""
+	contentLength := int64(-1)
 	if body != nil {
 		// 上传文件
 		if r, ok := body.(io.Reader); ok {
@@ -299,6 +300,7 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 			contentType = contentTypeXML
 			reader = bytes.NewReader(b)
 			contentMD5 = base64.StdEncoding.EncodeToString(calMD5Digest(b))
+			contentLength = int64(len(b))
 		}
 	}
 
@@ -310,6 +312,9 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	req.Header, err = addHeaderOptions(ctx, req.Header, optHeader)
 	if err != nil {
 		return
+	}
+	if v := req.Header.Get("Content-Length"); v == "" && contentLength >= 0 {
+		req.Header.Set("Content-Length", strconv.FormatInt(contentLength, 10))
 	}
 	if v := req.Header.Get("Content-Length"); req.ContentLength == 0 && v != "" && v != "0" {
 		req.ContentLength, _ = strconv.ParseInt(v, 10, 64)
