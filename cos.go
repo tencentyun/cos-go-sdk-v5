@@ -267,6 +267,10 @@ func (c *Client) GetCredential() *Credential {
 	return nil
 }
 
+type commonHeader struct {
+	ContentLength int64 `header:"Content-Length,omitempty"`
+}
+
 func (c *Client) newPresignedRequest(ctx context.Context, sendOpt *sendOptions) (req *http.Request, err error) {
 	sendOpt.uri, err = addURLOptions(sendOpt.uri, sendOpt.optQuery)
 	if err != nil {
