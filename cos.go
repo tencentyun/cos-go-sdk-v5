@@ -267,6 +267,26 @@ func (c *Client) GetCredential() *Credential {
 	return nil
 }
 
+func (c *Client) newPresignedRequest(ctx context.Context, sendOpt *sendOptions) (req *http.Request, err error) {
+	sendOpt.uri, err = addURLOptions(sendOpt.uri, sendOpt.optQuery)
+	if err != nil {
+		return
+	}
+	u, _ := url.Parse(sendOpt.uri)
+	urlStr := sendOpt.baseURL.ResolveReference(u).String()
+
+	req, err = http.NewRequest(sendOpt.method, urlStr, nil)
+	if err != nil {
+		return
+	}
+
+	req.Header, err = addHeaderOptions(ctx, req.Header, sendOpt.optHeader)
+	if err != nil {
+		return
+	}
+	return req, err
+}
+
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}, isRetry bool) (req *http.Request, err error) {
 	if c.invalidURL {
 		return nil, invalidBucketErr
@@ -302,6 +322,8 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 			contentMD5 = base64.StdEncoding.EncodeToString(calMD5Digest(b))
 			contentLength = int64(len(b))
 		}
+	} else if method == http.MethodPut || method == http.MethodPost {
+		contentLength = 0
 	}
 
 	req, err = http.NewRequest(method, urlStr, reader)
