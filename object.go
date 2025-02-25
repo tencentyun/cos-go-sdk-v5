@@ -162,7 +162,7 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 			}
 		}
 	}
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
 	}
 
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +329,7 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
 	}
 
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +382,7 @@ func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, 
 			sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
 		}
 	}
-	req, err := s.client.newRequest(ctx, sendOpt.baseURL, sendOpt.uri, sendOpt.method, sendOpt.body, sendOpt.optQuery, sendOpt.optHeader, false)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
 	if err != nil {
 		return ""
 	}
