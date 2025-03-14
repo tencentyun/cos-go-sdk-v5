@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.62"
+	Version               = "0.7.63"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -271,14 +271,16 @@ type commonHeader struct {
 	ContentLength int64 `header:"Content-Length,omitempty"`
 }
 
-func (c *Client) newPresignedRequest(ctx context.Context, sendOpt *sendOptions) (req *http.Request, err error) {
+func (c *Client) newPresignedRequest(ctx context.Context, sendOpt *sendOptions, enablePathMerge bool) (req *http.Request, err error) {
 	sendOpt.uri, err = addURLOptions(sendOpt.uri, sendOpt.optQuery)
 	if err != nil {
 		return
 	}
-	u, _ := url.Parse(sendOpt.uri)
-	urlStr := sendOpt.baseURL.ResolveReference(u).String()
-
+	urlStr := fmt.Sprintf("%s://%s%s", sendOpt.baseURL.Scheme, sendOpt.baseURL.Host, sendOpt.uri)
+	if enablePathMerge {
+		u, _ := url.Parse(sendOpt.uri)
+		urlStr = sendOpt.baseURL.ResolveReference(u).String()
+	}
 	req, err = http.NewRequest(sendOpt.method, urlStr, nil)
 	if err != nil {
 		return
