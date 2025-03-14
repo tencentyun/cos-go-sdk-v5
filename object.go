@@ -123,6 +123,7 @@ type PresignedURLOptions struct {
 	SignMerged      bool         `xml:"-" url:"-" header:"-"`
 	AuthTime        *AuthTime    `xml:"-" url:"-" header:"-"`
 	EncodeDelimiter bool         `xml:"-" url:"-" header:"-"`
+	EnablePathMerge bool         `xml:"-" url:"-" header:"-"`
 }
 
 // GetPresignedURL get the object presigned to down or upload file by url
@@ -146,6 +147,7 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		optHeader: opt,
 	}
 	var authTime *AuthTime
+	var enablePathMerge bool
 	if opt != nil {
 		if popt, ok := opt.(*presignedURLTestingOptions); ok {
 			authTime = popt.authTime
@@ -160,9 +162,12 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 			if popt.AuthTime != nil {
 				authTime = popt.AuthTime
 			}
+			if popt.EnablePathMerge {
+				enablePathMerge = true
+			}
 		}
 	}
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt, enablePathMerge)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +225,7 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 		optQuery:  opt,
 		optHeader: opt,
 	}
+	var enablePathMerge bool
 	var authTime *AuthTime
 	mark := "?"
 	if opt != nil {
@@ -237,13 +243,16 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 			if popt.AuthTime != nil {
 				authTime = popt.AuthTime
 			}
+			if popt.EnablePathMerge {
+				enablePathMerge = true
+			}
 		}
 	}
 	if cred.SessionToken != "" {
 		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
 	}
 
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt, enablePathMerge)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +315,7 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 		optQuery:  opt,
 		optHeader: opt,
 	}
+	var enablePathMerge bool
 	var authTime *AuthTime
 	mark := "?"
 	if opt != nil {
@@ -323,13 +333,16 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 			if popt.AuthTime != nil {
 				authTime = popt.AuthTime
 			}
+			if popt.EnablePathMerge {
+				enablePathMerge = true
+			}
 		}
 	}
 	if cred.SessionToken != "" {
 		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
 	}
 
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt, enablePathMerge)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +395,7 @@ func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, 
 			sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
 		}
 	}
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt)
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt, false)
 	if err != nil {
 		return ""
 	}
