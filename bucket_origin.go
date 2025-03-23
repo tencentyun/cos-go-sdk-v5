@@ -62,6 +62,11 @@ type BucketOriginHostInfo struct {
 }
 
 type BucketOriginFileInfo struct {
+	// 兼容旧版本
+	PrefixDirective bool   `xml:"PrefixDirective,omitempty"`
+	Prefix          string `xml:"Prefix,omitempty"`
+	Suffix          string `xml:"Suffix,omitempty"`
+	// 新版本
 	PrefixConfiguration    *OriginPrefixConfiguration    `xml:"PrefixConfiguration,omitempty"`
 	SuffixConfiguration    *OriginSuffixConfiguration    `xml:"SuffixConfiguration,omitempty"`
 	FixedFileConfiguration *OriginFixedFileConfiguration `xml:"FixedFileConfiguration,omitempty"`
