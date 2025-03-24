@@ -2364,3 +2364,153 @@ func TestObjectKeyErr(t *testing.T) {
 		}
 	}
 }
+
+func TestObjectService_PutFromURL(t *testing.T) {
+	setup()
+	defer teardown()
+
+	source := "source"
+	dest := "dest"
+	partSize := 8
+
+	data := make([]byte, 1024*1024*33+133)
+	_, err := rand.Read(data)
+	tb := crc64.MakeTable(crc64.ECMA)
+	realcrc := crc64.Update(0, tb, data)
+
+	var finalcrc uint64
+	var gtable *crc64.Table
+	var partNumber int64
+	var testResourceFailed, testInitFailed, testPartFailed, testCompleteFailed bool
+	initTest := func() {
+		finalcrc = 0
+		gtable = crc64.MakeTable(crc64.ECMA)
+		partNumber = 0
+		testResourceFailed, testInitFailed, testPartFailed, testCompleteFailed = false, false, false, false
+	}
+	// 源文件内容
+	mux.HandleFunc("/"+source, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		if testResourceFailed {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		n, err := io.Copy(w, bytes.NewReader(data))
+		if err != nil && err != io.EOF || n != int64(len(data)) {
+			t.Errorf("io.copy failed: %v", err)
+		}
+	})
+
+	// 全局crc
+	mux.HandleFunc("/"+dest, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		switch r.Method {
+		case http.MethodPost:
+			// init
+			init := url.Values{}
+			init.Set("uploads", "")
+			if reflect.DeepEqual(r.Form, init) {
+				if testInitFailed {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+                    <Bucket></Bucket>
+                    <Key>dest</Key>
+                    <UploadId>putfromurl_uploadid</UploadId>
+                </InitiateMultipartUploadResult>`)
+				return
+			}
+			// complete
+			complete := url.Values{}
+			complete.Set("uploadId", "putfromurl_uploadid")
+			if !reflect.DeepEqual(r.Form, complete) {
+				t.Errorf("complete check query failed, get: %v, want %v", r.Form, complete)
+			}
+			// 校验crc
+			if realcrc != finalcrc {
+				t.Errorf("crc64ecma mismatch, want: %v, return: %v", realcrc, finalcrc)
+			}
+			if testCompleteFailed {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(realcrc, 10))
+			fmt.Fprintf(w, `<CompleteMultipartUploadResult>
+            	<Location>/dest</Location>
+                <Bucket></Bucket>
+                <Key>dest</Key>
+                <ETag>&quot;etag&quot;</ETag>
+            </CompleteMultipartUploadResult>`)
+		case http.MethodPut:
+			// 分块
+			partNumber++
+			vs := values{
+				"uploadId":   "putfromurl_uploadid",
+				"partNumber": strconv.FormatInt(partNumber, 10),
+			}
+			testFormValues(t, r, vs)
+			bs, _ := io.ReadAll(r.Body)
+			finalcrc = crc64.Update(finalcrc, gtable, bs)
+			st, ed := partSize*1024*1024*int(partNumber-1), len(bs)
+			// 比较数据
+			if bytes.Compare(bs, data[st:st+ed]) != 0 {
+				t.Errorf("data mismatch: %v", partNumber)
+			}
+			tb := crc64.MakeTable(crc64.ECMA)
+			partcrc := crc64.Update(0, tb, bs)
+			if testPartFailed {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(partcrc, 10))
+			w.Header().Add("Etag", "\""+hex.EncodeToString(calMD5Digest(bs))+"\"")
+		case http.MethodDelete:
+			vs := values{
+				"uploadId": "putfromurl_uploadid",
+			}
+			testFormValues(t, r, vs)
+		}
+	})
+	downloadUrl := client.BaseURL.BucketURL.String() + "/" + source
+
+	opt := &ObjectPutFromURLOptions{
+		PartSize:  partSize,
+		QueueSize: 1,
+	}
+	initTest()
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, opt)
+	if err != nil {
+		t.Errorf("Object.PutFromURL returned error: %v", err)
+	}
+	initTest()
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, nil)
+	if err != nil {
+		t.Errorf("Object.PutFromURL returned error: %v", err)
+	}
+
+	initTest()
+	testInitFailed = true
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, nil)
+	if err == nil {
+		t.Errorf("Object.PutFromURL expect error")
+	}
+	initTest()
+	testResourceFailed = true
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, nil)
+	if err == nil {
+		t.Errorf("Object.PutFromURL expect error")
+	}
+	initTest()
+	testPartFailed = true
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, nil)
+	if err == nil {
+		t.Errorf("Object.PutFromURL expect error")
+	}
+	initTest()
+	testCompleteFailed = true
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, nil)
+	if err == nil {
+		t.Errorf("Object.PutFromURL expect error")
+	}
+}

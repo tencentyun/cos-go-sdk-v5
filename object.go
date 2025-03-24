@@ -1991,3 +1991,192 @@ func (s *ObjectService) GetSymlink(ctx context.Context, name string, opt *Object
 	}
 	return resp.Header.Get("x-cos-symlink-target"), resp, err
 }
+
+type ObjectPutFromURLOptions struct {
+	PartSize    int
+	QueueSize   int
+	InitOptions *InitiateMultipartUploadOptions
+}
+
+func (s *ObjectService) PutFromURL(ctx context.Context, name string, downloadURL string, opt *ObjectPutFromURLOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	if opt == nil {
+		opt = &ObjectPutFromURLOptions{}
+	}
+	// init
+	v, resp, err := s.InitiateMultipartUpload(ctx, name, opt.InitOptions)
+	if err != nil {
+		return nil, resp, err
+	}
+	uploadId := v.UploadID
+	var isErr bool
+	defer func() {
+		if isErr {
+			s.AbortMultipartUpload(ctx, name, uploadId, nil)
+		}
+	}()
+	// request from url
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		isErr = true
+		return nil, nil, err
+	}
+	rsp, err := http.DefaultClient.Do(req)
+	if err != nil || rsp == nil {
+		isErr = true
+		return nil, nil, err
+	}
+	defer rsp.Body.Close()
+	if rsp.StatusCode > 299 {
+		isErr = true
+		return nil, &Response{rsp}, fmt.Errorf("the status code of downloadURL response is failed: %d", rsp.StatusCode)
+	}
+	factory := newPartFactory(opt.PartSize, opt.QueueSize)
+	partChannel, errChannel := factory.Produce(rsp.Body)
+	defer factory.Close()
+
+	comOpt := &CompleteMultipartUploadOptions{}
+	var partNumber int
+	for {
+		select {
+		case part, ok := <-partChannel:
+			if !ok {
+				partChannel = nil
+				break
+			}
+			partNumber++
+			resp, err := s.UploadPart(ctx, name, uploadId, partNumber, part, nil)
+			if err != nil {
+				isErr = true
+				return nil, resp, err
+			}
+			comOpt.Parts = append(comOpt.Parts, Object{
+				PartNumber: partNumber,
+				ETag:       resp.Header.Get("ETag"),
+			})
+		case err, ok := <-errChannel:
+			if !ok {
+				errChannel = nil
+				break
+			}
+			if err != nil {
+				isErr = true
+				return nil, nil, err
+			}
+		}
+		if partChannel == nil && errChannel == nil {
+			break
+		}
+	}
+	res, resp, err := s.CompleteMultipartUpload(ctx, name, uploadId, comOpt)
+	if err != nil {
+		isErr = true
+	}
+	return res, resp, err
+}
+
+type partFactory struct {
+	partSize      int
+	queueSize     int
+	current       *bytes.Buffer
+	partChannel   chan *bytes.Buffer
+	errChannel    chan error
+	cancelChannel chan struct{}
+}
+
+const CHUNK_SIZE = 1024 * 1024
+
+func newPartFactory(partSize int, queueSize int) *partFactory {
+	if partSize <= 0 {
+		partSize = 8
+	}
+	if queueSize <= 0 {
+		queueSize = 10
+	}
+	return &partFactory{
+		partSize:  partSize * 1024 * 1024,
+		queueSize: queueSize,
+		current:   bytes.NewBuffer(nil),
+	}
+}
+
+func (pf *partFactory) Produce(reader io.ReadCloser) (<-chan *bytes.Buffer, <-chan error) {
+	pf.cancelChannel = make(chan struct{}, 1)
+	pf.partChannel = make(chan *bytes.Buffer, pf.queueSize)
+	pf.errChannel = make(chan error, 1)
+
+	go pf.Run(reader)
+	return pf.partChannel, pf.errChannel
+}
+
+func (pf *partFactory) Close() {
+	pf.cancelChannel <- struct{}{}
+}
+
+func (pf *partFactory) Run(reader io.ReadCloser) {
+	var total, parts int
+	defer func() {
+		close(pf.errChannel)
+		close(pf.partChannel)
+	}()
+	buf := make([]byte, CHUNK_SIZE)
+	for {
+		select {
+		case <-pf.cancelChannel:
+			return
+		default:
+			n, err := reader.Read(buf)
+			total += n
+			if n > 0 {
+				part, e := pf.Write(buf[:n])
+				if e != nil {
+					pf.errChannel <- e
+					return
+				}
+				if part != nil {
+					parts++
+					select {
+					case pf.partChannel <- part:
+					case <-pf.cancelChannel:
+						return
+					}
+				}
+			}
+			if err != nil && err != io.EOF {
+				pf.errChannel <- err
+				return
+			}
+			if err == io.EOF || n == 0 {
+				if pf.current.Len() > 0 {
+					parts++
+					select {
+					case pf.partChannel <- pf.current:
+					case <-pf.cancelChannel:
+						return
+					}
+				}
+				return
+			}
+		}
+	}
+}
+
+func (pf *partFactory) Write(p []byte) (*bytes.Buffer, error) {
+	var res *bytes.Buffer
+	for nwrite := 0; nwrite < len(p); {
+		if pf.current.Len() == pf.partSize {
+			res = pf.current
+			pf.current = bytes.NewBuffer(nil)
+		}
+		end := len(p)
+		// 大于缓存区大小
+		if pf.current.Len()+end-nwrite > pf.partSize {
+			end = nwrite + pf.partSize - pf.current.Len()
+		}
+		nr, err := pf.current.Write(p[nwrite:end])
+		if err != nil {
+			return res, err
+		}
+		nwrite += nr
+	}
+	return res, nil
+}
