@@ -81,6 +81,7 @@ type BucketDomainCertificateInfo struct {
 	CustomCert *BucketDomainCustomCert `xml:"CustomCert,omitempty"`
 }
 type BucketDomainCustomCert struct {
+	CertId     string `xml:"CertId,omitempty"`
 	Cert       string `xml:"Cert,omitempty"`
 	PrivateKey string `xml:"PrivateKey,omitempty"`
 }
