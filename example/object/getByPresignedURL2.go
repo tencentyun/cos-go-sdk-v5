@@ -28,6 +28,7 @@ func main() {
 	ctx := context.Background()
 
 	// 获取预签名
+	// http Method需要和实际http请求一致，如PUT请求设置成http.MethodPut，GET请求设置成http.MethodGet
 	presignedURL, err := c.Object.GetPresignedURL2(ctx, http.MethodPut, name, time.Hour, nil)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)

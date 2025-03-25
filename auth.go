@@ -328,6 +328,10 @@ func isSignHeader(key string) bool {
 	return strings.HasPrefix(key, privateHeaderPrefix)
 }
 
+type TransportIface interface {
+	GetCredential() (string, string, string, error)
+}
+
 // AuthorizationTransport 给请求增加 Authorization header
 type AuthorizationTransport struct {
 	SecretID     string
@@ -349,17 +353,17 @@ func (t *AuthorizationTransport) SetCredential(ak, sk, token string) {
 }
 
 // GetCredential get the ak, sk, token
-func (t *AuthorizationTransport) GetCredential() (string, string, string) {
+func (t *AuthorizationTransport) GetCredential() (string, string, string, error) {
 	t.rwLocker.RLock()
 	defer t.rwLocker.RUnlock()
-	return t.SecretID, t.SecretKey, t.SessionToken
+	return t.SecretID, t.SecretKey, t.SessionToken, nil
 }
 
 // RoundTrip implements the RoundTripper interface.
 func (t *AuthorizationTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req = cloneRequest(req) // per RoundTrip contract
 
-	ak, sk, token := t.GetCredential()
+	ak, sk, token, _ := t.GetCredential()
 	if strings.HasPrefix(ak, " ") || strings.HasSuffix(ak, " ") {
 		return nil, fmt.Errorf("SecretID is invalid")
 	}
@@ -506,6 +510,10 @@ func (t *CVMCredentialTransport) transport() http.RoundTripper {
 type CredentialTransport struct {
 	Transport  http.RoundTripper
 	Credential CredentialIface
+}
+
+func (t *CredentialTransport) GetCredential() (string, string, string, error) {
+	return t.Credential.GetSecretId(), t.Credential.GetSecretKey(), t.Credential.GetToken(), nil
 }
 
 func (t *CredentialTransport) RoundTrip(req *http.Request) (*http.Response, error) {
