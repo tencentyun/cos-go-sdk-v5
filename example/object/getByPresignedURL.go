@@ -59,6 +59,7 @@ func main() {
 	ctx := context.Background()
 
 	// Get presigned
+	// http Method需要和实际http请求一致，如PUT请求设置成http.MethodPut，GET请求设置成http.MethodGet
 	presignedURL, err := c.Object.GetPresignedURL(ctx, http.MethodGet, name, ak, sk, time.Hour, nil)
 	logStatus(err)
 	fmt.Println(presignedURL.String())

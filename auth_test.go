@@ -57,7 +57,17 @@ func TestAuthorizationTransport(t *testing.T) {
 	client.client.Transport = auth
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
-	client.GetCredential()
+	cred := client.GetCredential()
+	if cred == nil {
+		t.Error("GetCredential return nil")
+	}
+	if cred.SecretID != "ak" || cred.SecretKey != "sk" || cred.SessionToken != "token" {
+		t.Errorf("GetCredential return %v, want %v", cred, &Credential{
+			SecretID:     "ak",
+			SecretKey:    "sk",
+			SessionToken: "token",
+		})
+	}
 }
 
 func TestAuthorizationTransportErr(t *testing.T) {
@@ -157,17 +167,35 @@ func TestCVMCredentialTransport(t *testing.T) {
 	client.client.Transport = &CVMCredentialTransport{}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
+	cred := client.GetCredential()
+	if cred == nil {
+		t.Errorf("CVMCredentialTransport GetCredential error, return: %v", cred)
+	}
+	if cred.SecretID != ak || cred.SecretKey != sk || cred.SessionToken != token {
+		t.Errorf("CVMCredentialTransport GetCredential error, return: %v", *cred)
+	}
 
 	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
-	client.GetCredential()
-
+	cred = client.GetCredential()
+	if cred == nil {
+		t.Errorf("CVMCredentialTransport GetCredential error, return: %v", cred)
+	}
+	if cred.SecretID != ak || cred.SecretKey != sk || cred.SessionToken != token {
+		t.Errorf("CVMCredentialTransport GetCredential error, return: %v", *cred)
+	}
 	client.client.Transport = &CVMCredentialTransport{
 		Transport: http.DefaultTransport,
 	}
 	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
-	client.GetCredential()
+	cred = client.GetCredential()
+	if cred == nil {
+		t.Errorf("CVMCredentialTransport GetCredential error, return: %v", cred)
+	}
+	if cred.SecretID != ak || cred.SecretKey != sk || cred.SessionToken != token {
+		t.Errorf("CVMCredentialTransport GetCredential error, return: %v", *cred)
+	}
 }
 
 func TestCVMCredentialTransportErr(t *testing.T) {
@@ -307,7 +335,13 @@ func TestCredentialTransport(t *testing.T) {
 	}
 	req, _ := http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
-	client.GetCredential()
+	cred := client.GetCredential()
+	if cred == nil {
+		t.Error("GetCredential failed")
+	}
+	if cred.SecretID != "test" || cred.SecretKey != "test" || cred.SessionToken != "" {
+		t.Errorf("GetCredential failed, return: %v", *cred)
+	}
 
 	client.client.Transport = &CredentialTransport{
 		Credential: NewTokenCredential("test", "test", ""),
@@ -315,8 +349,13 @@ func TestCredentialTransport(t *testing.T) {
 	}
 	req, _ = http.NewRequest("GET", client.BaseURL.BucketURL.String(), nil)
 	client.doAPI(context.Background(), req, nil, true)
-	client.GetCredential()
-
+	cred = client.GetCredential()
+	if cred == nil {
+		t.Error("GetCredential failed")
+	}
+	if cred.SecretID != "test" || cred.SecretKey != "test" || cred.SessionToken != "" {
+		t.Errorf("GetCredential failed, return: %v", *cred)
+	}
 }
 
 func TestStsCredentialTransport(t *testing.T) {
@@ -387,6 +426,13 @@ func TestStsCredentialTransport(t *testing.T) {
 	if err != nil {
 		t.Errorf("doAPI failed: %v", err)
 	}
+	cred := client.GetCredential()
+	if cred == nil {
+		t.Errorf("GetCredential error, return nil")
+	}
+	if cred.SecretID != ak || cred.SecretKey != sk || cred.SessionToken != token {
+		t.Errorf("GetCredential error, return:%v", *cred)
+	}
 
 	_, err = client.doAPI(context.Background(), req, nil, true)
 	if err != nil {
@@ -418,7 +464,6 @@ func TestStsCredentialTransport(t *testing.T) {
 	if err != nil {
 		t.Errorf("doAPI failed: %v", err)
 	}
-
 }
 
 func TestStsCredentialTransportErr(t *testing.T) {

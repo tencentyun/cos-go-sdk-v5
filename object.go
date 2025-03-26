@@ -2060,7 +2060,7 @@ func (s *ObjectService) PutFromURL(ctx context.Context, name string, downloadURL
 			}
 			if err != nil {
 				isErr = true
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("url download failed: %v", err)
 			}
 		}
 		if partChannel == nil && errChannel == nil {
