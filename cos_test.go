@@ -350,3 +350,11 @@ func Test_BaseURL(t *testing.T) {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 }
+
+func TestUniqueGrantID(t *testing.T) {
+	ids := []string{"abc", "abc", "ab"}
+	actual := uniqueGrantID(ids)
+	if actual != "abc,ab" {
+		t.Errorf("expect uniqueIDs to be abc,ab, got %v", actual)
+	}
+}
