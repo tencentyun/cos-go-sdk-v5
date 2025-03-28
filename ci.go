@@ -40,9 +40,10 @@ func EncodePicOperations(pic *PicOperations) string {
 }
 
 type ImageProcessResult struct {
-	XMLName        xml.Name           `xml:"UploadResult"`
-	OriginalInfo   *PicOriginalInfo   `xml:"OriginalInfo,omitempty"`
-	ProcessResults []PicProcessObject `xml:"ProcessResults>Object,omitempty"`
+	XMLName            xml.Name            `xml:"UploadResult"`
+	OriginalInfo       *PicOriginalInfo    `xml:"OriginalInfo,omitempty"`
+	ProcessResults     []PicProcessObject  `xml:"ProcessResults>Object,omitempty"`
+	ImgTargetRecResult *ImgTargetRecResult `xml:"ImgTargetRecResult,omitempty"`
 	// 历史兼容考虑不建议抽象单独struct防止客户使用影响
 	ProcessResultsText                string `xml:"ProcessResults>Text,omitempty"`
 	ProcessResultsWatermarkStatusCode int    `xml:"ProcessResults>WatermarkStatusCode,omitempty"`
@@ -73,6 +74,9 @@ type PicProcessObject struct {
 	WatermarkStatus int          `xml:"WatermarkStatus,omitempty"`
 	CodeStatus      int          `xml:"CodeStatus,omitempty"`
 	QRcodeInfo      []QRcodeInfo `xml:"QRcodeInfo,omitempty"`
+	FrameCount      int          `xml:"FrameCount,omitempty"`
+	Md5             string       `xml:"Md5,omitempty"`
+	BitDepth        int          `xml:"BitDepth,omitempty"`
 }
 type QRcodeInfo struct {
 	CodeUrl      string        `xml:"CodeUrl,omitempty"`
@@ -2827,4 +2831,39 @@ func (s *CIService) DescribeCIBuckets(ctx context.Context, opt *DescribeCIBucket
 	}
 	resp, err := s.client.send(ctx, sendOpt)
 	return &res, resp, err
+}
+
+type ImgTargetRecResult struct {
+	BodyDetailInfos struct {
+		BodyDetailInfo []struct {
+			X      string `xml:"X"`
+			Y      string `xml:"Y"`
+			Width  string `xml:"Width"`
+			Height string `xml:"Height"`
+		} `xml:"BodyDetailInfo"`
+	} `xml:"BodyDetailInfos"`
+	CarDetailInfos struct {
+		CarDetailInfo []struct {
+			X      string `xml:"X"`
+			Y      string `xml:"Y"`
+			Width  string `xml:"Width"`
+			Height string `xml:"Height"`
+		} `xml:"CarDetailInfo"`
+	} `xml:"CarDetailInfos"`
+	FaceDetailInfos struct {
+		FaceDetailInfo []struct {
+			X      string `xml:"X"`
+			Y      string `xml:"Y"`
+			Width  string `xml:"Width"`
+			Height string `xml:"Height"`
+		} `xml:"FaceDetailInfo"`
+	} `xml:"FaceDetailInfos"`
+	PlateDetailInfos struct {
+		PlateDetailInfo []struct {
+			X      string `xml:"X"`
+			Y      string `xml:"Y"`
+			Width  string `xml:"Width"`
+			Height string `xml:"Height"`
+		} `xml:"PlateDetailInfo"`
+	} `xml:"PlateDetailInfos"`
 }
