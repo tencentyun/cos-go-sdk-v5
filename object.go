@@ -32,6 +32,7 @@ type ObjectGetOptions struct {
 	ResponseCacheControl       string `url:"response-cache-control,omitempty" header:"-"`
 	ResponseContentDisposition string `url:"response-content-disposition,omitempty" header:"-"`
 	ResponseContentEncoding    string `url:"response-content-encoding,omitempty" header:"-"`
+	CiProcess                  string `url:"ci-process,omitempty" header:"-"`
 	Range                      string `url:"-" header:"Range,omitempty"`
 	IfModifiedSince            string `url:"-" header:"If-Modified-Since,omitempty"`
 	// SSE-C
