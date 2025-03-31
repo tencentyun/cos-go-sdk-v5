@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.64"
+	Version               = "0.7.65"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -85,6 +85,10 @@ func (*BaseURL) innerCheck(u *url.URL, reg *regexp.Regexp) bool {
 		return false
 	}
 	if domainSuffix.MatchString(urlStr) && !reg.MatchString(urlStr) {
+		return false
+	}
+	host := u.Hostname()
+	if domainSuffix.MatchString(host) && !reg.MatchString(u.Scheme+"://"+host) {
 		return false
 	}
 	return true
@@ -278,6 +282,9 @@ func (c *Client) newPresignedRequest(ctx context.Context, sendOpt *sendOptions, 
 
 func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method string, body interface{}, optQuery interface{}, optHeader interface{}, isRetry bool) (req *http.Request, err error) {
 	if c.invalidURL {
+		return nil, invalidBucketErr
+	}
+	if baseURL == nil {
 		return nil, invalidBucketErr
 	}
 	if !checkURL(baseURL) {
