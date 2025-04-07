@@ -1382,6 +1382,29 @@ func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *Descri
 	return &res, resp, err
 }
 
+type CreatePicProcessBucketOptions struct {
+}
+
+type PicProcessBucket MediaProcessBucket
+type CreatePicProcessBucketResult struct {
+	XMLName   xml.Name         `xml:"Response"`
+	RequestId string           `xml:"RequestId,omitempty"`
+	PicBucket PicProcessBucket `xml:"PicBucket,omitempty"`
+}
+
+// 开通图片处理异步能力 https://cloud.tencent.com/document/product/460/95749
+func (s *CIService) CreatePicProcessBucket(ctx context.Context, opt *CreatePicProcessBucketOptions) (*CreatePicProcessBucketResult, *Response, error) {
+	var res CreatePicProcessBucketResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/picbucket",
+		method:  http.MethodPost,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // DescribePicProcessBuckets TODO
 func (s *CIService) DescribePicProcessBuckets(ctx context.Context, opt *DescribePicProcessBucketsOptions) (*DescribePicProcessBucketsResult, *Response, error) {
 	var res DescribePicProcessBucketsResult
@@ -1391,6 +1414,29 @@ func (s *CIService) DescribePicProcessBuckets(ctx context.Context, opt *Describe
 		optQuery: opt,
 		method:   http.MethodGet,
 		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type CreateAIProcessBucketOptions struct {
+}
+
+type AIProcessBucket MediaProcessBucket
+type CreateAIProcessBucketResult struct {
+	XMLName   xml.Name        `xml:"Response"`
+	RequestId string          `xml:"RequestId,omitempty"`
+	AiBucket  AIProcessBucket `xml:"AiBucket,omitempty"`
+}
+
+// 开通AI处理能力 https://cloud.tencent.com/document/product/460/79593
+func (s *CIService) CreateAIProcessBucket(ctx context.Context, opt *CreateAIProcessBucketOptions) (*CreateAIProcessBucketResult, *Response, error) {
+	var res CreateAIProcessBucketResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/ai_bucket",
+		method:  http.MethodPost,
+		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err
@@ -1410,6 +1456,29 @@ func (s *CIService) DescribeAIProcessBuckets(ctx context.Context, opt *DescribeA
 	return &res, resp, err
 }
 
+type CreateASRProcessBucketOptions struct {
+}
+
+type AsrBucketBucket MediaProcessBucket
+type CreateASRProcessBucketResult struct {
+	XMLName        xml.Name       `xml:"Response"`
+	RequestId      string         `xml:"RequestId,omitempty"`
+	AsrBucketBucket AsrBucketBucket `xml:"AsrBucket,omitempty"`
+}
+
+// 开通ASR处理服务 https://cloud.tencent.com/document/product/460/86377
+func (s *CIService) CreateASRProcessBucket(ctx context.Context, opt *CreateASRProcessBucketOptions) (*CreateASRProcessBucketResult, *Response, error) {
+	var res CreateASRProcessBucketResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/asrbucket",
+		method:  http.MethodPost,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // DescribeASRProcessBuckets TODO
 func (s *CIService) DescribeASRProcessBuckets(ctx context.Context, opt *DescribeASRProcessBucketsOptions) (*DescribeASRProcessBucketsResult, *Response, error) {
 	var res DescribeASRProcessBucketsResult
@@ -1419,6 +1488,29 @@ func (s *CIService) DescribeASRProcessBuckets(ctx context.Context, opt *Describe
 		optQuery: opt,
 		method:   http.MethodGet,
 		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type CreateFileProcessBucketOptions struct {
+}
+
+type FileProcessBucket MediaProcessBucket
+type CreateFileProcessBucketResult struct {
+	XMLName           xml.Name          `xml:"Response"`
+	RequestId         string            `xml:"RequestId,omitempty"`
+	FileProcessBucket FileProcessBucket `xml:"FileBucket,omitempty"`
+}
+
+// 开通文件处理服务 https://cloud.tencent.com/document/product/460/86377
+func (s *CIService) CreateFileProcessBucket(ctx context.Context, opt *CreateFileProcessBucketOptions) (*CreateFileProcessBucketResult, *Response, error) {
+	var res CreateFileProcessBucketResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/file_bucket",
+		method:  http.MethodPost,
+		result:  &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)
 	return &res, resp, err

@@ -116,6 +116,54 @@ func describeFileBucket() {
 	fmt.Printf("res: %+v\n", res)
 }
 
+func createMediaProcessBucket() {
+	c := getClient()
+	opt := &cos.CreateMediaProcessBucketOptions{}
+	res, _, err := c.CI.CreateMediaProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func createDocProcessBucket() {
+	c := getClient()
+	opt := &cos.CreateDocProcessBucketOptions{}
+	res, _, err := c.CI.CreateDocProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func createPicProcessBucket() {
+	c := getClient()
+	opt := &cos.CreatePicProcessBucketOptions{}
+	res, _, err := c.CI.CreatePicProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func createAIProcessBucket() {
+	c := getClient()
+	opt := &cos.CreateAIProcessBucketOptions{}
+	res, _, err := c.CI.CreateAIProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func createASRProcessBucket() {
+	c := getClient()
+	opt := &cos.CreateASRProcessBucketOptions{}
+	res, _, err := c.CI.CreateASRProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+func createFileProcessBucket() {
+	c := getClient()
+	opt := &cos.CreateFileProcessBucketOptions{}
+	res, _, err := c.CI.CreateFileProcessBucket(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
 func main() {
 	// describeMediaBucket()
 	// describePicBucket()
