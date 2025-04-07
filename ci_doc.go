@@ -249,7 +249,7 @@ type DocProcessBucket struct {
 	AliasBucketId string `xml:"AliasBucketId,omitempty"`
 }
 
-// 查询文档预览开通状态 https://cloud.tencent.com/document/product/436/54057
+// 开通文档预览功能 https://cloud.tencent.com/document/product/460/103608
 func (s *CIService) DescribeDocProcessBuckets(ctx context.Context, opt *DescribeDocProcessBucketsOptions) (*DescribeDocProcessBucketsResult, *Response, error) {
 	var res DescribeDocProcessBucketsResult
 	sendOpt := sendOptions{
@@ -257,6 +257,29 @@ func (s *CIService) DescribeDocProcessBuckets(ctx context.Context, opt *Describe
 		uri:      "/docbucket",
 		optQuery: opt,
 		method:   http.MethodGet,
+		result:   &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
+type CreateDocProcessBucketOptions struct {
+}
+
+type CreateDocProcessBucketResult struct {
+	XMLName   xml.Name         `xml:"Response"`
+	RequestId string           `xml:"RequestId,omitempty"`
+	DocBucket DocProcessBucket `xml:"DocBucket,omitempty"`
+}
+
+// 查询文档预览开通状态 https://cloud.tencent.com/document/product/436/54057
+func (s *CIService) CreateDocProcessBucket(ctx context.Context, opt *CreateDocProcessBucketOptions) (*CreateDocProcessBucketResult, *Response, error) {
+	var res CreateDocProcessBucketResult
+	sendOpt := sendOptions{
+		baseURL:  s.client.BaseURL.CIURL,
+		uri:      "/docbucket",
+		optQuery: opt,
+		method:   http.MethodPost,
 		result:   &res,
 	}
 	resp, err := s.client.send(ctx, &sendOpt)

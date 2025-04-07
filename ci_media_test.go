@@ -3828,3 +3828,67 @@ func TestCIService_DescribeAsrVocabularyTables(t *testing.T) {
 		t.Fatalf("CI.DescribeAsrVocabularyTables returned error: %v", err)
 	}
 }
+
+func TestCIService_CreatePicProcessBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/picbucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreatePicProcessBucketOptions{}
+
+	_, _, err := client.CI.CreatePicProcessBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreatePicProcessBucket returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateAIProcessBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/ai_bucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateAIProcessBucketOptions{}
+
+	_, _, err := client.CI.CreateAIProcessBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIProcessBucket returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateFileProcessBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/file_bucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateFileProcessBucketOptions{}
+
+	_, _, err := client.CI.CreateFileProcessBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateFileProcessBucket returned error: %v", err)
+	}
+}
+
+func TestCIService_CreateASRProcessBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/asrbucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateASRProcessBucketOptions{}
+
+	_, _, err := client.CI.CreateASRProcessBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateASRProcessBucket returned error: %v", err)
+	}
+}

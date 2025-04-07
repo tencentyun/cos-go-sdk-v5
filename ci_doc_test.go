@@ -271,3 +271,19 @@ func TestCIService_CIDocCompareResultWrite(t *testing.T) {
 	slice := make([]byte, 5)
 	result.Write(slice)
 }
+
+func TestCIService_CreateDocProcessBucket(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/docbucket", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+	})
+
+	opt := &CreateDocProcessBucketOptions{}
+
+	_, _, err := client.CI.CreateDocProcessBucket(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateDocProcessBucket returned error: %v", err)
+	}
+}
