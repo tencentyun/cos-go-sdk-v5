@@ -6,18 +6,35 @@ import (
 	"net/http"
 )
 
+type DeleteMarkerReplication struct {
+	Status string `xml:"Status"`
+}
+
 // ReplicationDestination is the sub struct of BucketReplicationRule
 type ReplicationDestination struct {
 	Bucket       string `xml:"Bucket"`
 	StorageClass string `xml:"StorageClass,omitempty"`
 }
 
+type ReplicationFilterAnd struct {
+	Prefix string             `xml:"Prefix"`
+	Tag    []ObjectTaggingTag `xml:"Tag,omitempty"`
+}
+
+type ReplicationFilter struct {
+	And    *ReplicationFilterAnd  `xml:"And,omitempty"`
+	Prefix string                 `xml:"Prefix,omitempty"`
+}
+
 // BucketReplicationRule is the main param of replication
 type BucketReplicationRule struct {
-	ID          string                  `xml:"ID,omitempty"`
-	Status      string                  `xml:"Status"`
-	Prefix      string                  `xml:"Prefix"`
-	Destination *ReplicationDestination `xml:"Destination"`
+	ID                      string                   `xml:"ID,omitempty"`
+	Status                  string                   `xml:"Status"`
+	Priority                int                      `xml:"Priority,omitempty"`
+	Prefix                  string                   `xml:"Prefix,omitempty"`
+	Filter                  *ReplicationFilter       `xml:"Filter,omitempty"`
+	Destination             *ReplicationDestination  `xml:"Destination"`
+	DeleteMarkerReplication *DeleteMarkerReplication `xml:"DeleteMarkerReplication,omitempty"`
 }
 
 // PutBucketReplicationOptions is the options of PutBucketReplication
