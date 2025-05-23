@@ -300,8 +300,9 @@ type ConcatTemplate struct {
 
 // SceneChangeInfo 转场参数
 type SceneChangeInfo struct {
-	Mode string `xml:"Mode,omitempty"`
-	Time string `xml:"Time,omitempty"`
+	Mode           string `xml:"Mode,omitempty"`
+	Time           string `xml:"Time,omitempty"`
+	TransitionType string `xml:"TransitionType,omitempty"`
 }
 
 // SpriteSnapshotConfig TODO
@@ -1461,8 +1462,8 @@ type CreateASRProcessBucketOptions struct {
 
 type AsrBucketBucket MediaProcessBucket
 type CreateASRProcessBucketResult struct {
-	XMLName        xml.Name       `xml:"Response"`
-	RequestId      string         `xml:"RequestId,omitempty"`
+	XMLName         xml.Name        `xml:"Response"`
+	RequestId       string          `xml:"RequestId,omitempty"`
 	AsrBucketBucket AsrBucketBucket `xml:"AsrBucket,omitempty"`
 }
 
