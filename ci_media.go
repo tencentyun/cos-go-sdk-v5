@@ -780,6 +780,7 @@ type MediaProcessJobOperation struct {
 	SnapshotPrefix          string                   `xml:"SnapshotPrefix,omitempty"`
 	ImageOCR                *ImageOCRTemplate        `xml:"ImageOCR,omitempty"`
 	Detection               *ImageOCRDetection       `xml:"Detection,omitempty"`
+	CustomId                string                   `xml:"CustomId,omitempty"`
 }
 
 // CreatePicJobsOptions TODO
@@ -4221,13 +4222,15 @@ type LiveTanscode struct {
 }
 
 type GeneratePlayListJobOperation struct {
-	Tag         string        `xml:"Tag,omitempty"`
-	Output      *JobOutput    `xml:"Output,omitempty"`
-	MediaResult *MediaResult  `xml:"MediaResult,omitempty"`
-	MediaInfo   *MediaInfo    `xml:"MediaInfo,omitempty"`
-	Transcode   *LiveTanscode `xml:"Transcode,omitempty"`
-	UserData    string        `xml:"UserData,omitempty"`
-	JobLevel    int           `xml:"JobLevel,omitempty"`
+	Tag                 string        `xml:"Tag,omitempty"`
+	Output              *JobOutput    `xml:"Output,omitempty"`
+	MediaResult         *MediaResult  `xml:"MediaResult,omitempty"`
+	MediaInfo           *MediaInfo    `xml:"MediaInfo,omitempty"`
+	Transcode           *LiveTanscode `xml:"Transcode,omitempty"`
+	UserData            string        `xml:"UserData,omitempty"`
+	JobLevel            int           `xml:"JobLevel,omitempty"`
+	Watermark           []Watermark   `xml:"Watermark,omitempty"`
+	WatermarkTemplateId []string      `xml:"WatermarkTemplateId,omitempty"`
 }
 
 type CreateGeneratePlayListJobOptions struct {

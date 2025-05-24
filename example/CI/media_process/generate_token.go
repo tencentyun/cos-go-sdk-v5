@@ -91,16 +91,28 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 		},
 	})
 	ctx := context.Background()
+	opt := &cos.PresignedURLOptions{
+		Query:  &url.Values{},
+		Header: &http.Header{},
+	}
+	opt.Query.Add("ci-process", "getplaylist")
+	opt.Query.Add("signType", "cos")
+	opt.Query.Add("expires", "43200")
+	// opt.Query.Add("exper", "30") 试看时长
+	// 生成token
+	// generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
+	// opt.Query.Add("tokenType", "JwtToken")
+	// opt.Query.Add("token", generateToken)
 
+	var signHost bool = true
 	// 获取预签名
-	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
+	presignedURL, err := c.Object.GetPresignedURL2(ctx, http.MethodGet, objectKey, time.Hour, opt, signHost)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-	// 生成token
-	generateToken, _ := GenerateToken(appId, bucketId, objectKey, playkey)
-	resultUrl := presignedURL.String() + "&ci-process=pm3u8&expires=43200&&tokenType=JwtToken&token=" + generateToken
+
+	resultUrl := presignedURL.String()
 	fmt.Println(resultUrl)
 }
 

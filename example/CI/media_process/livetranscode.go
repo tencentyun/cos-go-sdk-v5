@@ -91,14 +91,26 @@ func GetCOSDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, buc
 	})
 	ctx := context.Background()
 
+	opt := &cos.PresignedURLOptions{
+		Query:  &url.Values{},
+		Header: &http.Header{},
+	}
+	opt.Query.Add("ci-process", "getplaylist")
+	opt.Query.Add("signType", "cos")
+	opt.Query.Add("expires", "43200")
+	// opt.Query.Add("exper", "30") 试看时长
+	opt.Query.Add("tokenType", "JwtToken")
+	opt.Query.Add("token", jwtToken)
+
+	var signHost bool = true
 	// 获取预签名
-	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
+	presignedURL, err := c.Object.GetPresignedURL2(ctx, http.MethodGet, objectKey, 10*time.Hour, opt, signHost)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return ""
 	}
 
-	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + jwtToken
+	resultUrl := presignedURL.String()
 	return resultUrl
 }
 
@@ -114,14 +126,22 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 		},
 	})
 	ctx := context.Background()
-
+	opt := &cos.PresignedURLOptions{
+		Query:  &url.Values{},
+		Header: &http.Header{},
+	}
+	opt.Query.Add("ci-process", "getplaylist")
+	opt.Query.Add("signType", "cos")
+	opt.Query.Add("expires", "43200")
+	// opt.Query.Add("exper", "30") 试看时长
+	var signHost bool = true
 	// 获取预签名
-	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
+	presignedURL, err := c.Object.GetPresignedURL2(ctx, http.MethodGet, objectKey, time.Hour, opt, signHost)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return ""
 	}
-	resultUrl := presignedURL.String() + "&ci-process=getplaylist&signType=cos&expires=43200"
+	resultUrl := presignedURL.String()
 	return resultUrl
 }
 
@@ -215,6 +235,21 @@ func InvokeGeneratePlayListJob() {
 					},
 					InitialClipNum: "2",
 					CosTag:         "a=a&b=b",
+				},
+			},
+			Watermark: []cos.Watermark{
+				{
+					Type:    "Text",
+					LocMode: "Absolute",
+					Dx:      "640",
+					Pos:     "TopLeft",
+					Text: &cos.Text{
+						Text:         "helloworld",
+						FontSize:     "25",
+						FontType:     "simfang.ttf",
+						FontColor:    "0xff0000",
+						Transparency: "100",
+					},
 				},
 			},
 		},
