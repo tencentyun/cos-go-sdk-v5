@@ -549,6 +549,7 @@ type VideoTagResultStreamDataDataObjectTags struct {
 	TimeStamp string                                                  `xml:"TimeStamp,omitempty"`
 }
 
+// VideoTagResultStreamDataDataLabels TODO
 type VideoTagResultStreamDataDataLabels struct {
 	First      string  `xml:"First,omitempty"`
 	Second     string  `xml:"Second,omitempty"`
@@ -573,7 +574,7 @@ type QualityEstimate struct {
 	} `xml:"VqaPlusResult,omitempty"`
 }
 
-// QualityEstimate TODO
+// QualityEstimateConfig 视频质量检查的参数
 type QualityEstimateConfig struct {
 	Rotate string `xml:"Rotate,omitempty"`
 	Mode   string `xml:"Mode,omitempty"`
@@ -1269,19 +1270,19 @@ func (s *CIService) UpdateMediaProcessQueue(ctx context.Context, opt *UpdateMedi
 	return &res, resp, err
 }
 
-// DescribePicProcessBucketsOptions TODO
+// DescribePicProcessBucketsOptions 描述图片处理桶的参数
 type DescribePicProcessBucketsOptions DescribeMediaProcessBucketsOptions
 
-// DescribeAIProcessBucketsOptions TODO
+// DescribeAIProcessBucketsOptions 描述AI处理桶的参数
 type DescribeAIProcessBucketsOptions DescribeMediaProcessBucketsOptions
 
-// DescribeASRProcessBucketsOptions TODO
+// DescribeASRProcessBucketsOptions 描述ASR处理桶的参数
 type DescribeASRProcessBucketsOptions DescribeMediaProcessBucketsOptions
 
-// DescribeFileProcessBucketsOptions TODO
+// DescribeFileProcessBucketsOptions 描述文件处理桶的参数
 type DescribeFileProcessBucketsOptions DescribeMediaProcessBucketsOptions
 
-// DescribeMediaProcessBucketsOptions TODO
+// DescribeMediaProcessBucketsOptions 描述媒体处理桶的参数
 type DescribeMediaProcessBucketsOptions struct {
 	Regions     string `url:"regions,omitempty"`
 	BucketNames string `url:"bucketNames,omitempty"`
@@ -1290,7 +1291,7 @@ type DescribeMediaProcessBucketsOptions struct {
 	PageSize    int    `url:"pageSize,omitempty"`
 }
 
-// DescribeMediaProcessBucketsResult TODO
+// DescribeMediaProcessBucketsResult 描述媒体处理桶的结果
 type DescribeMediaProcessBucketsResult struct {
 	XMLName         xml.Name             `xml:"Response"`
 	RequestId       string               `xml:"RequestId,omitempty"`
@@ -1300,7 +1301,7 @@ type DescribeMediaProcessBucketsResult struct {
 	MediaBucketList []MediaProcessBucket `xml:"MediaBucketList,omitempty"`
 }
 
-// DescribeMediaProcessBucketsResult TODO
+// DescribeMediaProcessBucketsResult 描述图片处理桶的结果
 type DescribePicProcessBucketsResult struct {
 	XMLName         xml.Name             `xml:"Response"`
 	RequestId       string               `xml:"RequestId,omitempty"`
@@ -1310,7 +1311,7 @@ type DescribePicProcessBucketsResult struct {
 	MediaBucketList []MediaProcessBucket `xml:"PicBucketList,omitempty"`
 }
 
-// DescribeMediaProcessBucketsResult TODO
+// DescribeMediaProcessBucketsResult 描述AI处理桶的结果
 type DescribeAIProcessBucketsResult struct {
 	XMLName         xml.Name             `xml:"Response"`
 	RequestId       string               `xml:"RequestId,omitempty"`
@@ -1320,7 +1321,7 @@ type DescribeAIProcessBucketsResult struct {
 	MediaBucketList []MediaProcessBucket `xml:"AiBucketList,omitempty"`
 }
 
-// DescribeMediaProcessBucketsResult TODO
+// DescribeMediaProcessBucketsResult 描述ASR处理桶的结果
 type DescribeASRProcessBucketsResult struct {
 	XMLName         xml.Name             `xml:"Response"`
 	RequestId       string               `xml:"RequestId,omitempty"`
@@ -1340,7 +1341,7 @@ type DescribeFileProcessBucketsResult struct {
 	FileBucketList []MediaProcessBucket `xml:"FileBucketList,omitempty"`
 }
 
-// MediaProcessBucket TODO
+// MediaProcessBucket 媒体处理bucket
 type MediaProcessBucket struct {
 	Name       string `xml:"Name,omitempty"`
 	BucketId   string `xml:"BucketId,omitempty"`
@@ -1348,15 +1349,18 @@ type MediaProcessBucket struct {
 	CreateTime string `xml:"CreateTime,omitempty"`
 }
 
+// CreateMediaProcessBucketOptions 开通媒体处理服务参数
 type CreateMediaProcessBucketOptions struct {
 }
 
+// CreateMediaProcessBucketResult 开通媒体处理服务返回
 type CreateMediaProcessBucketResult struct {
 	XMLName     xml.Name           `xml:"Response"`
 	RequestId   string             `xml:"RequestId,omitempty"`
 	MediaBucket MediaProcessBucket `xml:"MediaBucket,omitempty"`
 }
 
+// CreateMediaProcessBucket 开通媒体处理服务 https://cloud.tencent.com/document/product/436/115298
 func (s *CIService) CreateMediaProcessBucket(ctx context.Context, opt *CreateMediaProcessBucketOptions) (*CreateMediaProcessBucketResult, *Response, error) {
 	var res CreateMediaProcessBucketResult
 	sendOpt := sendOptions{
@@ -1384,17 +1388,21 @@ func (s *CIService) DescribeMediaProcessBuckets(ctx context.Context, opt *Descri
 	return &res, resp, err
 }
 
+// CreatePicProcessBucketOptions 开通图片处理异步能力参数
 type CreatePicProcessBucketOptions struct {
 }
 
+// PicProcessBucket 图片处理桶信息别名
 type PicProcessBucket MediaProcessBucket
+
+// CreatePicProcessBucketResult 开通图片处理异步能力返回
 type CreatePicProcessBucketResult struct {
 	XMLName   xml.Name         `xml:"Response"`
 	RequestId string           `xml:"RequestId,omitempty"`
 	PicBucket PicProcessBucket `xml:"PicBucket,omitempty"`
 }
 
-// 开通图片处理异步能力 https://cloud.tencent.com/document/product/460/95749
+// CreatePicProcessBucket 开通图片处理异步能力 https://cloud.tencent.com/document/product/460/95749
 func (s *CIService) CreatePicProcessBucket(ctx context.Context, opt *CreatePicProcessBucketOptions) (*CreatePicProcessBucketResult, *Response, error) {
 	var res CreatePicProcessBucketResult
 	sendOpt := sendOptions{
@@ -1421,17 +1429,21 @@ func (s *CIService) DescribePicProcessBuckets(ctx context.Context, opt *Describe
 	return &res, resp, err
 }
 
+// CreateAIProcessBucketOptions 开通AI处理能力参数
 type CreateAIProcessBucketOptions struct {
 }
 
+// AIProcessBucket AI处理桶信息别名
 type AIProcessBucket MediaProcessBucket
+
+// CreateAIProcessBucketResult 开通AI处理能力返回
 type CreateAIProcessBucketResult struct {
 	XMLName   xml.Name        `xml:"Response"`
 	RequestId string          `xml:"RequestId,omitempty"`
 	AiBucket  AIProcessBucket `xml:"AiBucket,omitempty"`
 }
 
-// 开通AI处理能力 https://cloud.tencent.com/document/product/460/79593
+// CreateAIProcessBucket 开通AI处理能力 https://cloud.tencent.com/document/product/460/79593
 func (s *CIService) CreateAIProcessBucket(ctx context.Context, opt *CreateAIProcessBucketOptions) (*CreateAIProcessBucketResult, *Response, error) {
 	var res CreateAIProcessBucketResult
 	sendOpt := sendOptions{
@@ -1458,17 +1470,21 @@ func (s *CIService) DescribeAIProcessBuckets(ctx context.Context, opt *DescribeA
 	return &res, resp, err
 }
 
+// CreateASRProcessBucketOptions 开通ASR处理服务参数
 type CreateASRProcessBucketOptions struct {
 }
 
+// ASRBucketBucket ASR处理桶信息别名
 type AsrBucketBucket MediaProcessBucket
+
+// CreateASRProcessBucketResult 开通ASR处理服务返回
 type CreateASRProcessBucketResult struct {
 	XMLName         xml.Name        `xml:"Response"`
 	RequestId       string          `xml:"RequestId,omitempty"`
 	AsrBucketBucket AsrBucketBucket `xml:"AsrBucket,omitempty"`
 }
 
-// 开通ASR处理服务 https://cloud.tencent.com/document/product/460/86377
+// CreateASRProcessBucket 开通ASR处理服务 https://cloud.tencent.com/document/product/460/86377
 func (s *CIService) CreateASRProcessBucket(ctx context.Context, opt *CreateASRProcessBucketOptions) (*CreateASRProcessBucketResult, *Response, error) {
 	var res CreateASRProcessBucketResult
 	sendOpt := sendOptions{
@@ -1495,17 +1511,21 @@ func (s *CIService) DescribeASRProcessBuckets(ctx context.Context, opt *Describe
 	return &res, resp, err
 }
 
+// CreateFileProcessBucketOptions 开通文件处理服务参数
 type CreateFileProcessBucketOptions struct {
 }
 
+// FileProcessBucket 文件处理桶信息别名
 type FileProcessBucket MediaProcessBucket
+
+// CreateFileProcessBucketResult 开通文件处理服务返回
 type CreateFileProcessBucketResult struct {
 	XMLName           xml.Name          `xml:"Response"`
 	RequestId         string            `xml:"RequestId,omitempty"`
 	FileProcessBucket FileProcessBucket `xml:"FileBucket,omitempty"`
 }
 
-// 开通文件处理服务 https://cloud.tencent.com/document/product/460/86377
+// CreateFileProcessBucket 开通文件处理服务 https://cloud.tencent.com/document/product/460/86377
 func (s *CIService) CreateFileProcessBucket(ctx context.Context, opt *CreateFileProcessBucketOptions) (*CreateFileProcessBucketResult, *Response, error) {
 	var res CreateFileProcessBucketResult
 	sendOpt := sendOptions{
@@ -1660,12 +1680,14 @@ func (s *CIService) GenerateMediaInfo(ctx context.Context, opt *GenerateMediaInf
 	return &res, resp, err
 }
 
-// GenerateMediaInfoOptions TODO
+// GenerateAVInfoOptions 兼容avinfo接口
 type GenerateAVInfoOptions struct {
 	XMLName    xml.Name    `xml:"Request"`
 	Input      *JobInput   `xml:"Input,omitempty"`
 	OptHeaders *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
+
+// GetAVInfoResult 兼容avinfo格式
 type GetAVInfoResult struct {
 	Format struct {
 		BitRate        string `json:"bit_rate"`
@@ -1715,7 +1737,7 @@ type GetAVInfoResult struct {
 	} `json:"streams"`
 }
 
-// GenerateMediaInfo TODO
+// GenerateAVInfo TODO
 // 生成媒体信息接口，支持大文件，耗时较大请求
 func (s *CIService) GenerateAVInfo(ctx context.Context, opt *GenerateAVInfoOptions) (*GetAVInfoResult, *Response, error) {
 	var buf bytes.Buffer
@@ -1800,7 +1822,7 @@ func (s *CIService) PostSnapshot(ctx context.Context, opt *PostSnapshotOptions) 
 	return &res, resp, err
 }
 
-// PostCISnapshot
+// PostCISnapshot 发送截图请求到万象ci服务
 func (s *CIService) PostCISnapshot(ctx context.Context, opt *PostSnapshotOptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.CIURL,
@@ -3875,7 +3897,7 @@ type DnaResultDetection struct {
 	Audio           DnaResultAudio         `xml:"Audio,omitempty"`
 }
 
-// DnaResultDetection DNA任务结果
+// DnaResultMatchDetail DNA任务结果
 type DnaResultMatchDetail struct {
 	MatchStartTime int `xml:"MatchStartTime,omitempty"`
 	MatchEndTime   int `xml:"MatchEndTime,omitempty"`
@@ -3962,7 +3984,7 @@ type DNADbFiles struct {
 	CreateTime string `xml:"CreateTime,omitempty"`
 }
 
-// GetDnaDb 查询 DNA 库列表
+// GetDnaDbFiles 查询 DNA 库列表
 func (s *CIService) GetDnaDbFiles(ctx context.Context, opt *GetDnaDbFilesOptions) (*GetDnaDbFilesResult, *Response, error) {
 	var res GetDnaDbFilesResult
 	sendOpt := sendOptions{
@@ -3981,17 +4003,19 @@ type VocalScore struct {
 	StandardObject string `xml:"StandardObject,omitempty"`
 }
 
-// VocalScore 音乐评分结果
+// VocalScoreResult 音乐评分结果
 type VocalScoreResult struct {
 	PitchScore   *VocalScoreResultPitchScore   `xml:"PitchScore,omitempty"`
 	RhythemScore *VocalScoreResultRhythemScore `xml:"RhythemScore,omitempty"`
 }
 
+// VocalScoreResultPitchScore 音高评分
 type VocalScoreResultPitchScore struct {
 	TotalScore     float64                          `xml:"TotalScore,omitempty"`
 	SentenceScores []VocalScoreResultSentenceScores `xml:"SentenceScores,omitempty"`
 }
 
+// VocalScoreResultRhythemScore 节奏评分
 type VocalScoreResultSentenceScores struct {
 	StartTime float64 `xml:"StartTime,omitempty"`
 	EndTime   float64 `xml:"EndTime,omitempty"`
@@ -4031,7 +4055,7 @@ type ImageInspectProcessResult struct {
 	AutoProcessResult   *ImageInspectAutoProcessResult `xml:"AutoProcessResult,omitempty"`
 }
 
-// ImageInspectResult 黑产检测结果
+// ImageInspectAutoProcessResult 黑产检测结果
 type ImageInspectAutoProcessResult struct {
 	Code    string `xml:"Code,omitempty"`
 	Message string `xml:"Message,omitempty"`
@@ -4060,7 +4084,18 @@ func (w *CosImageInspectProcessResult) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// ImageInspect 黑产检查同步接口
+// CosImageInspect 黑产检查同步接口
+// 参数:
+//
+//	ctx: 上下文对象
+//	name: 图片名称
+//	opt: 选项对象
+//
+// 返回值:
+//
+//	*CosImageInspectProcessResult: 图片检查结果
+//	*Response: HTTP响应对象
+//	error: 错误信息
 func (s *CIService) CosImageInspect(ctx context.Context, name string, opt *CosImageInspectOptions) (*CosImageInspectProcessResult, *Response, error) {
 	var res CosImageInspectProcessResult
 	sendOpt := sendOptions{
@@ -4336,7 +4371,7 @@ func (s *CIService) DeleteAsrVocabularyTable(ctx context.Context, tableId string
 	return resp, err
 }
 
-// CreateAsrVocabularyTableOptions TODO
+// UpdateAsrVocabularyTableOptions TODO
 type UpdateAsrVocabularyTableOptions struct {
 	XMLName             xml.Name           `xml:"Request"`
 	TableId             string             `xml:"TableId,omitempty"`

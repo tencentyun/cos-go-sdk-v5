@@ -12,11 +12,12 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
+// URLToken 安全token
 type URLToken struct {
 	SessionToken string `url:"x-cos-security-token,omitempty" header:"-"`
 }
 
-// 生成jwt
+// GenerateToken 生成jwt
 func GenerateToken(appId string, bucketId string, objectKey string, secret []byte) (string, error) {
 	t := time.Now()
 	now := t.Unix()
@@ -51,7 +52,7 @@ func GenerateToken(appId string, bucketId string, objectKey string, secret []byt
 	return token.SignedString(secret)
 }
 
-// 验证环境url
+// GetCIDomainURL CI环境url
 func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) {
 	// 固定为pm3u8
 	name := "pm3u8"
@@ -79,7 +80,7 @@ func GetCIDomainURL(tak string, tsk string, token *URLToken, appId string, bucke
 	fmt.Println(resultUrl)
 }
 
-// cos环境url
+// GetCOSDomainURL cos环境url
 func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string, playkey []byte) {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -116,7 +117,7 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 	fmt.Println(resultUrl)
 }
 
-// CDN域名
+// GetCDNDomainVideoEncryptionURL CDN域名
 func GetCDNDomainVideoEncryptionURL(cdn string, objectKey string, jwtToken string) string {
 	url := cdn + "/" + objectKey
 	resultUrl := url + "?ci-process=pm3u8&signType=no&expires=43200&&tokenType=JwtToken&token=" + jwtToken

@@ -49,6 +49,7 @@ func getClient() *cos.Client {
 	return c
 }
 
+// CreateDataSet 创建数据集
 func CreateDataSet() {
 	c := getClient()
 	opt := &cos.CreateDatasetOptions{
@@ -64,6 +65,7 @@ func CreateDataSet() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DescribeDatasets 获取数据集列表
 func DescribeDatasets() {
 	c := getClient()
 	opt := &cos.DescribeDatasetsOptions{
@@ -74,6 +76,7 @@ func DescribeDatasets() {
 	fmt.Printf("%+v\n", res)
 }
 
+// UpdateDataset 更新数据集
 func UpdateDataset() {
 	c := getClient()
 	opt := &cos.UpdateDatasetOptions{
@@ -86,6 +89,7 @@ func UpdateDataset() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DeleteDataset 删除数据集
 func DeleteDataset() {
 	c := getClient()
 	opt := &cos.DeleteDatasetOptions{
@@ -96,6 +100,7 @@ func DeleteDataset() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DescribeDataset 获取数据集
 func DescribeDataset() {
 	c := getClient()
 	opt := &cos.DescribeDatasetOptions{
@@ -107,6 +112,7 @@ func DescribeDataset() {
 	fmt.Printf("%+v\n", res)
 }
 
+// CreateFileMetaIndex 创建文件元信息
 func CreateFileMetaIndex() {
 	c := getClient()
 	opt := &cos.CreateFileMetaIndexOptions{
@@ -127,6 +133,7 @@ func CreateFileMetaIndex() {
 	fmt.Printf("%+v\n", res)
 }
 
+// UpdateFileMetaIndex 更新文件元信息
 func UpdateFileMetaIndex() {
 	c := getClient()
 	opt := &cos.UpdateFileMetaIndexOptions{
@@ -147,6 +154,7 @@ func UpdateFileMetaIndex() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DescribeFileMetaIndex 获取文件元信息
 func DescribeFileMetaIndex() {
 	c := getClient()
 	opt := &cos.DescribeFileMetaIndexOptions{
@@ -158,6 +166,7 @@ func DescribeFileMetaIndex() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DeleteFileMetaIndex 删除文件元信息
 func DeleteFileMetaIndex() {
 	c := getClient()
 	opt := &cos.DeleteFileMetaIndexOptions{
@@ -169,6 +178,7 @@ func DeleteFileMetaIndex() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DatasetSimpleQuery 简单查询
 func DatasetSimpleQuery() {
 	c := getClient()
 	opt := &cos.DatasetSimpleQueryOptions{
@@ -184,6 +194,7 @@ func DatasetSimpleQuery() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DatasetSimpleQueryAggregations 聚合查询
 func DatasetSimpleQueryAggregations() {
 	c := getClient()
 	opt := &cos.DatasetSimpleQueryOptions{
@@ -203,6 +214,7 @@ func DatasetSimpleQueryAggregations() {
 	}
 }
 
+// CreateDatasetBinding 创建数据集
 func CreateDatasetBinding() {
 	c := getClient()
 	opt := &cos.CreateDatasetBindingOptions{
@@ -215,6 +227,7 @@ func CreateDatasetBinding() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DescribeDatasetBinding 查询数据集
 func DescribeDatasetBinding() {
 	c := getClient()
 	opt := &cos.DescribeDatasetBindingOptions{
@@ -226,6 +239,7 @@ func DescribeDatasetBinding() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DescribeDatasetBindings 查询数据集
 func DescribeDatasetBindings() {
 	c := getClient()
 	opt := &cos.DescribeDatasetBindingsOptions{
@@ -237,6 +251,7 @@ func DescribeDatasetBindings() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DeleteDatasetBinding 删除数据集
 func DeleteDatasetBinding() {
 	c := getClient()
 	opt := &cos.DeleteDatasetBindingOptions{
@@ -248,6 +263,7 @@ func DeleteDatasetBinding() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DatasetFaceSearch 人脸检索
 func DatasetFaceSearch() {
 	c := getClient()
 	opt := &cos.DatasetFaceSearchOptions{
@@ -259,6 +275,7 @@ func DatasetFaceSearch() {
 	fmt.Printf("%+v\n", res)
 }
 
+// SearchImage 图片检索
 func SearchImage() {
 	c := getClient()
 	opt := &cos.SearchImageOptions{

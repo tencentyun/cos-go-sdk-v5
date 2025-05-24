@@ -13,11 +13,12 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
+// URLToken 鉴权token
 type URLToken struct {
 	SessionToken string `url:"x-cos-security-token,omitempty" header:"-"`
 }
 
-// 生成jwt
+// GenerateToken 生成jwt
 func GenerateToken(appId string, bucketId string, objectKey string, secret []byte) (string, error) {
 	t := time.Now()
 	now := t.Unix()
@@ -52,7 +53,7 @@ func GenerateToken(appId string, bucketId string, objectKey string, secret []byt
 	return token.SignedString(secret)
 }
 
-// CI验证环境
+// GetCIDomainVideoEncryptionURL CI验证环境
 func GetCIDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, bucketId string, region string, objectKey string, jwtToken string) string {
 	// 固定为getplaylist
 	name := "getplaylist"
@@ -78,7 +79,7 @@ func GetCIDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, buck
 	return resultUrl
 }
 
-// COS环境
+// GetCOSDomainVideoEncryptionURL COS环境
 func GetCOSDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, bucketId string, region string, objectKey string, jwtToken string) string {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -114,7 +115,7 @@ func GetCOSDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, buc
 	return resultUrl
 }
 
-// COS环境
+// GetCOSDomainURL COS环境
 func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string) string {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -145,14 +146,14 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 	return resultUrl
 }
 
-// CDN域名
+// GetCDNDomainVideoEncryptionURL CDN域名
 func GetCDNDomainVideoEncryptionURL(cdn string, objectKey string, jwtToken string) string {
 	url := cdn + "/" + objectKey
 	resultUrl := url + "?ci-process=getplaylist&signType=no&expires=43200&&tokenType=JwtToken&token=" + jwtToken
 	return resultUrl
 }
 
-// CDN域名
+// GetCDNDomainURL CDN域名
 func GetCDNDomainURL(cdn string, objectKey string) string {
 	url := cdn + "/" + objectKey
 	resultUrl := url + "?ci-process=getplaylist&signType=no"
@@ -198,6 +199,7 @@ func getClient(cosHost, ciHost string) *cos.Client {
 	return c
 }
 
+// InvokeGeneratePlayListJob 调用生成播放列表接口
 func InvokeGeneratePlayListJob() {
 	// 函数内替换为自己桶
 	c := getClient("https://test-1234567890.cos.ap-chongqing.myqcloud.com", "https://test-1234567890.ci.ap-chongqing.myqcloud.com")

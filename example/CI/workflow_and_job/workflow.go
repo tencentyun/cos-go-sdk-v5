@@ -215,7 +215,7 @@ func UpdatStreamWorkflow() {
 	fmt.Printf("%+v\n", updateWorkflowRes.MediaWorkflow)
 }
 
-// 启用工作流
+// ActiveWorkflow 启用工作流
 func ActiveWorkflow() {
 	c := getClient()
 	WorkflowId := "w8d1f24d05b434b17b491555496acf11d"
@@ -223,7 +223,7 @@ func ActiveWorkflow() {
 	log_status(err)
 }
 
-// 停用工作流
+// PausedWorkflow 停用工作流
 func PausedWorkflow() {
 	c := getClient()
 	WorkflowId := "w8d1f24d05b434b17b491555496acf11d"

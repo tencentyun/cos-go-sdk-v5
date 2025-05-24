@@ -990,7 +990,7 @@ func UpdateNoiseReductionTemplate() {
 	fmt.Printf("%+v\n", updateTplRes.Template)
 }
 
-// UpdateOCRTemplate 创建OCR模板
+// CreateOCRTemplate 创建OCR模板
 func CreateOCRTemplate() {
 	c := getClient()
 	rand.Seed(time.Now().UnixNano())

@@ -145,6 +145,7 @@ func ModifyM3U8Token() {
 	fmt.Printf("%s\n", rspBody)
 }
 
+// CreateMediaProcessBucket 创建媒体处理桶
 func CreateMediaProcessBucket() {
 	c := getClient()
 	opt := &cos.CreateMediaProcessBucketOptions{}
@@ -153,6 +154,7 @@ func CreateMediaProcessBucket() {
 	fmt.Printf("%+v\n", res)
 }
 
+// DescribeCIBuckets 获取数据万象CI存储桶
 func DescribeCIBuckets() {
 	c := getClient()
 	opt := &cos.DescribeCIBucketsOptions{
