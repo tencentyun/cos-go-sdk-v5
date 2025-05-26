@@ -58,7 +58,7 @@ func main() {
 				},
 				OriginParameter: &cos.BucketOriginParameter{
 					Protocol:          "FOLLOW",
-					FollowQueryString: true,
+					FollowQueryString: cos.Bool(true),
 					HttpHeader: &cos.BucketOriginHttpHeader{
 						NewHttpHeaders: []cos.OriginHttpHeader{
 							{
@@ -72,7 +72,7 @@ func main() {
 							},
 						},
 					},
-					FollowRedirection: true,
+					FollowRedirection: cos.Bool(true),
 				},
 				OriginInfo: &cos.BucketOriginInfo{
 					HostInfo: &cos.BucketOriginHostInfo{
