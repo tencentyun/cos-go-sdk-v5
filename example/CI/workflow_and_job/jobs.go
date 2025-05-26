@@ -1111,6 +1111,7 @@ func JobNotifyCallback() {
 	}
 }
 
+// InvokeMultiGeneratePlayListJobs 提交多个转码任务
 func InvokeMultiGeneratePlayListJobs() {
 	c := getClient()
 	createJobOpt := &cos.CreateMultiGeneratePlayListJobsOptions{

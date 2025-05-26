@@ -50,6 +50,7 @@ func getClient() *cos.Client {
 	return c
 }
 
+// CreateMediaPlayKey 创建播放密钥
 func CreateMediaPlayKey() {
 	c := getClient()
 	Res, _, err := c.CI.CreateMediaPlayKey(context.Background())
@@ -57,6 +58,7 @@ func CreateMediaPlayKey() {
 	fmt.Printf("%+v\n", Res.PlayKeyList)
 }
 
+// DescribeMediaPlayKey 获取播放密钥
 func DescribeMediaPlayKey() {
 	c := getClient()
 
@@ -66,6 +68,7 @@ func DescribeMediaPlayKey() {
 
 }
 
+// UpdateMediaPlayKey 更新播放密钥
 func UpdateMediaPlayKey() {
 	c := getClient()
 	opt := &cos.UpdateMediaPlayKeyOptions{

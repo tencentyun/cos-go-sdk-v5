@@ -50,6 +50,7 @@ func getClient() *cos.Client {
 	return c
 }
 
+// CreateAsrVocabularyTable 创建语音识别热词表
 func CreateAsrVocabularyTable() {
 	// 创建语音识别词表
 	c := getClient()
@@ -70,6 +71,7 @@ func CreateAsrVocabularyTable() {
 	// fmt.Printf("%+v\n", res)
 }
 
+// DescribeAsrVocabularyTables 获取语音识别热词表
 func DescribeAsrVocabularyTables() {
 	// 查询语音识别词表
 	c := getClient()
@@ -84,6 +86,7 @@ func DescribeAsrVocabularyTables() {
 	// fmt.Printf("%+v\n", res)
 }
 
+// DeleteAsrVocabularyTable 删除语音识别热词表
 func DeleteAsrVocabularyTable() {
 	// 查询语音识别词表
 	c := getClient()
@@ -97,6 +100,7 @@ func DeleteAsrVocabularyTable() {
 	// fmt.Printf("%+v\n", res)
 }
 
+// DescribeAsrVocabularyTable 获取语音识别热词表
 func DescribeAsrVocabularyTable() {
 	// 查询语音识别词表
 	c := getClient()
@@ -110,6 +114,7 @@ func DescribeAsrVocabularyTable() {
 	fmt.Printf("%+v\n", res)
 }
 
+// UpdateAsrVocabularyTable 更新语音识别热词表
 func UpdateAsrVocabularyTable() {
 	// 查询语音识别词表
 	c := getClient()
