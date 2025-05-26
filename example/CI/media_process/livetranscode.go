@@ -13,11 +13,12 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
+// URLToken 鉴权token
 type URLToken struct {
 	SessionToken string `url:"x-cos-security-token,omitempty" header:"-"`
 }
 
-// 生成jwt
+// GenerateToken 生成jwt
 func GenerateToken(appId string, bucketId string, objectKey string, secret []byte) (string, error) {
 	t := time.Now()
 	now := t.Unix()
@@ -52,7 +53,7 @@ func GenerateToken(appId string, bucketId string, objectKey string, secret []byt
 	return token.SignedString(secret)
 }
 
-// CI验证环境
+// GetCIDomainVideoEncryptionURL CI验证环境
 func GetCIDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, bucketId string, region string, objectKey string, jwtToken string) string {
 	// 固定为getplaylist
 	name := "getplaylist"
@@ -78,7 +79,7 @@ func GetCIDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, buck
 	return resultUrl
 }
 
-// COS环境
+// GetCOSDomainVideoEncryptionURL COS环境
 func GetCOSDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, bucketId string, region string, objectKey string, jwtToken string) string {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -91,18 +92,30 @@ func GetCOSDomainVideoEncryptionURL(tak string, tsk string, token *URLToken, buc
 	})
 	ctx := context.Background()
 
+	opt := &cos.PresignedURLOptions{
+		Query:  &url.Values{},
+		Header: &http.Header{},
+	}
+	opt.Query.Add("ci-process", "getplaylist")
+	opt.Query.Add("signType", "cos")
+	opt.Query.Add("expires", "43200")
+	// opt.Query.Add("exper", "30") 试看时长
+	opt.Query.Add("tokenType", "JwtToken")
+	opt.Query.Add("token", jwtToken)
+
+	var signHost bool = true
 	// 获取预签名
-	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
+	presignedURL, err := c.Object.GetPresignedURL2(ctx, http.MethodGet, objectKey, 10*time.Hour, opt, signHost)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return ""
 	}
 
-	resultUrl := presignedURL.String() + "&ci-process=getplaylist&expires=43200&&tokenType=JwtToken&token=" + jwtToken
+	resultUrl := presignedURL.String()
 	return resultUrl
 }
 
-// COS环境
+// GetCOSDomainURL COS环境
 func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, bucketId string, region string, objectKey string) string {
 	u, _ := url.Parse("https://" + bucketId + ".cos." + region + ".myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}
@@ -114,25 +127,33 @@ func GetCOSDomainURL(tak string, tsk string, token *URLToken, appId string, buck
 		},
 	})
 	ctx := context.Background()
-
+	opt := &cos.PresignedURLOptions{
+		Query:  &url.Values{},
+		Header: &http.Header{},
+	}
+	opt.Query.Add("ci-process", "getplaylist")
+	opt.Query.Add("signType", "cos")
+	opt.Query.Add("expires", "43200")
+	// opt.Query.Add("exper", "30") 试看时长
+	var signHost bool = true
 	// 获取预签名
-	presignedURL, err := c.Object.GetPresignedURL3(ctx, http.MethodGet, objectKey, time.Hour, token)
+	presignedURL, err := c.Object.GetPresignedURL2(ctx, http.MethodGet, objectKey, time.Hour, opt, signHost)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return ""
 	}
-	resultUrl := presignedURL.String() + "&ci-process=getplaylist&signType=cos&expires=43200"
+	resultUrl := presignedURL.String()
 	return resultUrl
 }
 
-// CDN域名
+// GetCDNDomainVideoEncryptionURL CDN域名
 func GetCDNDomainVideoEncryptionURL(cdn string, objectKey string, jwtToken string) string {
 	url := cdn + "/" + objectKey
 	resultUrl := url + "?ci-process=getplaylist&signType=no&expires=43200&&tokenType=JwtToken&token=" + jwtToken
 	return resultUrl
 }
 
-// CDN域名
+// GetCDNDomainURL CDN域名
 func GetCDNDomainURL(cdn string, objectKey string) string {
 	url := cdn + "/" + objectKey
 	resultUrl := url + "?ci-process=getplaylist&signType=no"
@@ -178,6 +199,7 @@ func getClient(cosHost, ciHost string) *cos.Client {
 	return c
 }
 
+// InvokeGeneratePlayListJob 调用生成播放列表接口
 func InvokeGeneratePlayListJob() {
 	// 函数内替换为自己桶
 	c := getClient("https://test-1234567890.cos.ap-chongqing.myqcloud.com", "https://test-1234567890.ci.ap-chongqing.myqcloud.com")
@@ -215,6 +237,21 @@ func InvokeGeneratePlayListJob() {
 					},
 					InitialClipNum: "2",
 					CosTag:         "a=a&b=b",
+				},
+			},
+			Watermark: []cos.Watermark{
+				{
+					Type:    "Text",
+					LocMode: "Absolute",
+					Dx:      "640",
+					Pos:     "TopLeft",
+					Text: &cos.Text{
+						Text:         "helloworld",
+						FontSize:     "25",
+						FontType:     "simfang.ttf",
+						FontColor:    "0xff0000",
+						Transparency: "100",
+					},
 				},
 			},
 		},
