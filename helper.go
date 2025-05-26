@@ -474,3 +474,7 @@ func GetBucketRegionFromUrl(u *url.URL) (string, string) {
 	}
 	return vec[0], vec[2]
 }
+
+func Bool(v bool) *bool {
+	return &v
+}
