@@ -1471,6 +1471,194 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	return v, resp, err
 }
 
+func (s *ObjectService) UploadWithPicOperations(ctx context.Context, name string, filepath string, opt *MultiUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	if opt == nil {
+		opt = &MultiUploadOptions{}
+	}
+	var localcrc uint64
+	// 1.Get the file chunk
+	totalBytes, chunks, partNum, err := SplitFileIntoChunks(filepath, opt.PartSize*1024*1024)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 校验
+	if s.client.Conf.EnableCRC && !opt.DisableChecksum {
+		fd, err := os.Open(filepath)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer fd.Close()
+		localcrc, err = calCRC64(fd)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	// filesize=0 , use simple upload
+	if partNum == 0 || partNum == 1 {
+		var opt0 *ObjectPutOptions
+		if opt.OptIni != nil {
+			opt0 = &ObjectPutOptions{
+				opt.OptIni.ACLHeaderOptions,
+				opt.OptIni.ObjectPutHeaderOptions,
+				nil,
+			}
+		}
+		rsp, err := s.PutFromFile(ctx, name, filepath, opt0)
+		if err != nil {
+			return nil, rsp, err
+		}
+		result := &CompleteMultipartUploadResult{
+			Location: fmt.Sprintf("%s/%s", s.client.BaseURL.BucketURL, name),
+			Key:      name,
+			ETag:     rsp.Header.Get("ETag"),
+		}
+		if rsp != nil && s.client.Conf.EnableCRC && !opt.DisableChecksum {
+			scoscrc := rsp.Header.Get("x-cos-hash-crc64ecma")
+			icoscrc, _ := strconv.ParseUint(scoscrc, 10, 64)
+			if icoscrc != localcrc {
+				return result, rsp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", localcrc, icoscrc, rsp.Header)
+			}
+		}
+		return result, rsp, nil
+	}
+
+	var uploadID string
+	resumableFlag := false
+	if opt.CheckPoint {
+		var err error
+		uploadID, err = s.getResumableUploadID(ctx, name)
+		if err == nil && uploadID != "" {
+			err = s.checkUploadedParts(ctx, name, uploadID, filepath, chunks, partNum)
+			resumableFlag = (err == nil)
+		}
+	}
+
+	// 2.Init
+	optini := opt.OptIni
+	if !resumableFlag {
+		res, _, err := s.InitiateMultipartUpload(ctx, name, optini)
+		if err != nil {
+			return nil, nil, err
+		}
+		uploadID = res.UploadID
+	}
+	var poolSize int
+	if opt.ThreadPoolSize > 0 {
+		poolSize = opt.ThreadPoolSize
+	} else {
+		// Default is one
+		poolSize = 1
+	}
+
+	chjobs := make(chan *Jobs, 100)
+	chresults := make(chan *Results, 10000)
+	optcom := &CompleteMultipartUploadOptions{}
+
+	// 3.Start worker
+	for w := 1; w <= poolSize; w++ {
+		go worker(ctx, s, chjobs, chresults)
+	}
+
+	// progress started event
+	var listener ProgressListener
+	var consumedBytes int64
+	if opt.OptIni != nil {
+		if opt.OptIni.ObjectPutHeaderOptions != nil {
+			listener = opt.OptIni.Listener
+		}
+		optcom.XOptionHeader, _ = deliverInitOptions(opt.OptIni)
+	}
+	event := newProgressEvent(ProgressStartedEvent, 0, 0, totalBytes)
+	progressCallback(listener, event)
+
+	// 4.Push jobs
+	go func() {
+		for _, chunk := range chunks {
+			if chunk.Done {
+				continue
+			}
+			partOpt := &ObjectUploadPartOptions{}
+			if optini != nil && optini.ObjectPutHeaderOptions != nil {
+				partOpt.XCosSSECustomerAglo = optini.XCosSSECustomerAglo
+				partOpt.XCosSSECustomerKey = optini.XCosSSECustomerKey
+				partOpt.XCosSSECustomerKeyMD5 = optini.XCosSSECustomerKeyMD5
+				partOpt.XCosTrafficLimit = optini.XCosTrafficLimit
+				partOpt.XOptionHeader = optini.XOptionHeader
+			}
+			job := &Jobs{
+				Name:       name,
+				RetryTimes: 3,
+				FilePath:   filepath,
+				UploadId:   uploadID,
+				Chunk:      chunk,
+				Opt:        partOpt,
+			}
+			chjobs <- job
+		}
+		close(chjobs)
+	}()
+
+	// 5.Recv the resp etag to complete
+	err = nil
+	for i := 0; i < partNum; i++ {
+		if chunks[i].Done {
+			optcom.Parts = append(optcom.Parts, Object{
+				PartNumber: chunks[i].Number, ETag: chunks[i].ETag},
+			)
+			if err == nil {
+				consumedBytes += chunks[i].Size
+				event = newProgressEvent(ProgressDataEvent, chunks[i].Size, consumedBytes, totalBytes)
+				progressCallback(listener, event)
+			}
+			continue
+		}
+		res := <-chresults
+		// Notice one part fail can not get the etag according.
+		if res.Resp == nil || res.err != nil {
+			// Some part already fail, can not to get the header inside.
+			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
+			continue
+		}
+		// Notice one part fail can not get the etag according.
+		etag := res.Resp.Header.Get("ETag")
+		optcom.Parts = append(optcom.Parts, Object{
+			PartNumber: res.PartNumber, ETag: etag},
+		)
+		if err == nil {
+			consumedBytes += chunks[res.PartNumber-1].Size
+			event = newProgressEvent(ProgressDataEvent, chunks[res.PartNumber-1].Size, consumedBytes, totalBytes)
+			progressCallback(listener, event)
+		}
+	}
+	close(chresults)
+	if err != nil {
+		event = newProgressEvent(ProgressFailedEvent, 0, consumedBytes, totalBytes, err)
+		progressCallback(listener, event)
+		return nil, nil, err
+	}
+	sort.Sort(ObjectList(optcom.Parts))
+	if len(opt.OptIni.XOptionHeader.Get("Pic-Operations")) > 0 {
+		optcom.XOptionHeader.Add("Pic-Operations", opt.OptIni.XOptionHeader.Get("Pic-Operations"))
+	}
+
+	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)
+	progressCallback(listener, event)
+
+	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
+	if err != nil {
+		return v, resp, err
+	}
+
+	if resp != nil && s.client.Conf.EnableCRC && !opt.DisableChecksum {
+		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
+		icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)
+		if icoscrc != localcrc {
+			return v, resp, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma: %v, err:%v, header:%+v", localcrc, icoscrc, scoscrc, err, resp.Header)
+		}
+	}
+	return v, resp, err
+}
+
 func SplitSizeIntoChunks(totalBytes int64, partSize int64) ([]Chunk, int, error) {
 	var partNum int64
 	if partSize > 0 {
