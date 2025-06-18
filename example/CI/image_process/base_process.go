@@ -81,6 +81,37 @@ func processWhenUpload(ctx context.Context, rawurl, obj, localpath string, pic *
 	fmt.Printf("%+v\n", res.ProcessResults)
 }
 
+// 分块上传时处理
+func processWhenPartUpload(ctx context.Context, rawurl, obj, localpath string, pic *cos.PicOperations) {
+	u, _ := url.Parse(rawurl)
+	b := &cos.BaseURL{BucketURL: u}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader:  true,
+				RequestBody:    false,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	opt := &cos.MultiUploadOptions{
+		OptIni: &cos.InitiateMultipartUploadOptions{
+			ACLHeaderOptions: nil,
+			ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+				XOptionHeader: &http.Header{},
+			},
+		},
+	}
+
+	opt.OptIni.XOptionHeader.Add("Pic-Operations", cos.EncodePicOperations(pic))
+	res, _, err := c.Object.UploadWithPicOperations(context.Background(), obj, localpath, opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
 // 云上数据处理
 func processWhenCloud(ctx context.Context, rawurl, obj string, pic *cos.PicOperations) {
 	u, _ := url.Parse(rawurl)
@@ -931,6 +962,21 @@ func commonProcess() {
 			},
 		}
 		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
+	}
+	// 分块上传时处理
+	{
+		obj := "pic/deer.jpg"
+		filepath := "./deer.jpg"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "pipe.jpg",
+					Rule:   "imageMogr2/xxx",
+				},
+			},
+		}
+		processWhenPartUpload(context.Background(), rawurl, obj, filepath, pic)
 	}
 	// 云上数据处理
 	{
