@@ -505,6 +505,7 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 			method:    http.MethodPut,
 			body:      reader,
 			optHeader: opt,
+			isRetry:   nr > 0,
 		}
 
 		// 把上一次错误记录下来

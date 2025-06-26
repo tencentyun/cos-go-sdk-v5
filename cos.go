@@ -26,7 +26,7 @@ import (
 
 const (
 	// Version current go sdk version
-	Version               = "0.7.65"
+	Version               = "0.7.67"
 	UserAgent             = "cos-go-sdk-v5/" + Version
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
@@ -478,6 +478,16 @@ func (c *Client) CheckRetrieable(u *url.URL, resp *Response, err error, secondLa
 	if err != nil && err != invalidBucketErr {
 		// 不重试
 		if resp != nil && resp.StatusCode < 500 {
+			if c.Conf.RetryOpt.AutoSwitchHost {
+				if resp.StatusCode == 301 || resp.StatusCode == 302 || resp.StatusCode == 307 {
+					if resp.Header.Get("X-Cos-Request-Id") == "" {
+						res = toSwitchHost(u)
+						if res != u {
+							return res, true
+						}
+					}
+				}
+			}
 			return res, false
 		}
 		if c.Conf.RetryOpt.AutoSwitchHost && secondLast {

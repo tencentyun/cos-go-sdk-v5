@@ -29,7 +29,7 @@ func TestBucketService_GetOrigin(t *testing.T) {
             </OriginCondition>
             <OriginParameter>
                 <Protocol>HTTP</Protocol>
-                <FollowQueryString>true</FollowQueryString>
+                <FollowQueryString>false</FollowQueryString>
                 <HttpHeader>
                     <NewHttpHeaders>
                         <Header>
@@ -75,7 +75,7 @@ func TestBucketService_GetOrigin(t *testing.T) {
 				},
 				OriginParameter: &BucketOriginParameter{
 					Protocol:          "HTTP",
-					FollowQueryString: true,
+					FollowQueryString: Bool(false),
 					HttpHeader: &BucketOriginHttpHeader{
 						FollowHttpHeaders: []OriginHttpHeader{
 							{
@@ -89,7 +89,7 @@ func TestBucketService_GetOrigin(t *testing.T) {
 							},
 						},
 					},
-					FollowRedirection: true,
+					FollowRedirection: Bool(true),
 					HttpRedirectCode:  "302",
 				},
 				OriginInfo: &BucketOriginInfo{
@@ -123,7 +123,7 @@ func TestBucketService_PutOrigin(t *testing.T) {
 				},
 				OriginParameter: &BucketOriginParameter{
 					Protocol:          "HTTP",
-					FollowQueryString: true,
+					FollowQueryString: Bool(true),
 					HttpHeader: &BucketOriginHttpHeader{
 						FollowHttpHeaders: []OriginHttpHeader{
 							{
@@ -137,7 +137,7 @@ func TestBucketService_PutOrigin(t *testing.T) {
 							},
 						},
 					},
-					FollowRedirection: true,
+					FollowRedirection: Bool(true),
 					HttpRedirectCode:  "302",
 				},
 				OriginInfo: &BucketOriginInfo{
