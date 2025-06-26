@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 )
 
 const (
@@ -330,6 +332,44 @@ func isSignHeader(key string) bool {
 
 type TransportIface interface {
 	GetCredential() (string, string, string, error)
+}
+
+type OidcCredentialTransport struct {
+	Transport http.RoundTripper
+}
+
+func (t *OidcCredentialTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// get credential and would refresh credential if expired
+	ak, sk, token, err := t.GetCredential()
+	if err != nil {
+		return nil, err
+	}
+	req = cloneRequest(req)
+	// 增加 Authorization header
+	authTime := NewAuthTime(defaultAuthExpire)
+	AddAuthorizationHeader(ak, sk, token, req, authTime)
+
+	resp, err := t.transport().RoundTrip(req)
+	return resp, err
+}
+
+func (t *OidcCredentialTransport) GetCredential() (string, string, string, error) {
+	provider, err := common.DefaultTkeOIDCRoleArnProvider()
+	if err != nil {
+		return "", "", "", err
+	}
+	credential, err := provider.GetCredential()
+	if err != nil {
+		return "", "", "", err
+	}
+	return credential.GetSecretId(), credential.GetSecretKey(), credential.GetToken(), nil
+}
+
+func (t *OidcCredentialTransport) transport() http.RoundTripper {
+	if t.Transport != nil {
+		return t.Transport
+	}
+	return http.DefaultTransport
 }
 
 // AuthorizationTransport 给请求增加 Authorization header
