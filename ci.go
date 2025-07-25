@@ -63,20 +63,20 @@ type PicImageInfo struct {
 	Orientation int    `xml:"Orientation,omitempty"`
 }
 type PicProcessObject struct {
-	Key             string       `xml:"Key,omitempty"`
-	Location        string       `xml:"Location,omitempty"`
-	Format          string       `xml:"Format,omitempty"`
-	Width           int          `xml:"Width,omitempty"`
-	Height          int          `xml:"Height,omitempty"`
-	Size            int          `xml:"Size,omitempty"`
-	Quality         int          `xml:"Quality,omitempty"`
-	ETag            string       `xml:"ETag,omitempty"`
-	WatermarkStatus int          `xml:"WatermarkStatus,omitempty"`
-	CodeStatus      int          `xml:"CodeStatus,omitempty"`
-	QRcodeInfo      []QRcodeInfo `xml:"QRcodeInfo,omitempty"`
-	FrameCount      int          `xml:"FrameCount,omitempty"`
-	Md5             string       `xml:"Md5,omitempty"`
-	BitDepth        int          `xml:"BitDepth,omitempty"`
+	Key             string        `xml:"Key,omitempty"`
+	Location        string        `xml:"Location,omitempty"`
+	Format          string        `xml:"Format,omitempty"`
+	Width           int           `xml:"Width,omitempty"`
+	Height          int           `xml:"Height,omitempty"`
+	Size            int           `xml:"Size,omitempty"`
+	Quality         int           `xml:"Quality,omitempty"`
+	ETag            string        `xml:"ETag,omitempty"`
+	WatermarkStatus int           `xml:"WatermarkStatus,omitempty"`
+	CodeStatus      int           `xml:"CodeStatus,omitempty"`
+	QRcodeInfo      []QRcodeInfo  `xml:"QRcodeInfo,omitempty"`
+	FrameCount      int           `xml:"FrameCount,omitempty"`
+	Md5             string        `xml:"Md5,omitempty"`
+	BitDepth        int           `xml:"BitDepth,omitempty"`
 	AIGCMetadata    *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 type QRcodeInfo struct {
