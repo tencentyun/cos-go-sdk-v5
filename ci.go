@@ -77,6 +77,7 @@ type PicProcessObject struct {
 	FrameCount      int          `xml:"FrameCount,omitempty"`
 	Md5             string       `xml:"Md5,omitempty"`
 	BitDepth        int          `xml:"BitDepth,omitempty"`
+	AIGCMetadata    AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 type QRcodeInfo struct {
 	CodeUrl      string        `xml:"CodeUrl,omitempty"`

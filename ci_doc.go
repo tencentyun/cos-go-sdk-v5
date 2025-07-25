@@ -57,6 +57,7 @@ type DocProcessJobOperation struct {
 	Output           *DocProcessJobOutput           `xml:"Output,omitempty"`
 	DocProcess       *DocProcessJobDocProcess       `xml:"DocProcess,omitempty"`
 	DocProcessResult *DocProcessJobDocProcessResult `xml:"DocProcessResult,omitempty"`
+	UserData         string                         `xml:"UserData,omitempty"`
 }
 
 type DocProcessJobDetail struct {
@@ -72,11 +73,16 @@ type DocProcessJobDetail struct {
 }
 
 type CreateDocProcessJobsOptions struct {
-	XMLName   xml.Name                `xml:"Request"`
-	Tag       string                  `xml:"Tag,omitempty"`
-	Input     *DocProcessJobInput     `xml:"Input,omitempty"`
-	Operation *DocProcessJobOperation `xml:"Operation,omitempty"`
-	QueueId   string                  `xml:"QueueId,omitempty"`
+	XMLName             xml.Name                      `xml:"Request"`
+	Tag                 string                        `xml:"Tag,omitempty"`
+	Input               *DocProcessJobInput           `xml:"Input,omitempty"`
+	Operation           *DocProcessJobOperation       `xml:"Operation,omitempty"`
+	QueueId             string                        `xml:"QueueId,omitempty"`
+	CallBackFormat      string                        `xml:"CallBackFormat,omitempty"`
+	CallBackType        string                        `xml:"CallBackType,omitempty"`
+	CallBack            string                        `xml:"CallBack,omitempty"`
+	CallBackMqConfig    *NotifyConfigCallBackMqConfig `xml:"CallBackMqConfig,omitempty"`
+	CallBackKafkaConfig *KafkaConfig                  `xml:"CallBackKafkaConfig,omitempty"`
 }
 
 type CreateDocProcessJobsResult struct {

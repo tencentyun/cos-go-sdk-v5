@@ -83,14 +83,16 @@ func CreateTranscodeTemplate() {
 	rand.Seed(time.Now().UnixNano())
 	createTplOpt := &cos.CreateMediaTranscodeTemplateOptions{
 		Tag:  "Transcode",
-		Name: "transtpl-" + strconv.Itoa(rand.Intn(100)),
+		Name: "transtpl-auto" + strconv.Itoa(rand.Intn(100)),
 		Container: &cos.Container{
 			Format: "mp4",
 		},
 		Video: &cos.Video{
-			Codec: "h.264",
-			Width: "1280",
-			Fps:   "30",
+			Codec:         "h.264",
+			Width:         "1280",
+			Fps:           "30",
+			Pixfmt:        "auto", // Pixfmt: "" 保持原视频的色彩空间
+			LongShortMode: "true",
 		},
 		Audio: &cos.Audio{
 			Codec: "aac",
@@ -98,6 +100,13 @@ func CreateTranscodeTemplate() {
 		TimeInterval: &cos.TimeInterval{
 			Start:    "0",
 			Duration: "",
+		},
+		TransConfig: &cos.TransConfig{
+			AIGCMetadata: &cos.AIGCMetadata{
+				Label:           "1",
+				ContentProducer: "AIGC-Bqwdvi-1584",
+				ProduceID:       "CI-2025-XXXXX-${InputName}",
+			},
 		},
 	}
 	createTplRes, _, err := c.CI.CreateMediaTranscodeTemplate(context.Background(), createTplOpt)
