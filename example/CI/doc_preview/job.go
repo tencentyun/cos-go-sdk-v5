@@ -11,6 +11,10 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
+const (
+	OutputBucket = "test-125000000"
+)
+
 func log_status(err error) {
 	if err == nil {
 		return
@@ -30,7 +34,7 @@ func log_status(err error) {
 	}
 }
 
-func createDocJob() {
+func getClient() *cos.Client {
 	u, _ := url.Parse("https://test-1234567890.cos.ap-chongqing.myqcloud.com")
 	cu, _ := url.Parse("https://test-1234567890.ci.ap-chongqing.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u, CIURL: cu}
@@ -47,17 +51,22 @@ func createDocJob() {
 			},
 		},
 	})
+	return c
+}
+
+func createDocJob() {
+	c := getClient()
 
 	createJobOpt := &cos.CreateDocProcessJobsOptions{
 		Tag: "DocProcess",
 		Input: &cos.DocProcessJobInput{
-			Object: "input/doc_preview.ppt",
+			Object: "abc.pptx",
 		},
 		Operation: &cos.DocProcessJobOperation{
 			Output: &cos.DocProcessJobOutput{
 				Region: "ap-chongqing",
-				Object: "test-doc${Number}.png",
-				Bucket: "test-1234567890",
+				Object: "doc/test-doc${Number}.png",
+				Bucket: OutputBucket,
 			},
 			DocProcess: &cos.DocProcessJobDocProcess{
 				TgtType:     "png",
@@ -66,16 +75,17 @@ func createDocJob() {
 				ImageParams: "watermark/2/text/5paH5qGj6aKE6KeI/fontsize/20/gravity/NorthEast",
 			},
 		},
-		QueueId: "p363fa5add7b94ca693f667a8d4807f54",
+		CallBackFormat: "JSON",
+		CallBackType:   "Kafka",
+		CallBackKafkaConfig: &cos.KafkaConfig{
+			Region:     "ap-chongqing",
+			InstanceId: "ckafka-abc",
+			Topic:      "doc-test",
+		},
 	}
 	createJobRes, _, err := c.CI.CreateDocProcessJobs(context.Background(), createJobOpt)
 	log_status(err)
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
-
-	// 5、DescribeDocProcessJob
-	DescribeJobRes, _, err := c.CI.DescribeDocProcessJob(context.Background(), createJobRes.JobsDetail.JobId)
-	log_status(err)
-	fmt.Printf("%+v\n", DescribeJobRes.JobsDetail)
 }
 
 func describeDocJob() {

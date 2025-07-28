@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -1062,6 +1063,56 @@ func extractBlindWatermark3() {
 	}
 }
 
+
+// 文字水印和AIGC
+func textWatermarkAndAIGC() {
+	rawurl := "https://test-12500000.cos.ap-chongqing.myqcloud.com"
+
+	aigcParam := make(map[string]string)
+	aigcParam["Label"] = "label"
+	aigcParam["ContentProducer"] = "contentProducer"
+	aigcParam["ProduceID"] = "ProduceID"
+	aigcParam["ReservedCode1"] = "ReservedCode1"
+	aigcParam["ContentPropagator"] = "ContentPropagator"
+	aigcParam["PropagateID"] = "PropagateID"
+	aigcParam["ReservedCode2"] = "ReservedCode2"
+
+	AIGCMetadata := "AIGCMetadata/"
+	for k, v := range aigcParam {
+		AIGCMetadata += k + "/" + base64.StdEncoding.EncodeToString([]byte(v)) + "/"
+	}
+
+	// 上传时处理
+	{
+		obj := "pic/textwatermark/deer.jpg"
+		filepath := "./deer.jpeg"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "textwatermark.jpg",
+					Rule:   "imageMogr2/" + AIGCMetadata + "|watermark/2/text/6IW-6K6v5LqRwrfkuIfosaHkvJjlm74/fill/IzNEM0QzRA/fontsize/20/dissolve/50/gravity/northeast/dx/20/dy/20/batch/1/degree/45",
+				},
+			},
+		}
+		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
+	}
+	// 云上数据处理
+	{
+		obj := "pic/deer.jpeg"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "textwatermark/textwatermark1.jpg",
+					Rule:   "imageMogr2/" + AIGCMetadata + "|watermark/2/text/6IW-6K6v5LqRwrfkuIfosaHkvJjlm74/fill/IzNEM0QzRA/fontsize/20/dissolve/50/gravity/northeast/dx/20/dy/20/batch/1/degree/45",
+				},
+			},
+		}
+		processWhenCloud(context.Background(), rawurl, obj, pic)
+	}
+}
+
 func main() {
-	commonProcess()
+	// commonProcess()
 }
