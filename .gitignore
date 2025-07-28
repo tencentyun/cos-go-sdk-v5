@@ -37,3 +37,4 @@ example/CI/image_process/test*
 example/CI/doc_preview/test*
 example/CI/content_auditing/test*
 .vscode
+example/CI/image_process/deer.jpeg

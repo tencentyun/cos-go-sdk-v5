@@ -16,6 +16,10 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
+const (
+	OutputBucket = "test-125000000"
+)
+
 func log_status(err error) {
 	if err == nil {
 		return
@@ -76,6 +80,50 @@ func DeleteWorkflow() {
 	DescribeWorkflowRes, _, err := c.CI.DeleteMediaWorkflow(context.Background(), "w843779f0b22f49bbb7a189778d865059")
 	log_status(err)
 	fmt.Printf("%+v\n", DescribeWorkflowRes)
+}
+
+// CreateWorkflow 创建工作流
+func CreateWorkflowWithAIGC() {
+	c := getClient()
+	rand.Seed(time.Now().UnixNano())
+	createWorkflowOpt := &cos.CreateMediaWorkflowOptions{
+		MediaWorkflow: &cos.MediaWorkflow{
+			Name:  "workflow-aigc",
+			State: "Paused",
+			Topology: &cos.Topology{
+				Dependencies: map[string]string{"Start": "Transcode_1581665960537", "Transcode_1581665960537": "End"},
+				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
+					"Transcode_1581665960537": cos.Node{Type: "Transcode", Operation: &cos.NodeOperation{TemplateId: "t1811921c01e154f95a66dbf89c1dc184d",
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: OutputBucket, Object: "trans1.mp4"}}},
+				},
+			},
+		},
+	}
+	createWorkflowRes, _, err := c.CI.CreateMediaWorkflow(context.Background(), createWorkflowOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createWorkflowRes.MediaWorkflow)
+}
+
+// CreateWorkflow 创建工作流
+func CreateWorkflowWithSegmentAIGC() {
+	c := getClient()
+	rand.Seed(time.Now().UnixNano())
+	createWorkflowOpt := &cos.CreateMediaWorkflowOptions{
+		MediaWorkflow: &cos.MediaWorkflow{
+			Name:  "workflow-aigc",
+			State: "Paused",
+			Topology: &cos.Topology{
+				Dependencies: map[string]string{"Start": "Segment_1581665960537", "Segment_1581665960537": "End"},
+				Nodes: map[string]cos.Node{"Start": cos.Node{Type: "Start", Input: &cos.NodeInput{ObjectPrefix: "wk-test", ExtFilter: &cos.ExtFilter{State: "On", Custom: "true", CustomExts: "mp4"}}},
+					"Segment_1581665960537": cos.Node{Type: "Segment", Operation: &cos.NodeOperation{SegmentConfig: &cos.NodeSegmentConfig{Format: "mp4", AIGCMetadata: &cos.AIGCMetadata{Label: "1", ContentProducer: "AIGC-Bqwdvi-1584", ProduceID: "CI-2025-XXXXX-${InputName}"}},
+						Output: &cos.NodeOutput{Region: "ap-chongqing", Bucket: OutputBucket, Object: "trans1_Segment.mp4"}}},
+				},
+			},
+		},
+	}
+	createWorkflowRes, _, err := c.CI.CreateMediaWorkflow(context.Background(), createWorkflowOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createWorkflowRes.MediaWorkflow)
 }
 
 // CreateWorkflow 创建工作流

@@ -138,16 +138,17 @@ type TranscodeProAudio struct {
 
 // TransConfig TODO
 type TransConfig struct {
-	AdjDarMethod          string      `xml:"AdjDarMethod,omitempty"`
-	IsCheckReso           string      `xml:"IsCheckReso,omitempty"`
-	ResoAdjMethod         string      `xml:"ResoAdjMethod,omitempty"`
-	IsCheckVideoBitrate   string      `xml:"IsCheckVideoBitrate,omitempty"`
-	VideoBitrateAdjMethod string      `xml:"VideoBitrateAdjMethod,omitempty"`
-	IsCheckAudioBitrate   string      `xml:"IsCheckAudioBitrate,omitempty"`
-	AudioBitrateAdjMethod string      `xml:"AudioBitrateAdjMethod,omitempty"`
-	DeleteMetadata        string      `xml:"DeleteMetadata,omitempty"`
-	IsHdr2Sdr             string      `xml:"IsHdr2Sdr,omitempty"`
-	HlsEncrypt            *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
+	AdjDarMethod          string        `xml:"AdjDarMethod,omitempty"`
+	IsCheckReso           string        `xml:"IsCheckReso,omitempty"`
+	ResoAdjMethod         string        `xml:"ResoAdjMethod,omitempty"`
+	IsCheckVideoBitrate   string        `xml:"IsCheckVideoBitrate,omitempty"`
+	VideoBitrateAdjMethod string        `xml:"VideoBitrateAdjMethod,omitempty"`
+	IsCheckAudioBitrate   string        `xml:"IsCheckAudioBitrate,omitempty"`
+	AudioBitrateAdjMethod string        `xml:"AudioBitrateAdjMethod,omitempty"`
+	DeleteMetadata        string        `xml:"DeleteMetadata,omitempty"`
+	IsHdr2Sdr             string        `xml:"IsHdr2Sdr,omitempty"`
+	HlsEncrypt            *HlsEncrypt   `xml:"HlsEncrypt,omitempty"`
+	AIGCMetadata          *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 
 // Transcode TODO
@@ -362,12 +363,13 @@ type HlsEncrypt struct {
 
 // Segment TODO
 type Segment struct {
-	Format         string      `xml:"Format,omitempty"`
-	Duration       string      `xml:"Duration,omitempty"`
-	TranscodeIndex string      `xml:"TranscodeIndex,omitempty"`
-	HlsEncrypt     *HlsEncrypt `xml:"HlsEncrypt,omitempty"`
-	StartTime      string      `xml:"StartTime,omitempty"`
-	EndTime        string      `xml:"EndTime,omitempty"`
+	Format         string        `xml:"Format,omitempty"`
+	Duration       string        `xml:"Duration,omitempty"`
+	TranscodeIndex string        `xml:"TranscodeIndex,omitempty"`
+	HlsEncrypt     *HlsEncrypt   `xml:"HlsEncrypt,omitempty"`
+	StartTime      string        `xml:"StartTime,omitempty"`
+	EndTime        string        `xml:"EndTime,omitempty"`
+	AIGCMetadata   *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 
 // VideoMontageVideo TODO
@@ -673,6 +675,16 @@ type PicProcess struct {
 	ProcessRule string `xml:"ProcessRule,omitempty"`
 }
 
+type AIGCMetadata struct {
+	Label             string `xml:"Label,omitempty"`
+	ContentProducer   string `xml:"ContentProducer,omitempty"`
+	ProduceID         string `xml:"ProduceID,omitempty"`
+	ReservedCode1     string `xml:"ReservedCode1,omitempty"`
+	ContentPropagator string `xml:"ContentPropagator,omitempty"`
+	PropagateID       string `xml:"PropagateID,omitempty"`
+	ReservedCode2     string `xml:"ReservedCode2,omitempty"`
+}
+
 // PicProcessResult TODO
 type PicProcessResult struct {
 	UploadResult struct {
@@ -691,14 +703,15 @@ type PicProcessResult struct {
 		} `xml:"OriginalInfo"`
 		ProcessResults struct {
 			Object struct {
-				Key      string `xml:"Key"`
-				Location string `xml:"Location"`
-				Format   string `xml:"Format"`
-				Width    int32  `xml:"Width"`
-				Height   int32  `xml:"Height"`
-				Size     int32  `xml:"Size"`
-				Quality  int32  `xml:"Quality"`
-				Etag     string `xml:"Etag"`
+				Key          string        `xml:"Key"`
+				Location     string        `xml:"Location"`
+				Format       string        `xml:"Format"`
+				Width        int32         `xml:"Width"`
+				Height       int32         `xml:"Height"`
+				Size         int32         `xml:"Size"`
+				Quality      int32         `xml:"Quality"`
+				Etag         string        `xml:"Etag"`
+				AIGCMetadata *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 			} `xml:"Object"`
 		} `xml:"ProcessResults"`
 	} `xml:"UploadResult"`
@@ -2041,8 +2054,9 @@ type NodeSmartCover struct {
 
 // NodeSegmentConfig TODO
 type NodeSegmentConfig struct {
-	Format   string `xml:"Format,omitempty"`
-	Duration string `xml:"Duration,omitempty"`
+	Format       string        `xml:"Format,omitempty"`
+	Duration     string        `xml:"Duration,omitempty"`
+	AIGCMetadata *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 
 // NodeStreamPackConfigInfo TODO

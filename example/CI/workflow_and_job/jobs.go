@@ -12,6 +12,10 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5/debug"
 )
 
+const (
+	OutputBucket = "test-125000000"
+)
+
 func log_status(err error) {
 	if err == nil {
 		return
@@ -1183,6 +1187,77 @@ func InvokeMultiGeneratePlayListJobs() {
 		},
 	}
 	createJobRes, _, err := c.CI.CreateMultiGeneratePlayListJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
+func InvokeAIGCSegmentJob() {
+	c := getClient()
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "Segment",
+		Input: &cos.JobInput{
+			Object: "trans1.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "trans-Segment.mp4",
+				Bucket: OutputBucket,
+			},
+			Segment: &cos.Segment{
+				Format: "mp4",
+				AIGCMetadata: &cos.AIGCMetadata{
+					Label:           "1",
+					ContentProducer: "AIGC-Bqwdvi-1584",
+					ProduceID:       "CI-2025-XXXXX-${InputName}",
+				},
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
+// InvokeTranscodeJob 提交一个转码任务
+// https://cloud.tencent.com/document/product/460/84790
+func InvokeAIGCTranscodeJob() {
+	c := getClient()
+	createJobOpt := &cos.CreateJobsOptions{
+		Tag: "Transcode",
+		Input: &cos.JobInput{
+			Object: "trans1.mp4",
+		},
+		Operation: &cos.MediaProcessJobOperation{
+			Output: &cos.JobOutput{
+				Region: "ap-chongqing",
+				Object: "trans-abc.mp4",
+				Bucket: OutputBucket,
+			},
+			Transcode: &cos.Transcode{
+				Container: &cos.Container{
+					Format: "mp4",
+				},
+				Video: &cos.Video{
+					Codec: "H.264",
+				},
+				Audio: &cos.Audio{
+					Codec: "AAC",
+				},
+				TransConfig: &cos.TransConfig{
+					AIGCMetadata: &cos.AIGCMetadata{
+						Label:           "1",
+						ContentProducer: "AIGC-Bqwdvi-1584",
+						ProduceID:       "CI-2025-XXXXX-${InputName}",
+					},
+				},
+			},
+
+			UserData: "hello world",
+			CustomId: "",
+		},
+	}
+	createJobRes, _, err := c.CI.CreateJob(context.Background(), createJobOpt)
 	log_status(err)
 	fmt.Printf("%+v\n", createJobRes.JobsDetail)
 }
