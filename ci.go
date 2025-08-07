@@ -110,6 +110,25 @@ func (s *CIService) ImageProcess(ctx context.Context, name string, opt *ImagePro
 	return &res, resp, err
 }
 
+type ImageProcessHeader struct {
+	PicOperations string       `header:"Pic-Operations" xml:"-" url:"-"`
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+}
+
+// 云上数据处理 https://cloud.tencent.com/document/product/460/18147
+func (s *CIService) ImageProcessWithHeader(ctx context.Context, name string, opt *ImageProcessHeader) (*ImageProcessResult, *Response, error) {
+	var res ImageProcessResult
+	sendOpt := sendOptions{
+		baseURL:   s.client.BaseURL.BucketURL,
+		uri:       "/" + encodeURIComponent(name) + "?image_process",
+		method:    http.MethodPost,
+		optHeader: opt,
+		result:    &res,
+	}
+	resp, err := s.client.send(ctx, &sendOpt)
+	return &res, resp, err
+}
+
 // ImageRecognitionOptions is the option of ImageAuditing
 type ImageRecognitionOptions struct {
 	CIProcess        string `url:"ci-process,omitempty"`

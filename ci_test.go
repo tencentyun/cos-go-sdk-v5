@@ -139,6 +139,106 @@ func TestCIService_ImageProcess(t *testing.T) {
 	}
 }
 
+func TestCIService_ImageProcessWithHeader(t *testing.T) {
+	setup()
+	defer teardown()
+	name := "test.jpg"
+
+	opt := &ImageProcessOptions{
+		IsPicInfo: 1,
+		Rules: []PicOperationsRules{
+			{
+				FileId: "format.jpg",
+				Rule:   "imageView2/format/png",
+			},
+		},
+	}
+
+	mux.HandleFunc("/test.jpg", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		vs := values{
+			"image_process": "",
+		}
+		testFormValues(t, r, vs)
+		header := r.Header.Get("Pic-Operations")
+		body := new(ImageProcessOptions)
+		err := json.Unmarshal([]byte(header), body)
+		want := opt
+		if err != nil {
+			t.Errorf("CI.ImageProcess Failed: %v", err)
+		}
+		if !reflect.DeepEqual(want, body) {
+			t.Errorf("CI.ImageProcess Failed, wanted:%v, body:%v", want, body)
+		}
+		fmt.Fprint(w, `<UploadResult>
+    <OriginalInfo>
+        <Key>test.jpg</Key>
+        <Location>example-1250000000.cos.ap-guangzhou.myqcloud.com/test.jpg</Location>
+        <ETag>&quot;8894dbe5e3ebfaf761e39b9d619c28f3327b8d85&quot;</ETag>
+        <ImageInfo>
+            <Format>PNG</Format>
+            <Width>103</Width>
+            <Height>99</Height>
+            <Quality>100</Quality>
+            <Ave>0xa08162</Ave>
+            <Orientation>0</Orientation>
+        </ImageInfo>
+    </OriginalInfo>
+    <ProcessResults>
+        <Object>
+            <Key>format.jpg</Key>
+            <Location>example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg</Location>
+            <Format>PNG</Format>
+            <Width>103</Width>
+            <Height>99</Height>
+            <Size>21351</Size>
+            <Quality>100</Quality>
+            <ETag>&quot;8894dbe5e3ebfaf761e39b9d619c28f3327b8d85&quot;</ETag>
+        </Object>
+    </ProcessResults>
+</UploadResult>`)
+	})
+
+	want := &ImageProcessResult{
+		XMLName: xml.Name{Local: "UploadResult"},
+		OriginalInfo: &PicOriginalInfo{
+			Key:      "test.jpg",
+			Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/test.jpg",
+			ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+			ImageInfo: &PicImageInfo{
+				Format:      "PNG",
+				Width:       103,
+				Height:      99,
+				Quality:     100,
+				Ave:         "0xa08162",
+				Orientation: 0,
+			},
+		},
+		ProcessResults: []PicProcessObject{
+			{
+				Key:      "format.jpg",
+				Location: "example-1250000000.cos.ap-guangzhou.myqcloud.com/format.jpg",
+				Format:   "PNG",
+				Width:    103,
+				Height:   99,
+				Size:     21351,
+				Quality:  100,
+				ETag:     "\"8894dbe5e3ebfaf761e39b9d619c28f3327b8d85\"",
+			},
+		},
+	}
+	optHeader := &ImageProcessHeader{
+		PicOperations: EncodePicOperations(opt),
+	}
+	res, _, err := client.CI.ImageProcessWithHeader(context.Background(), name, optHeader)
+	if err != nil {
+		t.Fatalf("CI.ImageProcess returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.ImageProcess failed, return:%v, want:%v", res, want)
+	}
+}
+
 func TestCIService_ImageRecognition(t *testing.T) {
 	setup()
 	defer teardown()
