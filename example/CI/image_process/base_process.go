@@ -137,6 +137,29 @@ func processWhenCloud(ctx context.Context, rawurl, obj string, pic *cos.PicOpera
 	fmt.Printf("%+v\n", res.ProcessResults)
 }
 
+// 云上数据处理
+func processWhenCloudWithHeader(ctx context.Context, rawurl, obj string, imageProcessHeader *cos.ImageProcessHeader ) {
+	u, _ := url.Parse(rawurl)
+	b := &cos.BaseURL{BucketURL: u}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  os.Getenv("COS_SECRETID"),
+			SecretKey: os.Getenv("COS_SECRETKEY"),
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader:  true,
+				RequestBody:    false,
+				ResponseHeader: true,
+				ResponseBody:   true,
+			},
+		},
+	})
+	res, _, err := c.CI.ImageProcessWithHeader(ctx, obj, imageProcessHeader)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+	fmt.Printf("%+v\n", res.OriginalInfo)
+	fmt.Printf("%+v\n", res.ProcessResults)
+}
+
 // 添加盲水印
 func blindWatermark() {
 	rawurl := "https://test-1234567890.cos.ap-chongqing.myqcloud.com"
@@ -1097,6 +1120,7 @@ func textWatermarkAndAIGC() {
 		}
 		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
 	}
+	
 	// 云上数据处理
 	{
 		obj := "pic/deer.jpeg"
@@ -1111,6 +1135,27 @@ func textWatermarkAndAIGC() {
 		}
 		processWhenCloud(context.Background(), rawurl, obj, pic)
 	}
+
+	// 云上数据处理
+	{
+		obj := "pic/deer.jpeg"
+		pic := &cos.PicOperations{
+			IsPicInfo: 1,
+			Rules: []cos.PicOperationsRules{
+				{
+					FileId: "textwatermark/textwatermark1.jpg",
+					Rule:   "imageMogr2/" + AIGCMetadata + "|watermark/2/text/6IW-6K6v5LqRwrfkuIfosaHkvJjlm74/fill/IzNEM0QzRA/fontsize/20/dissolve/50/gravity/northeast/dx/20/dy/20/batch/1/degree/45",
+				},
+			},
+		}
+		imageProcessHeader := &cos.ImageProcessHeader{
+			PicOperations: cos.EncodePicOperations(pic),
+			XOptionHeader: &http.Header{},
+		}
+		imageProcessHeader.XOptionHeader.Add("x-cos-meta-aigctag", "csig")
+		processWhenCloudWithHeader(context.Background(), rawurl, obj, imageProcessHeader)
+	}
+
 }
 
 func main() {
