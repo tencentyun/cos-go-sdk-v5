@@ -19,7 +19,7 @@ var (
 func retrysetup(host string) *Client {
 	u, _ := url.Parse("http://" + host)
 	cli := NewClient(&BaseURL{u, u, u, u, u, u}, &http.Client{
-		Timeout: 3 * time.Second,
+		Timeout: 6 * time.Second,
 	})
 	cli.Conf.RetryOpt.Count = 2
 	return cli

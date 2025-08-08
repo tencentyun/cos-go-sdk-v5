@@ -2400,6 +2400,10 @@ func TestObjectService_PutFromURL(t *testing.T) {
 			t.Errorf("io.copy failed: %v", err)
 		}
 	})
+	source_empty := "source_empty"
+	mux.HandleFunc("/"+source_empty, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
 
 	// 全局crc
 	mux.HandleFunc("/"+dest, func(w http.ResponseWriter, r *http.Request) {
@@ -2513,4 +2517,12 @@ func TestObjectService_PutFromURL(t *testing.T) {
 	if err == nil {
 		t.Errorf("Object.PutFromURL expect error")
 	}
+	initTest()
+	realcrc = 0
+	downloadUrl = client.BaseURL.BucketURL.String() + "/" + source_empty
+	_, _, err = client.Object.PutFromURL(context.Background(), dest, downloadUrl, nil)
+	if err != nil {
+		t.Errorf("Object.PutFromURL expect error")
+	}
+
 }

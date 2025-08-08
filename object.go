@@ -2262,6 +2262,18 @@ func (s *ObjectService) PutFromURL(ctx context.Context, name string, downloadURL
 			break
 		}
 	}
+	// 兼容0字节文件，如果没有上传分片，则上传一个空分片
+	if len(comOpt.Parts) == 0 {
+		resp, err := s.UploadPart(ctx, name, uploadId, 1, http.NoBody, nil)
+		if err != nil {
+			isErr = true
+			return nil, resp, err
+		}
+		comOpt.Parts = append(comOpt.Parts, Object{
+			PartNumber: 1,
+			ETag:       resp.Header.Get("ETag"),
+		})
+	}
 	res, resp, err := s.CompleteMultipartUpload(ctx, name, uploadId, comOpt)
 	if err != nil {
 		isErr = true
