@@ -35,7 +35,8 @@ type BucketInventoryOptionalFields struct {
 
 // BucketInventorySchedule ...
 type BucketInventorySchedule struct {
-	Frequency string `xml:"Frequency"`
+	Frequency   string `xml:"Frequency"`
+	MonthlyDate int    `xml:"MonthlyDate"`
 }
 
 // BucketInventoryEncryption ...
