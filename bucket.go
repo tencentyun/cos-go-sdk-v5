@@ -152,6 +152,7 @@ type Bucket struct {
 	Name         string
 	Region       string `xml:"Location,omitempty"`
 	CreationDate string `xml:",omitempty"`
+	Type         string `xml:",omitempty"`
 	BucketType   string `xml:",omitempty"`
 }
 
