@@ -91,8 +91,14 @@ type BatchInitiateRestoreObject struct {
 
 // BatchJobOperation
 type BatchJobOperation struct {
-	PutObjectCopy *BatchJobOperationCopy      `xml:"COSPutObjectCopy,omitempty" header:"-" url:"-"`
-	RestoreObject *BatchInitiateRestoreObject `xml:"COSInitiateRestoreObject,omitempty" header:"-" url:"-"`
+	PutObjectCopy    *BatchJobOperationCopy      `xml:"COSPutObjectCopy,omitempty" header:"-" url:"-"`
+	RestoreObject    *BatchInitiateRestoreObject `xml:"COSInitiateRestoreObject,omitempty" header:"-" url:"-"`
+	PutObjectTagging *BatchPutObjectTagging      `xml:"COSPutObjectTagging,omitempty" header:"-" url:"-"`
+}
+
+type BatchPutObjectTagging struct {
+	TaggingDirective string                 `xml:"TaggingDirective" header:"-" url:"-"`
+	TagSet           *BatchNewObjectTagging `xml:"TagSet" header:"-" url:"-"`
 }
 
 // BatchJobManifest

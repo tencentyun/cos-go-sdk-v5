@@ -304,7 +304,7 @@ func (c *Client) newRequest(ctx context.Context, baseURL *url.URL, uri, method s
 	contentType := ""
 	contentMD5 := ""
 	contentLength := int64(-1)
-	if body != nil {
+	if body != nil && body != http.NoBody {
 		// 上传文件
 		if r, ok := body.(io.Reader); ok {
 			reader = r

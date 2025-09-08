@@ -468,10 +468,14 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 		}
 		totalBytes = opt.ContentLength
 	}
+	var isNoBody bool
 	if err == nil {
 		// 非bytes.Buffer/bytes.Reader/strings.Reader/os.File 由用户指定ContentLength, 或使用 Chunk 上传
 		if opt != nil && opt.ContentLength == 0 && IsLenReader(r) {
 			opt.ContentLength = totalBytes
+			if opt.ContentLength == 0 {
+				isNoBody = true
+			}
 		}
 	}
 	// 如果是io.Seeker，则重试
@@ -506,6 +510,10 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 			body:      reader,
 			optHeader: opt,
 			isRetry:   nr > 0,
+		}
+		// 如果长度为0，则配置为NoBody，避免使用chunk上传
+		if isNoBody {
+			sendOpt.body = http.NoBody
 		}
 
 		// 把上一次错误记录下来

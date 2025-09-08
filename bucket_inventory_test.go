@@ -21,7 +21,9 @@ func TestBucketService_PutInventory(t *testing.T) {
 			Prefix: "myPrefix",
 			Period: nil,
 		},
-		Schedule: &BucketInventorySchedule{"Daily"},
+		Schedule: &BucketInventorySchedule{
+			Frequency: "Daily",
+		},
 		Destination: &BucketInventoryDestination{
 			Bucket:     "qcs::cos:ap-guangzhou::examplebucket-1250000000",
 			AccountId:  "100000000001",
@@ -117,7 +119,9 @@ func TestBucketService_GetInventory(t *testing.T) {
 			Prefix: "myPrefix",
 			Period: nil,
 		},
-		Schedule: &BucketInventorySchedule{"Daily"},
+		Schedule: &BucketInventorySchedule{
+			Frequency: "Daily",
+		},
 		Destination: &BucketInventoryDestination{
 			Bucket:    "qcs::cos:ap-guangzhou::examplebucket-1250000000",
 			AccountId: "100000000001",
@@ -236,7 +240,9 @@ func TestBucketService_ListInventory(t *testing.T) {
 					Prefix: "myPrefix",
 					Period: nil,
 				},
-				Schedule: &BucketInventorySchedule{"Daily"},
+				Schedule: &BucketInventorySchedule{
+					Frequency: "Daily",
+				},
 				Destination: &BucketInventoryDestination{
 					Bucket:     "qcs::cos:ap-beijing::examplebucket-1250000000",
 					AccountId:  "1250000000",
@@ -264,7 +270,9 @@ func TestBucketService_ListInventory(t *testing.T) {
 					Prefix: "myPrefix2",
 					Period: nil,
 				},
-				Schedule: &BucketInventorySchedule{"Weekly"},
+				Schedule: &BucketInventorySchedule{
+					Frequency: "Weekly",
+				},
 				Destination: &BucketInventoryDestination{
 					Bucket:    "qcs::cos:ap-beijing::examplebucket-1250000000",
 					AccountId: "1250000000",
