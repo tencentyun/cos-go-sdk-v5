@@ -514,6 +514,13 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 		// 如果长度为0，则配置为NoBody，避免使用chunk上传
 		if isNoBody {
 			sendOpt.body = http.NoBody
+			if nr == 0 {
+				defer func() {
+					if rc, ok := r.(io.ReadCloser); ok {
+						rc.Close()
+					}
+				}()
+			}
 		}
 
 		// 把上一次错误记录下来
