@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -140,8 +141,78 @@ func describeDocJobs() {
 	fmt.Printf("%+v\n", DescribeJobsRes)
 }
 
+func getAIGC() {
+	c := getClient()
+	name := "3.pdf"
+	opt := &cos.ObjectGetOptions{
+		CiProcess: "DocAIGCMetadata",
+	}
+	resp, err := c.Object.Get(context.Background(), name, opt)
+	log_status(err)
+	bs, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	fmt.Printf("%s\n", string(bs))
+}
+
+func createAIGCDocJob() {
+	c := getClient()
+
+	createJobOpt := &cos.CreateDocProcessJobsOptions{
+		Tag: "DocAIGCMetadata",
+		Input: &cos.DocProcessJobInput{
+			Object: "abc.pdf",
+		},
+		Operation: &cos.DocProcessJobOperation{
+			Output: &cos.DocProcessJobOutput{
+				Region: "ap-chongqing",
+				Object: "abc-aigc.pdf",
+				Bucket: OutputBucket,
+			},
+			DocAIGCMetadata: &cos.DocAIGCMetadata{
+				AIGCMetadata: &cos.AIGCMetadata{
+					Label:           "1",
+					ContentProducer: "AIGC-Bqwdvi-1584",
+					ProduceID:       "CI-2025-XXXXX-${InputName}",
+				},
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateDocProcessJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
+func createWatermarkDocJob() {
+	c := getClient()
+
+	createJobOpt := &cos.CreateDocProcessJobsOptions{
+		Tag: "DocWatermark",
+		Input: &cos.DocProcessJobInput{
+			Object: "abc.pdf",
+		},
+		Operation: &cos.DocProcessJobOperation{
+			Output: &cos.DocProcessJobOutput{
+				Region: "ap-chongqing",
+				Object: "abc-watermark.pdf",
+				Bucket: OutputBucket,
+			},
+			DocWatermark: &cos.DocWatermark{
+				Type:    "1",
+				SrcType: "pdf",
+				Image:   "https://wwj-cq-125000000.cos.ap-chongqing.myqcloud.com/a.png",
+				Dx:      "10",
+				Dy:      "10",
+			},
+		},
+	}
+	createJobRes, _, err := c.CI.CreateDocProcessJobs(context.Background(), createJobOpt)
+	log_status(err)
+	fmt.Printf("%+v\n", createJobRes.JobsDetail)
+}
+
 func main() {
 	// createDocJob()
 	// describeDocJob()
 	// describeDocJobs()
+	// getAIGC()
 }
