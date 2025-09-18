@@ -20,21 +20,35 @@ type DocProcessJobOutput struct {
 	Object string `xml:"Object,omitempty"`
 }
 
+type DocWatermark struct {
+	SrcType string `xml:"SrcType,omitempty"`
+	Type    string `xml:"Type,omitempty"`
+	Image   string `xml:"Image,omitempty"`
+	Dx      string `xml:"Dx,omitempty"`
+	Dy      string `xml:"Dy,omitempty"`
+}
+
 type DocProcessJobDocProcess struct {
-	SrcType        string `xml:"SrcType,omitempty"`
-	TgtType        string `xml:"TgtType,omitempty"`
-	SheetId        int    `xml:"SheetId,omitempty"`
-	StartPage      int    `xml:"StartPage,omitempty"`
-	EndPage        int    `xml:"EndPage,omitempty"`
-	ImageParams    string `xml:"ImageParams,omitempty"`
-	DocPassword    string `xml:"DocPassword,omitempty"`
-	Comments       int    `xml:"Comments,omitempty"`
-	PaperDirection int    `xml:"PaperDirection,omitempty"`
-	Quality        int    `xml:"Quality,omitempty"`
-	Zoom           int    `xml:"Zoom,omitempty"`
-	PaperSize      int    `xml:"PaperSize,omitempty"`
-	ImageDpi       int    `xml:"ImageDpi,omitempty"`
-	PicPagination  int    `xml:"PicPagination,omitempty"`
+	SrcType        string        `xml:"SrcType,omitempty"`
+	TgtType        string        `xml:"TgtType,omitempty"`
+	SheetId        int           `xml:"SheetId,omitempty"`
+	StartPage      int           `xml:"StartPage,omitempty"`
+	EndPage        int           `xml:"EndPage,omitempty"`
+	ImageParams    string        `xml:"ImageParams,omitempty"`
+	DocPassword    string        `xml:"DocPassword,omitempty"`
+	Comments       int           `xml:"Comments,omitempty"`
+	PaperDirection int           `xml:"PaperDirection,omitempty"`
+	Quality        int           `xml:"Quality,omitempty"`
+	Zoom           int           `xml:"Zoom,omitempty"`
+	PaperSize      int           `xml:"PaperSize,omitempty"`
+	ImageDpi       int           `xml:"ImageDpi,omitempty"`
+	PicPagination  int           `xml:"PicPagination,omitempty"`
+	DocWatermark   *DocWatermark `xml:"DocWatermark,omitempty"`
+}
+
+type WatermarkInfoResult struct {
+	Size int    `xml:"Size,omitempty"`
+	Etag string `xml:"Etag,omitempty"`
 }
 
 type DocProcessJobDocProcessResult struct {
@@ -51,13 +65,27 @@ type DocProcessJobDocProcessResult struct {
 		PicIndex   int    `xml:"PicIndex,omitempty"`
 		PicNum     int    `xml:"PicNum,omitempty"`
 	} `xml:"PageInfo,omitempty"`
+	WatermarkInfo *WatermarkInfoResult `xml:"WatermarkInfo,omitempty"`
+}
+
+type DocWatermarkResult struct {
+	Size           int    `xml:"Size,omitempty"`
+	TotalPageCount int    `xml:"TotalPageCount,omitempty"`
+	Etag           string `xml:"Etag,omitempty"`
+}
+
+type DocAIGCMetadata struct {
+	AIGCMetadata *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 
 type DocProcessJobOperation struct {
-	Output           *DocProcessJobOutput           `xml:"Output,omitempty"`
-	DocProcess       *DocProcessJobDocProcess       `xml:"DocProcess,omitempty"`
-	DocProcessResult *DocProcessJobDocProcessResult `xml:"DocProcessResult,omitempty"`
-	UserData         string                         `xml:"UserData,omitempty"`
+	Output             *DocProcessJobOutput           `xml:"Output,omitempty"`
+	DocProcess         *DocProcessJobDocProcess       `xml:"DocProcess,omitempty"`
+	DocAIGCMetadata    *DocAIGCMetadata               `xml:"DocAIGCMetadata,omitempty"`
+	DocWatermark       *DocWatermark                  `xml:"DocWatermark,omitempty"`
+	DocProcessResult   *DocProcessJobDocProcessResult `xml:"DocProcessResult,omitempty"`
+	DocWatermarkResult *DocWatermarkResult            `xml:"DocWatermarkResult,omitempty"`
+	UserData           string                         `xml:"UserData,omitempty"`
 }
 
 type DocProcessJobDetail struct {

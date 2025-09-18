@@ -166,5 +166,18 @@ func DescribeCIBuckets() {
 	fmt.Printf("%+v\n", len(res.CIBucketList))
 }
 
+func getAIGC() {
+	c := getClient()
+	name := "123.mp4"
+	opt := &cos.ObjectGetOptions{
+		CiProcess: "MediaAIGCMetadata",
+	}
+	resp, err := c.Object.Get(context.Background(), name, opt)
+	log_status(err)
+	bs, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	fmt.Printf("%s\n", string(bs))
+}
+
 func main() {
 }
