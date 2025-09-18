@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -138,7 +139,7 @@ func processWhenCloud(ctx context.Context, rawurl, obj string, pic *cos.PicOpera
 }
 
 // 云上数据处理
-func processWhenCloudWithHeader(ctx context.Context, rawurl, obj string, imageProcessHeader *cos.ImageProcessHeader ) {
+func processWhenCloudWithHeader(ctx context.Context, rawurl, obj string, imageProcessHeader *cos.ImageProcessHeader) {
 	u, _ := url.Parse(rawurl)
 	b := &cos.BaseURL{BucketURL: u}
 	c := cos.NewClient(b, &http.Client{
@@ -1086,7 +1087,6 @@ func extractBlindWatermark3() {
 	}
 }
 
-
 // 文字水印和AIGC
 func textWatermarkAndAIGC() {
 	rawurl := "https://test-12500000.cos.ap-chongqing.myqcloud.com"
@@ -1120,7 +1120,7 @@ func textWatermarkAndAIGC() {
 		}
 		processWhenUpload(context.Background(), rawurl, obj, filepath, pic)
 	}
-	
+
 	// 云上数据处理
 	{
 		obj := "pic/deer.jpeg"
@@ -1156,6 +1156,36 @@ func textWatermarkAndAIGC() {
 		processWhenCloudWithHeader(context.Background(), rawurl, obj, imageProcessHeader)
 	}
 
+}
+
+func getAIGC() {
+	u, _ := url.Parse("https://test-12500000.cos.ap-chongqing.myqcloud.com")
+	b := &cos.BaseURL{BucketURL: u}
+	c := cos.NewClient(b, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			// 通过环境变量获取密钥
+			// 环境变量 SECRETID 表示用户的 SecretId，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretID: os.Getenv("SECRETID"),
+			// 环境变量 SECRETKEY 表示用户的 SecretKey，登录访问管理控制台查看密钥，https://console.cloud.tencent.com/cam/capi
+			SecretKey: os.Getenv("SECRETKEY"),
+			// Debug 模式，把对应 请求头部、请求内容、响应头部、响应内容 输出到标准输出
+			Transport: &debug.DebugRequestTransport{
+				RequestHeader:  true,
+				RequestBody:    true,
+				ResponseHeader: true,
+				ResponseBody:   false,
+			},
+		},
+	})
+	name := "pic/textwatermark/textwatermark.jpg"
+	opt := &cos.ObjectGetOptions{
+		CiProcess: "ImageAIGCMetadata",
+	}
+	resp, err := c.Object.Get(context.Background(), name, opt)
+	log_status(err)
+	bs, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	fmt.Printf("%s\n", string(bs))
 }
 
 func main() {

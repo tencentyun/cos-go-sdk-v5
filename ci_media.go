@@ -2087,6 +2087,7 @@ type NodeOperation struct {
 	TranscodeConfig      *struct {
 		FreeTranscode string `xml:"FreeTranscode,omitempty" json:"FreeTranscode,omitempty"`
 	} `xml:"TranscodeConfig,omitempty" json:"TranscodeConfig,omitempty"`
+	DocAIGCMetadata *DocAIGCMetadata `xml:"DocAIGCMetadata,omitempty"`
 }
 
 // Node TODO
@@ -3508,6 +3509,7 @@ type InventoryTriggerJobOperationJobParam struct {
 	ImageInspectResult      *ImageInspectResult      `xml:"ImageInspectResult,omitempty"`
 	ImageOCR                *ImageOCRTemplate        `xml:"ImageOCR,omitempty"`
 	Detection               *ImageOCRDetection       `xml:"Detection,omitempty"`
+	DocAIGCMetadata         *DocAIGCMetadata         `xml:"DocAIGCMetadata,omitempty"`
 }
 
 // InventoryTriggerJob TODO

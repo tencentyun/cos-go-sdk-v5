@@ -2893,3 +2893,7 @@ type ImgTargetRecResult struct {
 		} `xml:"PlateDetailInfo"`
 	} `xml:"PlateDetailInfos"`
 }
+
+type AIGCResult struct {
+	AIGC string `json:"AIGC,omitempty"`
+}
