@@ -2526,3 +2526,206 @@ func TestObjectService_PutFromURL(t *testing.T) {
 	}
 
 }
+
+func TestObjectService_UploadWithPicOperations(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	b := make([]byte, 1024*1024*33)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	var mu sync.Mutex
+	// 已上传内容, 10个分块
+	rb := make([][]byte, 33)
+	uploadid := "test-cos-multiupload-uploadid"
+	partmap := make(map[int64]int)
+	mux.HandleFunc("/test.go.upload", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if r.Method == http.MethodPut { // 分块上传
+			r.ParseForm()
+			part, _ := strconv.ParseInt(r.Form.Get("partNumber"), 10, 64)
+			if partmap[part] == 0 {
+				// 重试检验1
+				partmap[part]++
+				ioutil.ReadAll(r.Body)
+				w.WriteHeader(http.StatusGatewayTimeout)
+			} else if partmap[part] == 1 {
+				// 重试校验2
+				partmap[part]++
+				w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			} else { // 正确上传
+				bs, _ := ioutil.ReadAll(r.Body)
+				rb[part-1] = bs
+				md := hex.EncodeToString(calMD5Digest(bs))
+				crc := crc64.Update(0, crc64.MakeTable(crc64.ECMA), bs)
+				w.Header().Add("ETag", md)
+				w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+			}
+		} else {
+			testMethod(t, r, http.MethodPost)
+			initreq := url.Values{}
+			initreq.Set("uploads", "")
+			compreq := url.Values{}
+			compreq.Set("uploadId", uploadid)
+			r.ParseForm()
+			if reflect.DeepEqual(r.Form, initreq) {
+				// 初始化分块上传
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+                    <Bucket></Bucket>
+                    <Key>%v</Key>
+                    <UploadId>%v</UploadId>
+                </InitiateMultipartUploadResult>`, "test.go.upload", uploadid)
+			} else if reflect.DeepEqual(r.Form, compreq) {
+				// 完成分块上传
+				tb := crc64.MakeTable(crc64.ECMA)
+				crc := uint64(0)
+				for _, v := range rb {
+					crc = crc64.Update(crc, tb, v)
+				}
+				w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+				fmt.Fprintf(w, `<CompleteMultipartUploadResult>
+                    <Location>/test.go.upload</Location>
+                    <Bucket></Bucket>
+                    <Key>test.go.upload</Key>
+                    <ETag>&quot;%v&quot;</ETag>
+                </CompleteMultipartUploadResult>`, hex.EncodeToString(calMD5Digest(b)))
+			} else {
+				t.Errorf("TestObjectService_Upload Unknown Request")
+			}
+		}
+	})
+
+	opt := &MultiUploadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+		OptIni: &InitiateMultipartUploadOptions{
+			nil,
+			&ObjectPutHeaderOptions{
+				XCosMetaXXX:   &http.Header{},
+				XOptionHeader: &http.Header{},
+			},
+		},
+	}
+	opt.OptIni.XOptionHeader.Add("Pic-Operations", "{\"is_pic_info\":1,\"rules\":[{\"fileid\":\"test.go.upload\",\"rule\":\"imageMogr2/thumbnail/!100p\"}]}")
+	opt.OptIni.XCosMetaXXX.Add("x-cos-meta-test", "test")
+	_, _, err = client.Object.UploadWithPicOperations(context.Background(), "test.go.upload", filePath, opt)
+	if err != nil {
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+}
+
+func TestObjectService_UploadWithPicOperations2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	// 源文件内容
+	b := make([]byte, 1024*1024*3)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	tb := crc64.MakeTable(crc64.ECMA)
+	realcrc := crc64.Update(0, tb, b)
+	name := "test/hello.txt"
+	retry := 0
+	final := 4
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		testHeader(t, r, "x-cos-acl", "private")
+		testHeader(t, r, "Content-Type", "text/html")
+
+		if retry%2 == 0 {
+			bs, _ := ioutil.ReadAll(r.Body)
+			crc := crc64.Update(0, tb, bs)
+			if !reflect.DeepEqual(bs, b) {
+				t.Errorf("Object.Put request body Error")
+			}
+			if !reflect.DeepEqual(crc, realcrc) {
+				t.Errorf("Object.Put crc: %v, want: %v", crc, realcrc)
+			}
+			w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+			if retry != final {
+				w.WriteHeader(http.StatusGatewayTimeout)
+			}
+		} else {
+			w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+		}
+	})
+
+	mopt := &MultiUploadOptions{
+		OptIni: &InitiateMultipartUploadOptions{
+			ObjectPutHeaderOptions: &ObjectPutHeaderOptions{
+				ContentType: "text/html",
+			},
+			ACLHeaderOptions: &ACLHeaderOptions{
+				XCosACL: "private",
+			},
+		},
+	}
+	for retry <= final {
+		_, _, err := client.Object.UploadWithPicOperations(context.Background(), name, filePath, mopt)
+		if retry < final && err == nil {
+			t.Fatalf("Error must not nil when retry < final")
+		}
+		if retry == final && err != nil {
+			t.Fatalf("Put Error: %v", err)
+		}
+		retry++
+	}
+}
+
+func TestObjectService_InvalidURL(t *testing.T) {
+	setup()
+	defer teardown()
+	u, _ := url.Parse("www.qq.com")
+	client.BaseURL.BucketURL = u
+	_, err := client.Bucket.Head(context.Background())
+	if err == nil || err.Error() != invalidBucketErr.Error() {
+		t.Fatalf("Expected invalidBucketErr but return: %v", err)
+	}
+	client.BaseURL.BucketURL = nil
+	_, err = client.Bucket.Head(context.Background())
+	if err == nil || err.Error() != invalidBucketErr.Error() {
+		t.Fatalf("Expected invalidBucketErr but return: %v", err)
+	}
+}
+
+func TestObjectService_Redirect(t *testing.T) {
+	setup()
+	defer teardown()
+	client.client.CheckRedirect = HttpDefaultCheckRedirect
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.Header().Add("Location", client.BaseURL.BucketURL.String()+"/test")
+		w.WriteHeader(http.StatusMovedPermanently)
+	})
+	isRedirect := false
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		isRedirect = true
+		testMethod(t, r, http.MethodGet)
+		w.WriteHeader(http.StatusOK)
+	})
+	_, err := client.Object.Get(context.Background(), "test/hello.txt", nil)
+	if err != nil {
+		t.Fatalf("Object.Get returned error: %v", err)
+	}
+	if !isRedirect {
+		t.Fatalf("Object.Get not redirect")
+	}
+}
