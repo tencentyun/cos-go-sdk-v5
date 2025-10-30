@@ -416,7 +416,7 @@ type ObjectPutHeaderOptions struct {
 	ContentDisposition string `header:"Content-Disposition,omitempty" url:"-"`
 	ContentEncoding    string `header:"Content-Encoding,omitempty" url:"-"`
 	ContentType        string `header:"Content-Type,omitempty" url:"-"`
-	ContentMD5         string `header:"Content-MD5,omitempty" url:"-"`
+	ContentMD5         string `header:"Content-MD5" url:"-"`
 	ContentLength      int64  `header:"Content-Length,omitempty" url:"-"`
 	ContentLanguage    string `header:"Content-Language,omitempty" url:"-"`
 	Expect             string `header:"Expect,omitempty" url:"-"`
@@ -644,11 +644,11 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	if len(id) == 1 {
 		u = fmt.Sprintf("%s/%s?versionId=%s", surl[0], encodeURIComponent(surl[1]), id[0])
 	} else if len(id) == 0 {
-		keyAndVer := strings.SplitN(surl[1], "?", 2)
+		keyAndVer := strings.SplitN(surl[1], "?versionId=", 2)
 		if len(keyAndVer) < 2 {
 			u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1], []byte{'/'}))
 		} else {
-			u = fmt.Sprintf("%v/%v?%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
+			u = fmt.Sprintf("%v/%v?versionId=%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
 		}
 	} else {
 		return nil, nil, errors.New("wrong params")
@@ -1653,8 +1653,10 @@ func (s *ObjectService) UploadWithPicOperations(ctx context.Context, name string
 		return nil, nil, err
 	}
 	sort.Sort(ObjectList(optcom.Parts))
-	if len(opt.OptIni.XOptionHeader.Get("Pic-Operations")) > 0 {
-		optcom.XOptionHeader.Add("Pic-Operations", opt.OptIni.XOptionHeader.Get("Pic-Operations"))
+	if opt.OptIni != nil && opt.OptIni.ObjectPutHeaderOptions != nil && opt.OptIni.ObjectPutHeaderOptions.XOptionHeader != nil {
+		if len(opt.OptIni.XOptionHeader.Get("Pic-Operations")) > 0 {
+			optcom.XOptionHeader.Add("Pic-Operations", opt.OptIni.XOptionHeader.Get("Pic-Operations"))
+		}
 	}
 
 	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)

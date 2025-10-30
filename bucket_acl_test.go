@@ -77,6 +77,87 @@ func TestBucketService_GetACL(t *testing.T) {
 	if !reflect.DeepEqual(ref, want) {
 		t.Errorf("Bucket.GetACL returned %+v, want %+v", ref, want)
 	}
+}
+
+func TestBucketService_GetACL2(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		vs := values{
+			"acl": "",
+		}
+		testFormValues(t, r, vs)
+		fmt.Fprint(w, `<AccessControlPolicy>
+	<Owner>
+		<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+		<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+	</Owner>
+	<AccessControlList>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<URI>http://cam.qcloud.com/groups/global/AllUsers</URI>
+			</Grantee>
+			<Permission>FULL_CONTROL</Permission>
+		</Grant>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<ID>qcs::cam::uin/100000760461:uin/100000760462</ID>
+			</Grantee>
+			<Permission>FULL_CONTROL</Permission>
+		</Grant>
+		<Grant>
+			<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="RootAccount">
+				<ID>qcs::cam::uin/100000760461:uin/100000760461</ID>
+				<DisplayName>qcs::cam::uin/100000760461:uin/100000760461</DisplayName>
+			</Grantee>
+			<Permission>READ</Permission>
+		</Grant>
+	</AccessControlList>
+</AccessControlPolicy>`)
+	})
+
+	ref, _, err := client.Bucket.GetACL(context.Background())
+	if err != nil {
+		t.Fatalf("Bucket.GetACL returned error: %v", err)
+	}
+
+	want := &BucketGetACLResult{
+		XMLName: xml.Name{Local: "AccessControlPolicy"},
+		Owner: &Owner{
+			ID:          "qcs::cam::uin/100000760461:uin/100000760461",
+			DisplayName: "qcs::cam::uin/100000760461:uin/100000760461",
+		},
+		AccessControlList: []ACLGrant{
+			{
+				Grantee: &ACLGrantee{
+					Type: "RootAccount",
+					URI:  "http://cam.qcloud.com/groups/global/AllUsers",
+				},
+				Permission: "FULL_CONTROL",
+			},
+			{
+				Grantee: &ACLGrantee{
+					Type: "RootAccount",
+					ID:   "qcs::cam::uin/100000760461:uin/100000760462",
+				},
+				Permission: "FULL_CONTROL",
+			},
+			{
+				Grantee: &ACLGrantee{
+					Type:        "RootAccount",
+					ID:          "qcs::cam::uin/100000760461:uin/100000760461",
+					DisplayName: "qcs::cam::uin/100000760461:uin/100000760461",
+				},
+				Permission: "READ",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(ref, want) {
+		t.Errorf("Bucket.GetACL returned %+v, want %+v", ref, want)
+	}
 
 }
 

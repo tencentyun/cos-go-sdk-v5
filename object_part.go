@@ -355,7 +355,7 @@ type CopyPartResult struct {
 // 当传入uploadID和partNumber都相同的时候，后传入的块将覆盖之前传入的块。当uploadID不存在时会返回404错误，NoSuchUpload.
 //
 // https://www.qcloud.com/document/product/436/7750
-func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, partNumber int, sourceURL string, opt *ObjectCopyPartOptions) (*CopyPartResult, *Response, error) {
+func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, partNumber int, sourceURL string, opt *ObjectCopyPartOptions, id ...string) (*CopyPartResult, *Response, error) {
 	if strings.HasPrefix(sourceURL, "http://") || strings.HasPrefix(sourceURL, "https://") {
 		return nil, nil, errors.New("sourceURL format is invalid.")
 	}
@@ -364,11 +364,17 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
 	}
 	var u string
-	keyAndVer := strings.SplitN(surl[1], "?", 2)
-	if len(keyAndVer) < 2 {
-		u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1], []byte{'/'}))
+	if len(id) == 1 {
+		u = fmt.Sprintf("%s/%s?versionId=%s", surl[0], encodeURIComponent(surl[1]), id[0])
+	} else if len(id) == 0 {
+		keyAndVer := strings.SplitN(surl[1], "?versionId=", 2)
+		if len(keyAndVer) < 2 {
+			u = fmt.Sprintf("%s/%s", surl[0], encodeURIComponent(surl[1], []byte{'/'}))
+		} else {
+			u = fmt.Sprintf("%v/%v?versionId=%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
+		}
 	} else {
-		u = fmt.Sprintf("%v/%v?%v", surl[0], encodeURIComponent(keyAndVer[0], []byte{'/'}), encodeURIComponent(keyAndVer[1], []byte{'='}))
+		return nil, nil, errors.New("wrong params")
 	}
 
 	opt = cloneObjectCopyPartOptions(opt)
@@ -461,6 +467,7 @@ type CopyJobs struct {
 	RetryTimes int
 	Chunk      Chunk
 	Opt        *ObjectCopyPartOptions
+	Ids        []string
 }
 
 type CopyResults struct {
@@ -476,7 +483,7 @@ func copyworker(ctx context.Context, s *ObjectService, jobs <-chan *CopyJobs, re
 		j.Opt.XCosCopySourceRange = fmt.Sprintf("bytes=%d-%d", j.Chunk.OffSet, j.Chunk.OffSet+j.Chunk.Size-1)
 		rt := j.RetryTimes
 		for {
-			res, resp, err := s.CopyPart(ctx, j.Name, j.UploadId, j.Chunk.Number, j.Opt.XCosCopySource, j.Opt)
+			res, resp, err := s.CopyPart(ctx, j.Name, j.UploadId, j.Chunk.Number, j.Opt.XCosCopySource, j.Opt, j.Ids...)
 			copyres.PartNumber = j.Chunk.Number
 			copyres.Resp = resp
 			copyres.err = err
@@ -500,7 +507,7 @@ func copyworker(ctx context.Context, s *ObjectService, jobs <-chan *CopyJobs, re
 	}
 }
 
-func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *ObjectHeadOptions, id []string) (*Response, error) {
+func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, id []string) (*Response, error) {
 	surl := strings.SplitN(sourceURL, "/", 2)
 	if len(surl) < 2 {
 		return nil, fmt.Errorf("sourceURL format error: %s", sourceURL)
@@ -517,12 +524,12 @@ func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, opt *Ob
 	if len(id) > 0 {
 		return client.Object.Head(ctx, surl[1], nil, id[0])
 	} else {
-		keyAndVer := strings.SplitN(surl[1], "?", 2)
+		keyAndVer := strings.SplitN(surl[1], "?versionId=", 2)
 		if len(keyAndVer) < 2 {
 			// 不存在versionId
 			return client.Object.Head(ctx, surl[1], nil)
 		} else {
-			q, err := url.ParseQuery(keyAndVer[1])
+			q, err := url.ParseQuery("versionId=" + keyAndVer[1])
 			if err != nil {
 				return nil, fmt.Errorf("sourceURL format error: %s", sourceURL)
 			}
@@ -538,17 +545,13 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 		return nil, nil, errors.New("sourceURL format is invalid.")
 	}
 
-	resp, err := s.innerHead(ctx, sourceURL, nil, id)
+	resp, err := s.innerHead(ctx, sourceURL, id)
 	if err != nil {
 		return nil, nil, err
 	}
 	totalBytes := resp.ContentLength
-	var u string
-	if len(id) == 1 {
-		u = fmt.Sprintf("%s?versionId=%s", sourceURL, id[0])
-	} else if len(id) == 0 {
-		u = sourceURL
-	} else {
+	u := sourceURL
+	if len(id) > 1 {
 		return nil, nil, errors.New("wrong params")
 	}
 
@@ -610,6 +613,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 				UploadId:   uploadID,
 				Chunk:      chunk,
 				Opt:        partOpt,
+				Ids:        id,
 			}
 			chjobs <- job
 		}
