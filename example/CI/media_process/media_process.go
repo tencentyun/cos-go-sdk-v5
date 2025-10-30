@@ -80,7 +80,7 @@ func PostSnapshot() {
 func GetSnapshot() {
 	c := getClient()
 	opt := &cos.GetSnapshotOptions{
-		Time: 3,
+		Time: 0,
 	}
 	resp, err := c.CI.GetSnapshot(context.Background(), "input/test.mp4", opt)
 	log_status(err)

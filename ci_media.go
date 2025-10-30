@@ -1771,7 +1771,7 @@ func (s *CIService) GenerateAVInfo(ctx context.Context, opt *GenerateAVInfoOptio
 
 // GetSnapshotOptions TODO
 type GetSnapshotOptions struct {
-	Time   float32 `url:"time,omitempty"`
+	Time   float32 `url:"time"`
 	Height int     `url:"height,omitempty"`
 	Width  int     `url:"width,omitempty"`
 	Format string  `url:"format,omitempty"`
