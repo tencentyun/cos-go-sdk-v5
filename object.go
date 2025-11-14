@@ -1653,8 +1653,10 @@ func (s *ObjectService) UploadWithPicOperations(ctx context.Context, name string
 		return nil, nil, err
 	}
 	sort.Sort(ObjectList(optcom.Parts))
-	if len(opt.OptIni.XOptionHeader.Get("Pic-Operations")) > 0 {
-		optcom.XOptionHeader.Add("Pic-Operations", opt.OptIni.XOptionHeader.Get("Pic-Operations"))
+	if opt.OptIni != nil && opt.OptIni.ObjectPutHeaderOptions != nil && opt.OptIni.ObjectPutHeaderOptions.XOptionHeader != nil {
+		if len(opt.OptIni.XOptionHeader.Get("Pic-Operations")) > 0 {
+			optcom.XOptionHeader.Add("Pic-Operations", opt.OptIni.XOptionHeader.Get("Pic-Operations"))
+		}
 	}
 
 	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)
