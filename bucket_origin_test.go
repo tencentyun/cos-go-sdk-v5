@@ -49,7 +49,7 @@ func TestBucketService_GetOrigin(t *testing.T) {
             </OriginParameter>
             <OriginInfo>
                 <HostInfo>
-                    <HostName>examplebucket-1250000000.cos.ap-shanghai.myqcloud.com</HostName>
+                    <HostName>examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com</HostName>
                     <Weight>10</Weight>
                     <StandbyHostName_1>hostname1</StandbyHostName_1>
                     <StandbyHostName_2>hostname2</StandbyHostName_2>
@@ -73,24 +73,24 @@ func TestBucketService_GetOrigin(t *testing.T) {
 					</PrivateStandbyHost_2>
                 </HostInfo>
 				<HostInfo>
-                    <HostName>examplebucket-1250000000.cos.ap-shanghai.myqcloud.com</HostName>
+                    <HostName>examplebucket2-1250000000.cos.ap-shanghai.myqcloud.com</HostName>
                     <Weight>10</Weight>
-                    <StandbyHostName_1>hostname1</StandbyHostName_1>
-                    <StandbyHostName_2>hostname2</StandbyHostName_2>
+                    <StandbyHostName_1>hostname3</StandbyHostName_1>
+                    <StandbyHostName_2>hostname4</StandbyHostName_2>
 					<PrivateHost>
-						<Host>www.qq.com</Host>
+						<Host>www.qq1.com</Host>
 						<CredentialProvider>
 							<Role>qcs::cam::uin/123:roleName/name</Role>
 						</CredentialProvider>
 					</PrivateHost>
 					<PrivateStandbyHost_1>
-						<Host>1.qq.com</Host>
+						<Host>1.qq1.com</Host>
 						<CredentialProvider>
 							<Role>qcs::cam::uin/123:roleName/name</Role>
 						</CredentialProvider>
 					</PrivateStandbyHost_1>
 					<PrivateStandbyHost_2>
-						<Host>2.qq.com</Host>
+						<Host>2.qq1.com</Host>
 						<CredentialProvider>
 							<Role>qcs::cam::uin/123:roleName/name</Role>
 						</CredentialProvider>
@@ -136,9 +136,34 @@ func TestBucketService_GetOrigin(t *testing.T) {
 					HttpRedirectCode:  "302",
 				},
 				OriginInfo: &BucketOriginInfo{
-					HostInfo: []*BucketOriginHostInfo{
+					HostInfo: &BucketOriginHostInfo{
+						HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
+						Weight:            10,
+						StandbyHostName_N: []string{"hostname1", "hostname2"},
+						PrivateHost: &BucketOriginPrivateHost{
+							Host: "www.qq.com",
+							CredentialProvider: &BucketOriginCredentialProvider{
+								Role: "qcs::cam::uin/123:roleName/name",
+							},
+						},
+						PrivateStandbyHost_N: []*BucketOriginPrivateHost{
+							&BucketOriginPrivateHost{
+								Host: "1.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+							&BucketOriginPrivateHost{
+								Host: "2.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+						},
+					},
+					HostInfos: []*BucketOriginHostInfo{
 						&BucketOriginHostInfo{
-							HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+							HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
 							Weight:            10,
 							StandbyHostName_N: []string{"hostname1", "hostname2"},
 							PrivateHost: &BucketOriginPrivateHost{
@@ -163,24 +188,24 @@ func TestBucketService_GetOrigin(t *testing.T) {
 							},
 						},
 						&BucketOriginHostInfo{
-							HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+							HostName:          "examplebucket2-1250000000.cos.ap-shanghai.myqcloud.com",
 							Weight:            10,
-							StandbyHostName_N: []string{"hostname1", "hostname2"},
+							StandbyHostName_N: []string{"hostname3", "hostname4"},
 							PrivateHost: &BucketOriginPrivateHost{
-								Host: "www.qq.com",
+								Host: "www.qq1.com",
 								CredentialProvider: &BucketOriginCredentialProvider{
 									Role: "qcs::cam::uin/123:roleName/name",
 								},
 							},
 							PrivateStandbyHost_N: []*BucketOriginPrivateHost{
 								&BucketOriginPrivateHost{
-									Host: "1.qq.com",
+									Host: "1.qq1.com",
 									CredentialProvider: &BucketOriginCredentialProvider{
 										Role: "qcs::cam::uin/123:roleName/name",
 									},
 								},
 								&BucketOriginPrivateHost{
-									Host: "2.qq.com",
+									Host: "2.qq1.com",
 									CredentialProvider: &BucketOriginCredentialProvider{
 										Role: "qcs::cam::uin/123:roleName/name",
 									},
@@ -192,7 +217,6 @@ func TestBucketService_GetOrigin(t *testing.T) {
 			},
 		},
 	}
-	t.Logf("HostInfo: %+v", res.Rule[0].OriginInfo.HostInfo)
 	if !reflect.DeepEqual(res, want) {
 		t.Errorf("Bucket.GetOrigin returned %+v, want %+v", res, want)
 	}
@@ -231,9 +255,34 @@ func TestBucketService_PutOrigin(t *testing.T) {
 					HttpRedirectCode:  "302",
 				},
 				OriginInfo: &BucketOriginInfo{
-					HostInfo: []*BucketOriginHostInfo{
+					HostInfo: &BucketOriginHostInfo{
+						HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
+						Weight:            10,
+						StandbyHostName_N: []string{"hostname1", "hostname2"},
+						PrivateHost: &BucketOriginPrivateHost{
+							Host: "www.qq.com",
+							CredentialProvider: &BucketOriginCredentialProvider{
+								Role: "qcs::cam::uin/123:roleName/name",
+							},
+						},
+						PrivateStandbyHost_N: []*BucketOriginPrivateHost{
+							&BucketOriginPrivateHost{
+								Host: "1.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+							&BucketOriginPrivateHost{
+								Host: "2.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+						},
+					},
+					HostInfos: []*BucketOriginHostInfo{
 						&BucketOriginHostInfo{
-							HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+							HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
 							Weight:            10,
 							StandbyHostName_N: []string{"hostname1", "hostname2"},
 							PrivateHost: &BucketOriginPrivateHost{
@@ -258,24 +307,24 @@ func TestBucketService_PutOrigin(t *testing.T) {
 							},
 						},
 						&BucketOriginHostInfo{
-							HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+							HostName:          "examplebucket2-1250000000.cos.ap-shanghai.myqcloud.com",
 							Weight:            10,
-							StandbyHostName_N: []string{"hostname1", "hostname2"},
+							StandbyHostName_N: []string{"hostname3", "hostname4"},
 							PrivateHost: &BucketOriginPrivateHost{
-								Host: "www.qq.com",
+								Host: "www.qq1.com",
 								CredentialProvider: &BucketOriginCredentialProvider{
 									Role: "qcs::cam::uin/123:roleName/name",
 								},
 							},
 							PrivateStandbyHost_N: []*BucketOriginPrivateHost{
 								&BucketOriginPrivateHost{
-									Host: "1.qq.com",
+									Host: "1.qq1.com",
 									CredentialProvider: &BucketOriginCredentialProvider{
 										Role: "qcs::cam::uin/123:roleName/name",
 									},
 								},
 								&BucketOriginPrivateHost{
-									Host: "2.qq.com",
+									Host: "2.qq1.com",
 									CredentialProvider: &BucketOriginCredentialProvider{
 										Role: "qcs::cam::uin/123:roleName/name",
 									},
@@ -300,7 +349,6 @@ func TestBucketService_PutOrigin(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Bucket.PutOrigin request body read error: %v", err)
 		}
-		t.Logf("Bucket.PutOrigin request body: %+v\n", string(bs))
 		err = xml.Unmarshal(bs, body)
 		if err != nil {
 			t.Fatalf("Bucket.PutOrigin request body xml unmarshal error: %v", err)
@@ -333,4 +381,150 @@ func TestBucketService_DeleteOrigin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Bucket.DeleteOrigin returned error: %v", err)
 	}
+}
+
+func TestBucketService_OriginXml(t *testing.T) {
+	xmlBody := `<OriginConfiguration><OriginRule><OriginInfo><HostInfo><HostName>examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com</HostName><Weight>10</Weight><StandbyHostName_1>hostname1</StandbyHostName_1><StandbyHostName_2>hostname2</StandbyHostName_2><PrivateHost><Host>www.qq.com</Host><CredentialProvider><Role>qcs::cam::uin/123:roleName/name</Role></CredentialProvider></PrivateHost><PrivateStandbyHost_1><Host>1.qq.com</Host><CredentialProvider><Role>qcs::cam::uin/123:roleName/name</Role></CredentialProvider></PrivateStandbyHost_1><PrivateStandbyHost_2><Host>2.qq.com</Host><CredentialProvider><Role>qcs::cam::uin/123:roleName/name</Role></CredentialProvider></PrivateStandbyHost_2></HostInfo><HostInfo><HostName>examplebucket2-1250000000.cos.ap-shanghai.myqcloud.com</HostName><Weight>10</Weight><StandbyHostName_1>hostname3</StandbyHostName_1><StandbyHostName_2>hostname4</StandbyHostName_2><PrivateHost><Host>www.qq1.com</Host><CredentialProvider><Role>qcs::cam::uin/123:roleName/name</Role></CredentialProvider></PrivateHost><PrivateStandbyHost_1><Host>1.qq1.com</Host><CredentialProvider><Role>qcs::cam::uin/123:roleName/name</Role></CredentialProvider></PrivateStandbyHost_1><PrivateStandbyHost_2><Host>2.qq1.com</Host><CredentialProvider><Role>qcs::cam::uin/123:roleName/name</Role></CredentialProvider></PrivateStandbyHost_2></HostInfo></OriginInfo></OriginRule></OriginConfiguration>`
+
+	want := &BucketGetOriginResult{
+		XMLName: xml.Name{Local: "OriginConfiguration"},
+		Rule: []BucketOriginRule{
+			{
+				OriginInfo: &BucketOriginInfo{
+					// 兼容HostInfo
+					HostInfo: &BucketOriginHostInfo{
+						HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
+						Weight:            10,
+						StandbyHostName_N: []string{"hostname1", "hostname2"},
+						PrivateHost: &BucketOriginPrivateHost{
+							Host: "www.qq.com",
+							CredentialProvider: &BucketOriginCredentialProvider{
+								Role: "qcs::cam::uin/123:roleName/name",
+							},
+						},
+						PrivateStandbyHost_N: []*BucketOriginPrivateHost{
+							&BucketOriginPrivateHost{
+								Host: "1.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+							&BucketOriginPrivateHost{
+								Host: "2.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+						},
+					},
+					HostInfos: []*BucketOriginHostInfo{
+						&BucketOriginHostInfo{
+							HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
+							Weight:            10,
+							StandbyHostName_N: []string{"hostname1", "hostname2"},
+							PrivateHost: &BucketOriginPrivateHost{
+								Host: "www.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+							PrivateStandbyHost_N: []*BucketOriginPrivateHost{
+								&BucketOriginPrivateHost{
+									Host: "1.qq.com",
+									CredentialProvider: &BucketOriginCredentialProvider{
+										Role: "qcs::cam::uin/123:roleName/name",
+									},
+								},
+								&BucketOriginPrivateHost{
+									Host: "2.qq.com",
+									CredentialProvider: &BucketOriginCredentialProvider{
+										Role: "qcs::cam::uin/123:roleName/name",
+									},
+								},
+							},
+						},
+						&BucketOriginHostInfo{
+							HostName:          "examplebucket2-1250000000.cos.ap-shanghai.myqcloud.com",
+							Weight:            10,
+							StandbyHostName_N: []string{"hostname3", "hostname4"},
+							PrivateHost: &BucketOriginPrivateHost{
+								Host: "www.qq1.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+							PrivateStandbyHost_N: []*BucketOriginPrivateHost{
+								&BucketOriginPrivateHost{
+									Host: "1.qq1.com",
+									CredentialProvider: &BucketOriginCredentialProvider{
+										Role: "qcs::cam::uin/123:roleName/name",
+									},
+								},
+								&BucketOriginPrivateHost{
+									Host: "2.qq1.com",
+									CredentialProvider: &BucketOriginCredentialProvider{
+										Role: "qcs::cam::uin/123:roleName/name",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	var res BucketGetOriginResult
+	err := xml.Unmarshal([]byte(xmlBody), &res)
+	if err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if !reflect.DeepEqual(want, &res) {
+		t.Errorf("BucketGetOriginResult = %+v, want %+v", res, want)
+	}
+
+}
+
+func TestBucketService_OriginXml2(t *testing.T) {
+	want := &BucketPutOriginOptions{
+		XMLName: xml.Name{Local: "OriginConfiguration"},
+		Rule: []BucketOriginRule{
+			{
+				OriginInfo: &BucketOriginInfo{
+					// 兼容HostInfo
+					HostInfo: &BucketOriginHostInfo{
+						HostName:          "examplebucket1-1250000000.cos.ap-shanghai.myqcloud.com",
+						Weight:            10,
+						StandbyHostName_N: []string{"hostname1", "hostname2"},
+						PrivateHost: &BucketOriginPrivateHost{
+							Host: "www.qq.com",
+							CredentialProvider: &BucketOriginCredentialProvider{
+								Role: "qcs::cam::uin/123:roleName/name",
+							},
+						},
+						PrivateStandbyHost_N: []*BucketOriginPrivateHost{
+							&BucketOriginPrivateHost{
+								Host: "1.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+							&BucketOriginPrivateHost{
+								Host: "2.qq.com",
+								CredentialProvider: &BucketOriginCredentialProvider{
+									Role: "qcs::cam::uin/123:roleName/name",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	body, err := xml.Marshal(want)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+		return
+	}
+	t.Logf("body: %s", string(body))
 }

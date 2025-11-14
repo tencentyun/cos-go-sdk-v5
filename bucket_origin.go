@@ -59,8 +59,10 @@ type OriginHttpHeader struct {
 }
 
 type BucketOriginInfo struct {
-	HostInfo []*BucketOriginHostInfo `xml:"HostInfo,omitempty"`
-	FileInfo *BucketOriginFileInfo   `xml:"FileInfo,omitempty"`
+	// Deprecated: Use HostInfos instead.
+	HostInfo  *BucketOriginHostInfo   `xml:"-"`
+	HostInfos []*BucketOriginHostInfo `xml:"HostInfo,omitempty"`
+	FileInfo  *BucketOriginFileInfo   `xml:"FileInfo,omitempty"`
 }
 
 type BucketOriginHostInfo struct {
@@ -114,6 +116,56 @@ type HTTPStandbyCode struct {
 }
 
 type BucketGetOriginResult BucketPutOriginOptions
+
+func (this *BucketOriginInfo) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	if this == nil {
+		return nil
+	}
+	err := e.EncodeToken(start)
+	if err != nil {
+		return err
+	}
+	if len(this.HostInfos) > 0 {
+		for _, hostInfo := range this.HostInfos {
+			err = e.EncodeElement(hostInfo, xml.StartElement{Name: xml.Name{Local: "HostInfo"}})
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		if this.HostInfo != nil {
+			err = e.EncodeElement(this.HostInfo, xml.StartElement{Name: xml.Name{Local: "HostInfo"}})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if this.FileInfo != nil {
+		err = e.EncodeElement(this.FileInfo, xml.StartElement{Name: xml.Name{Local: "FileInfo"}})
+		if err != nil {
+			return err
+		}
+	}
+	return e.EncodeToken(xml.EndElement{Name: start.Name})
+}
+
+func (this *BucketOriginInfo) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var val struct {
+		XMLName   xml.Name                `xml:"OriginInfo"`
+		HostInfos []*BucketOriginHostInfo `xml:"HostInfo,omitempty"`
+		FileInfo  *BucketOriginFileInfo   `xml:"FileInfo,omitempty"`
+	}
+	err := d.DecodeElement(&val, &start)
+	if err != nil {
+		return err
+	}
+	this.HostInfos = val.HostInfos
+	this.FileInfo = val.FileInfo
+	if len(this.HostInfos) > 0 {
+		this.HostInfo = this.HostInfos[0]
+	}
+	return nil
+}
 
 func (this *BucketOriginHostInfo) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if this == nil {
