@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/clbanning/mxj"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -59,21 +60,32 @@ type OriginHttpHeader struct {
 }
 
 type BucketOriginInfo struct {
-	// Deprecated: Use HostInfos instead.
-	HostInfo  *BucketOriginHostInfo   `xml:"-"`
 	HostInfos []*BucketOriginHostInfo `xml:"HostInfo,omitempty"`
 	FileInfo  *BucketOriginFileInfo   `xml:"FileInfo,omitempty"`
+	// Deprecated: Use HostInfos instead.
+	HostInfo *BucketOriginHostInfo `xml:"-"`
 }
 
+// StandbyHostName_N 已废弃, 请使用 StandbyHostName
+// 使用 StandbyHostName 和 PrivateStandbyHost_N 时，需要指定StandbyHostName.Index和PrivateStandbyHost_N.Index, 表示备份源站的编号
 type BucketOriginHostInfo struct {
-	HostName             string
-	Weight               int64
-	StandbyHostName_N    []string
+	HostName string
+	Weight   int64
+	// Deprecated: Use StandbyHostName instead.
+	StandbyHostName_N []string
+
+	StandbyHostName      []*BucketOriginStandbyHost
 	PrivateHost          *BucketOriginPrivateHost
 	PrivateStandbyHost_N []*BucketOriginPrivateHost
 }
 
+type BucketOriginStandbyHost struct {
+	Index    int64 `xml:"-"`
+	HostName string
+}
+
 type BucketOriginPrivateHost struct {
+	Index              int64                           `xml:"-"`
 	Host               string                          `xml:"Host,omitempty"`
 	CredentialProvider *BucketOriginCredentialProvider `xml:"CredentialProvider,omitempty"`
 }
@@ -193,14 +205,33 @@ func (this *BucketOriginHostInfo) MarshalXML(e *xml.Encoder, start xml.StartElem
 			return err
 		}
 	}
-	for index, standByHostName := range this.StandbyHostName_N {
-		err = e.EncodeElement(standByHostName, xml.StartElement{Name: xml.Name{Local: fmt.Sprintf("StandbyHostName_%v", index+1)}})
-		if err != nil {
-			return err
+	// 优先使用 StandbyHostName
+	if len(this.StandbyHostName) > 0 {
+		for _, standby := range this.StandbyHostName {
+			if standby.Index == 0 {
+				return fmt.Errorf("The parameter Index must be set in StandbyHostName")
+			}
+			err = e.EncodeElement(standby.HostName, xml.StartElement{Name: xml.Name{Local: fmt.Sprintf("StandbyHostName_%v", standby.Index)}})
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		if len(this.StandbyHostName_N) > 0 && len(this.PrivateStandbyHost_N) > 0 {
+			return fmt.Errorf("StandbyHostName_N and PrivateStandbyHost_N can not be both set, use StandbyHostName and PrivateStandbyHost_N instand")
+		}
+		for index, standByHostName := range this.StandbyHostName_N {
+			err = e.EncodeElement(standByHostName, xml.StartElement{Name: xml.Name{Local: fmt.Sprintf("StandbyHostName_%v", index+1)}})
+			if err != nil {
+				return err
+			}
 		}
 	}
-	for index, privateStandbyHost := range this.PrivateStandbyHost_N {
-		err = e.EncodeElement(privateStandbyHost, xml.StartElement{Name: xml.Name{Local: fmt.Sprintf("PrivateStandbyHost_%v", index+1)}})
+	for _, standby := range this.PrivateStandbyHost_N {
+		if standby.Index == 0 {
+			return fmt.Errorf("The parameter Index must be set in PrivateStandbyHost_N")
+		}
+		err = e.EncodeElement(standby, xml.StartElement{Name: xml.Name{Local: fmt.Sprintf("PrivateStandbyHost_%v", standby.Index)}})
 		if err != nil {
 			return err
 		}
@@ -227,21 +258,35 @@ func (this *BucketOriginHostInfo) UnmarshalXML(d *xml.Decoder, start xml.StartEl
 		return fmt.Errorf("XML HostInfo Parse failed")
 	}
 
-	privateStandbyHostMap := make(map[string]*BucketOriginPrivateHost)
-	var total int
+	var standbyHostList SortStandbyList
+	var privateStandbyHostList SortStandbyList
 	for key, value := range myMap {
 		if key == "HostName" {
-			this.HostName = value.(string)
+			if _, ok := value.(string); ok {
+				this.HostName = value.(string)
+			}
 		}
 		if key == "Weight" {
-			v := value.(string)
-			this.Weight, err = strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				return err
+			if _, ok := value.(string); ok {
+				v := value.(string)
+				this.Weight, err = strconv.ParseInt(v, 10, 64)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		if strings.HasPrefix(key, "StandbyHostName_") {
-			total++
+			if val, ok := value.(string); ok {
+				indexStr := key[len("StandbyHostName_"):]
+				index, err := strconv.ParseInt(indexStr, 10, 64)
+				if err != nil {
+					return fmt.Errorf("StandbyHostName Parse failed, node: %v", key)
+				}
+				standbyHostList = append(standbyHostList, SortStandby{
+					Index:   index,
+					Standby: val,
+				})
+			}
 		}
 		if key == "PrivateHost" {
 			if _, ok := value.(map[string]interface{}); ok {
@@ -259,21 +304,51 @@ func (this *BucketOriginHostInfo) UnmarshalXML(d *xml.Decoder, start xml.StartEl
 				if err != nil {
 					return err
 				}
-				privateStandbyHostMap[key] = &privateStandbyHost_N
+				indexStr := key[len("PrivateStandbyHost_"):]
+				index, err := strconv.ParseInt(indexStr, 10, 64)
+				if err != nil {
+					return fmt.Errorf("PrivateStandbyHost Parse failed, node: %v", key)
+				}
+				privateStandbyHost_N.Index = index
+				privateStandbyHostList = append(privateStandbyHostList, SortStandby{
+					Index:          index,
+					PrivateStandby: &privateStandbyHost_N,
+				})
 			}
 		}
 	}
 	// 按顺序执行
-	for i := 1; i <= total; i++ {
-		key := fmt.Sprintf("StandbyHostName_%v", i)
-		this.StandbyHostName_N = append(this.StandbyHostName_N, myMap[key].(string))
+	sort.Sort(standbyHostList)
+	for _, v := range standbyHostList {
+		this.StandbyHostName = append(this.StandbyHostName, &BucketOriginStandbyHost{
+			Index:    v.Index,
+			HostName: v.Standby,
+		})
+		this.StandbyHostName_N = append(this.StandbyHostName_N, v.Standby)
 	}
-	for i := 1; i <= len(privateStandbyHostMap); i++ {
-		key := fmt.Sprintf("PrivateStandbyHost_%v", i)
-		this.PrivateStandbyHost_N = append(this.PrivateStandbyHost_N, privateStandbyHostMap[key])
+	sort.Sort(privateStandbyHostList)
+	for _, v := range privateStandbyHostList {
+		this.PrivateStandbyHost_N = append(this.PrivateStandbyHost_N, v.PrivateStandby)
 	}
 
 	return nil
+}
+
+type SortStandby struct {
+	Index          int64
+	Standby        string
+	PrivateStandby *BucketOriginPrivateHost
+}
+type SortStandbyList []SortStandby
+
+func (s SortStandbyList) Len() int {
+	return len(s)
+}
+func (s SortStandbyList) Less(i, j int) bool {
+	return s[i].Index < s[j].Index
+}
+func (s SortStandbyList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
 
 func (s *BucketService) PutOrigin(ctx context.Context, opt *BucketPutOriginOptions) (*Response, error) {
