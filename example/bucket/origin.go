@@ -31,7 +31,7 @@ func logStatus(err error) {
 }
 
 func main() {
-	u, _ := url.Parse("https://test-1259654469.cos.ap-guangzhou.myqcloud.com")
+	u, _ := url.Parse("https://cd-1259654469.cos.ap-chengdu.myqcloud.com")
 	b := &cos.BaseURL{
 		BucketURL: u,
 	}
@@ -76,8 +76,17 @@ func main() {
 				},
 				OriginInfo: &cos.BucketOriginInfo{
 					HostInfo: &cos.BucketOriginHostInfo{
-						HostName:          "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
-						StandbyHostName_N: []string{"www.qq.com", "www.myqlcoud.com"},
+						HostName: "examplebucket-1250000000.cos.ap-shanghai.myqcloud.com",
+						StandbyHostName: []*cos.BucketOriginStandbyHost{
+							&cos.BucketOriginStandbyHost{
+								Index:    1,
+								HostName: "www.qq.com",
+							},
+							&cos.BucketOriginStandbyHost{
+								Index:    2,
+								HostName: "www.myqlcoud.com",
+							},
+						},
 					},
 				},
 			},
