@@ -98,6 +98,7 @@ func InvokeTranscodeJob() {
 				Region: "ap-chongqing",
 				Object: "output/test.mp4",
 				Bucket: "test-1234567890",
+				Force:  "false",
 			},
 			Transcode: &cos.Transcode{
 				Container: &cos.Container{
@@ -1151,6 +1152,9 @@ func InvokeMultiGeneratePlayListJobs() {
 						// },
 						InitialClipNum: "10",
 						CosTag:         "a=a&b=b",
+					},
+					Subtitle: &cos.TargetSubtitle{
+						Remove: "false",
 					},
 				},
 			},

@@ -51,6 +51,7 @@ type JobOutput struct {
 	BassObject    string          `xml:"BassObject,omitempty"`
 	DrumObject    string          `xml:"DrumObject,omitempty"`
 	StreamExtract []StreamExtract `xml:"StreamExtract,omitempty"`
+	Force         string          `xml:"Force,omitempty"`
 }
 
 // ClipConfig TODO
@@ -151,24 +152,33 @@ type TransConfig struct {
 	AIGCMetadata          *AIGCMetadata `xml:"AIGCMetadata,omitempty"`
 }
 
+// TargetSubtitle
+type TargetSubtitle struct {
+	Remove string `xml:"Remove,omitempty"`
+}
+
 // Transcode TODO
 type Transcode struct {
-	Container     *Container    `xml:"Container,omitempty"`
-	Video         *Video        `xml:"Video,omitempty"`
-	TimeInterval  *TimeInterval `xml:"TimeInterval,omitempty"`
-	Audio         *Audio        `xml:"Audio,omitempty"`
-	TransConfig   *TransConfig  `xml:"TransConfig,omitempty"`
-	AudioMix      *AudioMix     `xml:"AudioMix,omitempty"`
-	AudioMixArray []AudioMix    `xml:"AudioMixArray,omitempty"`
+	Container     *Container      `xml:"Container,omitempty"`
+	Video         *Video          `xml:"Video,omitempty"`
+	TimeInterval  *TimeInterval   `xml:"TimeInterval,omitempty"`
+	Audio         *Audio          `xml:"Audio,omitempty"`
+	TransConfig   *TransConfig    `xml:"TransConfig,omitempty"`
+	AudioMix      *AudioMix       `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix      `xml:"AudioMixArray,omitempty"`
+	Subtitle      *TargetSubtitle `xml:"Subtitle,omitempty"`
 }
 
 // TranscodePro TODO
 type TranscodePro struct {
-	Container    *Container         `xml:"Container,omitempty"`
-	Video        *TranscodeProVideo `xml:"Video,omitempty"`
-	Audio        *TranscodeProAudio `xml:"Audio,omitempty"`
-	TimeInterval *TimeInterval      `xml:"TimeInterval,omitempty"`
-	TransConfig  *TransConfig       `xml:"TransConfig,omitempty"`
+	Container     *Container         `xml:"Container,omitempty"`
+	Video         *TranscodeProVideo `xml:"Video,omitempty"`
+	Audio         *TranscodeProAudio `xml:"Audio,omitempty"`
+	TimeInterval  *TimeInterval      `xml:"TimeInterval,omitempty"`
+	TransConfig   *TransConfig       `xml:"TransConfig,omitempty"`
+	AudioMix      *AudioMix          `xml:"AudioMix,omitempty"`
+	AudioMixArray []AudioMix         `xml:"AudioMixArray,omitempty"`
+	Subtitle      *TargetSubtitle    `xml:"Subtitle,omitempty"`
 }
 
 // WatermarkSlideConfig TODO
@@ -1972,12 +1982,20 @@ type ExtFilter struct {
 	AutoContentType []string `xml:"AutoContentType,omitempty"`
 }
 
+// SamplingConfig
+type SamplingConfig struct {
+	State string `xml:"State,omitempty"`
+	Mode  string `xml:"Mode,omitempty"`
+	Ratio string `xml:"Ratio,omitempty"`
+}
+
 // NodeInput TODO
 type NodeInput struct {
-	QueueId      string        `xml:"QueueId,omitempty"`
-	ObjectPrefix string        `xml:"ObjectPrefix,omitempty"`
-	NotifyConfig *NotifyConfig `xml:"NotifyConfig,omitempty" json:"NotifyConfig,omitempty"`
-	ExtFilter    *ExtFilter    `xml:"ExtFilter,omitempty" json:"ExtFilter,omitempty"`
+	QueueId        string          `xml:"QueueId,omitempty"`
+	ObjectPrefix   string          `xml:"ObjectPrefix,omitempty"`
+	NotifyConfig   *NotifyConfig   `xml:"NotifyConfig,omitempty" json:"NotifyConfig,omitempty"`
+	ExtFilter      *ExtFilter      `xml:"ExtFilter,omitempty" json:"ExtFilter,omitempty"`
+	SamplingConfig *SamplingConfig `xml:"SamplingConfig,omitempty" json:"SamplingConfig,omitempty"`
 }
 
 // NodeOutput TODO
@@ -4270,6 +4288,7 @@ type LiveTanscode struct {
 	// TimeInterval  *TimeInterval `xml:"TimeInterval,omitempty"`
 	// Audio         *Audio        `xml:"Audio,omitempty"`
 	TransConfig *LiveTanscodeTransConfig `xml:"TransConfig,omitempty"`
+	Subtitle    *TargetSubtitle          `xml:"Subtitle,omitempty"`
 }
 
 type GeneratePlayListJobOperation struct {
