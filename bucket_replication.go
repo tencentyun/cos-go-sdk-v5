@@ -10,10 +10,15 @@ type DeleteMarkerReplication struct {
 	Status string `xml:"Status"`
 }
 
+type ReplicationEncryptionConfiguration struct {
+	ReplicaKmsKeyID string `xml:"ReplicaKmsKeyID,omitempty"`
+}
+
 // ReplicationDestination is the sub struct of BucketReplicationRule
 type ReplicationDestination struct {
-	Bucket       string `xml:"Bucket"`
-	StorageClass string `xml:"StorageClass,omitempty"`
+	Bucket                  string                              `xml:"Bucket"`
+	StorageClass            string                              `xml:"StorageClass,omitempty"`
+	EncryptionConfiguration *ReplicationEncryptionConfiguration `xml:"EncryptionConfiguration,omitempty"`
 }
 
 type ReplicationFilterAnd struct {
@@ -22,8 +27,8 @@ type ReplicationFilterAnd struct {
 }
 
 type ReplicationFilter struct {
-	And    *ReplicationFilterAnd  `xml:"And,omitempty"`
-	Prefix string                 `xml:"Prefix,omitempty"`
+	And    *ReplicationFilterAnd `xml:"And,omitempty"`
+	Prefix string                `xml:"Prefix,omitempty"`
 }
 
 // BucketReplicationRule is the main param of replication
@@ -35,6 +40,7 @@ type BucketReplicationRule struct {
 	Filter                  *ReplicationFilter       `xml:"Filter,omitempty"`
 	Destination             *ReplicationDestination  `xml:"Destination"`
 	DeleteMarkerReplication *DeleteMarkerReplication `xml:"DeleteMarkerReplication,omitempty"`
+	SourceSelectionCriteria *SourceSelectionCriteria `xml:"SourceSelectionCriteria,omitempty"`
 }
 
 // PutBucketReplicationOptions is the options of PutBucketReplication
@@ -42,6 +48,13 @@ type PutBucketReplicationOptions struct {
 	XMLName xml.Name                `xml:"ReplicationConfiguration"`
 	Role    string                  `xml:"Role"`
 	Rule    []BucketReplicationRule `xml:"Rule"`
+}
+
+type SourceSelectionCriteria struct {
+	SseKmsEncryptedObjects *SseKmsEncryptedObjects `xml:"SseKmsEncryptedObjects,omitempty"`
+}
+type SseKmsEncryptedObjects struct {
+	Status string `xml:"Status"`
 }
 
 // GetBucketReplicationResult is the result of GetBucketReplication
