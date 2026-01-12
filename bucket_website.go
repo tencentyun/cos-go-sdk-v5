@@ -13,6 +13,7 @@ type WebsiteRoutingRule struct {
 	RedirectProtocol         string `xml:"Redirect>Protocol,omitempty"`
 	RedirectReplaceKey       string `xml:"Redirect>ReplaceKeyWith,omitempty"`
 	RedirectReplaceKeyPrefix string `xml:"Redirect>ReplaceKeyPrefixWith,omitempty"`
+	URLRedirect              string `xml:"Redirect>URLRedirect,omitempty"`
 }
 
 type WebsiteRoutingRules struct {
@@ -26,6 +27,7 @@ type AutoAddressing struct {
 type ErrorDocument struct {
 	Key                string `xml:"Key,omitempty"`
 	OriginalHttpStatus string `xml:"OriginalHttpStatus,omitempty"`
+	Charity404         string `xml:"Charity404,omitempty"`
 }
 
 type RedirectRequestsProtocol struct {
