@@ -757,13 +757,13 @@ func decodeACL(resp *Response, res *ACLXml) {
 }
 
 func uniqueGrantID(grantIDs []string) string {
-	res := []string{}
-	filter := make(map[string]int)
+	res := make([]string, 0, len(grantIDs))
+	filter := make(map[string]struct{})
 	for _, id := range grantIDs {
-		if filter[id] != 0 {
+		if _, ok := filter[id]; ok {
 			continue
 		}
-		filter[id] = 1
+		filter[id] = struct{}{}
 		res = append(res, id)
 	}
 	return strings.Join(res, ",")
