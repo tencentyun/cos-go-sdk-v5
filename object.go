@@ -1013,10 +1013,10 @@ type Jobs struct {
 	UploadId   string
 	FilePath   string
 	RetryTimes int
-	VersionId  []string
+	VersionId  string
 	Chunk      Chunk
 	Data       io.Reader
-	Opt        *ObjectUploadPartOptions
+	UpOpt      *ObjectUploadPartOptions
 	DownOpt    *ObjectGetOptions
 }
 
@@ -1080,7 +1080,7 @@ func UploadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, resu
 
 func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
-		j.Opt.ContentLength = j.Chunk.Size
+		j.UpOpt.ContentLength = j.Chunk.Size
 
 		rt := j.RetryTimes
 		for {
@@ -1096,7 +1096,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 			}
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			resp, err := s.UploadPart(ctx, j.Name, j.UploadId, j.Chunk.Number,
-				LimitReadCloser(fd, j.Chunk.Size), j.Opt)
+				LimitReadCloser(fd, j.Chunk.Size), j.UpOpt)
 			res.PartNumber = j.Chunk.Number
 			res.Resp = resp
 			res.err = err
@@ -1109,7 +1109,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 				if s.client.Conf.RetryOpt.AutoSwitchHost {
 					// 收不到报文 或者 不存在RequestId
 					if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
-						j.Opt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
+						j.UpOpt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
 					}
 				}
 				time.Sleep(time.Millisecond)
@@ -1139,7 +1139,7 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 		for {
 			var res Results
 			res.PartNumber = j.Chunk.Number
-			resp, err := s.Get(ctx, j.Name, j.DownOpt, j.VersionId...)
+			resp, err := s.Get(ctx, j.Name, j.DownOpt, j.VersionId)
 			res.err = err
 			res.Resp = resp
 			if err != nil {
@@ -1441,7 +1441,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 				FilePath:   filepath,
 				UploadId:   uploadID,
 				Chunk:      chunk,
-				Opt:        partOpt,
+				UpOpt:      partOpt,
 			}
 			if !useExternalWorker {
 				chjobs <- job
@@ -1639,7 +1639,7 @@ func (s *ObjectService) UploadWithPicOperations(ctx context.Context, name string
 				FilePath:   filepath,
 				UploadId:   uploadID,
 				Chunk:      chunk,
-				Opt:        partOpt,
+				UpOpt:      partOpt,
 			}
 			chjobs <- job
 		}
@@ -1954,13 +1954,13 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 				DownOpt:    &downOpt,
 			}
 			if len(id) > 0 {
-				job.VersionId = append(job.VersionId, id...)
+				job.VersionId = id[0]
 			}
 			if !useExternalWorker {
 				chjobs <- job
 			} else {
 				opt.WorkerChannel <- job
-				
+
 			}
 		}
 		if !useExternalWorker {
