@@ -71,6 +71,7 @@ func (r *teeReader) Read(p []byte) (int, error) {
 		event := newProgressEvent(ProgressFailedEvent, 0, r.consumedBytes, r.totalBytes, err)
 		progressCallback(r.listener, event)
 	}
+
 	if n > 0 {
 		r.consumedBytes += int64(n)
 		if r.writer != nil {
