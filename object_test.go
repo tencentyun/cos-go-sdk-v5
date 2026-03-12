@@ -2891,3 +2891,576 @@ func TestObjectService_DownloadWithChannel(t *testing.T) {
 		t.Fatalf("Download data isn't consistent")
 	}
 }
+
+// ==================== GetToFile CRC64 校验测试 ====================
+
+// 测试 GetToFile 正常 CRC64 校验通过
+func TestObjectService_GetToFile_CRC64OK(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 1024*1024*3)
+	rand.Read(data)
+	tb := crc64.MakeTable(crc64.ECMA)
+	dataCRC := crc64.Update(0, tb, data)
+
+	mux.HandleFunc("/test/crc64ok", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(dataCRC, 10))
+		w.Write(data)
+	})
+
+	filePath := "test.crc64ok." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filePath)
+	_, err := client.Object.GetToFile(context.Background(), "test/crc64ok", filePath, nil)
+	if err != nil {
+		t.Fatalf("GetToFile CRC64 OK returned error: %v", err)
+	}
+	fd, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("GetToFile data isn't consistent")
+	}
+}
+
+// 测试 GetToFile CRC64 校验不匹配，应返回错误
+func TestObjectService_GetToFile_CRC64Mismatch(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 1024*1024*3)
+	rand.Read(data)
+
+	mux.HandleFunc("/test/crc64mismatch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		// 返回一个错误的 CRC64 值
+		w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+		w.Write(data)
+	})
+
+	filePath := "test.crc64mismatch." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filePath)
+	_, err := client.Object.GetToFile(context.Background(), "test/crc64mismatch", filePath, nil)
+	if err == nil {
+		t.Fatalf("GetToFile should fail with CRC64 mismatch, but got nil error")
+	}
+	if !strings.Contains(err.Error(), "verification failed") {
+		t.Fatalf("GetToFile error should contain 'verification failed', got: %v", err)
+	}
+}
+
+// 测试 GetToFile 无 CRC64 头时跳过校验，不报错
+func TestObjectService_GetToFile_NoCRCHeader(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 1024*1024*2)
+	rand.Read(data)
+
+	mux.HandleFunc("/test/nocrc", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		// 不设置 x-cos-hash-crc64ecma 头
+		w.Write(data)
+	})
+
+	filePath := "test.nocrc." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filePath)
+	_, err := client.Object.GetToFile(context.Background(), "test/nocrc", filePath, nil)
+	if err != nil {
+		t.Fatalf("GetToFile without CRC header should not fail, got: %v", err)
+	}
+	fd, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("GetToFile data isn't consistent")
+	}
+}
+
+// 测试 GetToFile CRC 校验禁用时，即使 CRC 不匹配也不报错
+func TestObjectService_GetToFile_CRCDisabled(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 1024*1024*2)
+	rand.Read(data)
+
+	mux.HandleFunc("/test/crcdisabled", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		// 返回错误的 CRC64
+		w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+		w.Write(data)
+	})
+
+	// 禁用 CRC 校验
+	client.Conf.EnableCRC = false
+	defer func() { client.Conf.EnableCRC = true }()
+
+	filePath := "test.crcdisabled." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filePath)
+	_, err := client.Object.GetToFile(context.Background(), "test/crcdisabled", filePath, nil)
+	if err != nil {
+		t.Fatalf("GetToFile with CRC disabled should not fail, got: %v", err)
+	}
+	fd, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("GetToFile data isn't consistent")
+	}
+}
+
+// 测试 GetToFile 带 Listener 时 CRC64 校验正常通过
+func TestObjectService_GetToFile_WithListenerCRC64(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 1024*1024*3)
+	rand.Read(data)
+	tb := crc64.MakeTable(crc64.ECMA)
+	dataCRC := crc64.Update(0, tb, data)
+
+	mux.HandleFunc("/test/listenercrc", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Add("Content-Length", strconv.FormatInt(int64(len(data)), 10))
+		w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(dataCRC, 10))
+		w.Write(data)
+	})
+
+	filePath := "test.listenercrc." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filePath)
+	opt := &ObjectGetOptions{
+		Listener: &DefaultProgressListener{},
+	}
+	_, err := client.Object.GetToFile(context.Background(), "test/listenercrc", filePath, opt)
+	if err != nil {
+		t.Fatalf("GetToFile with Listener CRC64 OK returned error: %v", err)
+	}
+	fd, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("GetToFile data isn't consistent")
+	}
+}
+
+// 测试 GetToFile 带 Listener 时 CRC64 不匹配
+func TestObjectService_GetToFile_WithListenerCRC64Mismatch(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 1024*1024*3)
+	rand.Read(data)
+
+	mux.HandleFunc("/test/listenercrcfail", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Add("Content-Length", strconv.FormatInt(int64(len(data)), 10))
+		w.Header().Add("x-cos-hash-crc64ecma", "999999999")
+		w.Write(data)
+	})
+
+	filePath := "test.listenercrcfail." + time.Now().Format(time.RFC3339)
+	defer os.Remove(filePath)
+	opt := &ObjectGetOptions{
+		Listener: &DefaultProgressListener{},
+	}
+	_, err := client.Object.GetToFile(context.Background(), "test/listenercrcfail", filePath, opt)
+	if err == nil {
+		t.Fatalf("GetToFile with Listener should fail with CRC64 mismatch")
+	}
+	if !strings.Contains(err.Error(), "verification failed") {
+		t.Fatalf("GetToFile error should contain 'verification failed', got: %v", err)
+	}
+}
+
+// ==================== Download CRC64 校验测试 ====================
+
+// 测试 Download 多分块 CRC64 合并校验正常通过
+func TestObjectService_Download_CRC64OK(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*5 + 1234)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	mux.HandleFunc("/test.download.crc64ok", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.crc64ok." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.crc64ok", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download CRC64 OK returned error: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, b) != 0 {
+		t.Errorf("Download data isn't consistent")
+	}
+}
+
+// 测试 Download 多分块 CRC64 合并校验不匹配（服务端返回的总CRC与分块合并CRC不一致）
+func TestObjectService_Download_CRC64Mismatch(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 567)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+
+	mux.HandleFunc("/test.download.crc64mismatch", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			// 返回错误的总 CRC64
+			w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.crc64mismatch." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.crc64mismatch", downPath, opt)
+	if err == nil {
+		t.Fatalf("Download should fail with CRC64 mismatch, but got nil error")
+	}
+	if !strings.Contains(err.Error(), "verification failed") {
+		t.Fatalf("Download error should contain 'verification failed', got: %v", err)
+	}
+}
+
+// 测试 Download 无 CRC64 头时跳过校验
+func TestObjectService_Download_NoCRCHeader(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 456)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+
+	mux.HandleFunc("/test.download.nocrc", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			// 不设置 x-cos-hash-crc64ecma
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.nocrc." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.nocrc", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download without CRC header should not fail, got: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, b) != 0 {
+		t.Errorf("Download data isn't consistent")
+	}
+}
+
+// 测试 Download DisableChecksum 时即使 CRC 不匹配也不报错
+func TestObjectService_Download_DisableChecksum(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 789)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+
+	mux.HandleFunc("/test.download.disablechecksum", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			// 返回错误的 CRC64
+			w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize:  3,
+		PartSize:        1,
+		DisableChecksum: true,
+	}
+	downPath := "down.disablechecksum." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.disablechecksum", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download with DisableChecksum should not fail, got: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, b) != 0 {
+		t.Errorf("Download data isn't consistent")
+	}
+}
+
+// 测试 Download CRC 禁用时即使 CRC 不匹配也不报错
+func TestObjectService_Download_CRCDisabled(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 321)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+
+	mux.HandleFunc("/test.download.crcdisabled", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	client.Conf.EnableCRC = false
+	defer func() { client.Conf.EnableCRC = true }()
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.crcdisabled." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.crcdisabled", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download with CRC disabled should not fail, got: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, b) != 0 {
+		t.Errorf("Download data isn't consistent")
+	}
+}
+
+// 测试 Download 单分片退化为 GetToFile，CRC 校验正常通过
+func TestObjectService_Download_SinglePartCRC64(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(512)
+	data := make([]byte, totalBytes)
+	rand.Read(data)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, data), 10)
+
+	mux.HandleFunc("/test.download.singlepart", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		testMethod(t, r, "GET")
+		w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+		w.Write(data)
+	})
+
+	opt := &MultiDownloadOptions{
+		PartSize: 1, // 1MB > 512B, 所以只有单分片
+	}
+	downPath := "down.singlepart." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.singlepart", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download single part CRC64 OK returned error: %v", err)
+	}
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("Download single part data isn't consistent")
+	}
+}
+
+// 测试 Download 单分片退化为 GetToFile，CRC 不匹配
+func TestObjectService_Download_SinglePartCRC64Mismatch(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(256)
+	data := make([]byte, totalBytes)
+	rand.Read(data)
+
+	mux.HandleFunc("/test.download.singlepartfail", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", "999999999")
+			return
+		}
+		testMethod(t, r, "GET")
+		w.Header().Add("x-cos-hash-crc64ecma", "999999999")
+		w.Write(data)
+	})
+
+	opt := &MultiDownloadOptions{
+		PartSize: 1,
+	}
+	downPath := "down.singlepartfail." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.singlepartfail", downPath, opt)
+	if err == nil {
+		t.Fatalf("Download single part should fail with CRC64 mismatch")
+	}
+	if !strings.Contains(err.Error(), "verification failed") {
+		t.Fatalf("Download error should contain 'verification failed', got: %v", err)
+	}
+}
+
+// 测试 Download 带 CheckPoint 的 CRC64 合并校验
+func TestObjectService_DownloadWithCheckPoint_CRC64(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*5 + 678)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	partSize := 1024 * 1024
+	oddok := false
+	var oddcount, evencount int32
+	mux.HandleFunc("/test.download.cpcrc", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if (start/int64(partSize))%2 == 1 {
+			if oddok {
+				io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			} else {
+				// 奇数块返回截断数据，导致校验失败
+				io.Copy(w, bytes.NewBuffer(b[start:end]))
+			}
+			atomic.AddInt32(&oddcount, 1)
+		} else {
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			atomic.AddInt32(&evencount, 1)
+		}
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+		CheckPoint:     true,
+	}
+	downPath := "down.cpcrc." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	defer os.Remove(downPath + ".cosresumabletask")
+
+	// 第一次下载：奇数块失败
+	_, err := client.Object.Download(context.Background(), "test.download.cpcrc", downPath, opt)
+	if err == nil {
+		t.Fatalf("Download should fail when odd parts are truncated")
+	}
+
+	// 设置奇数块正常
+	oddok = true
+	// 第二次下载：断点续载，只重新下载失败的奇数块
+	_, err = client.Object.Download(context.Background(), "test.download.cpcrc", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download with checkpoint resume returned error: %v", err)
+	}
+
+	// 偶数块不重复下载（第一次已完成）
+	if atomic.LoadInt32(&evencount) > 6 {
+		t.Fatalf("Even parts downloaded too many times: %v", atomic.LoadInt32(&evencount))
+	}
+
+	// 验证数据一致
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, b) != 0 {
+		t.Errorf("Download checkpoint data isn't consistent")
+	}
+}

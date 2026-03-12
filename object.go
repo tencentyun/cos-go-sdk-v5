@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"hash"
 	"hash/crc64"
 	"io"
 	"io/ioutil"
@@ -98,6 +99,20 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 	}
 	defer resp.Body.Close()
 
+	// 使用 teeReader 做流式 CRC64 校验
+	var crcWriter hash.Hash64
+	if s.client.Conf.EnableCRC {
+		if tr, ok := resp.Body.(*teeReader); ok {
+			// Get 已包装了 teeReader（有 Listener），设置 CRC64 writer
+			crcWriter = crc64.New(crc64.MakeTable(crc64.ECMA))
+			tr.writer = crcWriter
+		} else {
+			// 没有 Listener，用 TeeReader 包装，传入 CRC64 writer
+			crcWriter = crc64.New(crc64.MakeTable(crc64.ECMA))
+			resp.Body = TeeReader(resp.Body, crcWriter, 0, nil)
+		}
+	}
+
 	// If file exist, overwrite it
 	fd, err := os.OpenFile(localpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	if err != nil {
@@ -108,6 +123,18 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 	fd.Close()
 	if err != nil {
 		return resp, err
+	}
+
+	// CRC64 校验
+	if crcWriter != nil {
+		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
+		if scoscrc != "" {
+			icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)
+			localcrc := crcWriter.Sum64()
+			if localcrc != icoscrc {
+				return resp, fmt.Errorf("verification failed, want:%v, return:%v, x-cos-hash-crc64ecma:%v, err:%v, header:%+v", localcrc, icoscrc, scoscrc, err, resp.Header)
+			}
+		}
 	}
 
 	return resp, nil
@@ -1023,6 +1050,7 @@ type Jobs struct {
 type Results struct {
 	PartNumber int
 	Resp       *Response
+	CRC64      uint64
 	err        error
 }
 
@@ -1154,19 +1182,22 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 				break
 			}
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
-			n, err := io.Copy(fd, LimitReadCloser(resp.Body, j.Chunk.Size))
+			crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+			w := io.MultiWriter(fd, crcHash)
+			n, err := io.Copy(w, LimitReadCloser(resp.Body, j.Chunk.Size))
 			if n != j.Chunk.Size || err != nil {
 				fd.Close()
 				resp.Body.Close()
 				rt--
 				if rt == 0 {
-					res.err = fmt.Errorf("io.Copy Failed, nread:%v, want:%v, err:%v", n, j.Chunk.Size, err)
+					res.err = fmt.Errorf("io.Copy Failed, nread:%v, want:%v, err:%v, reqid: %v", n, j.Chunk.Size, err, resp.Header.Get("X-Cos-Request-Id"))
 					results <- &res
 					break
 				}
 				time.Sleep(time.Millisecond)
 				continue
 			}
+			res.CRC64 = crcHash.Sum64()
 			fd.Close()
 			resp.Body.Close()
 			results <- &res
@@ -1306,6 +1337,12 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 		chunks[partNumber].ETag = part.ETag
 	}
 	return nil
+}
+
+// 收集每个分块的 CRC64 用于合并校验
+type partCRC struct {
+	crc  uint64
+	size int64
 }
 
 // MultiUpload/Upload 为高级upload接口，并发分块上传
@@ -1854,27 +1891,9 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	if err != nil {
 		return resp, err
 	}
-	// 直接下载到文件
+	// 直接下载到文件，GetToFile 内部已做 CRC 校验，无需重复校验
 	if partNum == 0 || partNum == 1 {
 		rsp, err := s.GetToFile(ctx, name, filepath, opt.Opt, id...)
-		if err != nil {
-			return rsp, err
-		}
-		if coscrc != "" && s.client.Conf.EnableCRC && !opt.DisableChecksum {
-			icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
-			fd, err := os.Open(filepath)
-			if err != nil {
-				return rsp, err
-			}
-			defer fd.Close()
-			localcrc, err := calCRC64(fd)
-			if err != nil {
-				return rsp, err
-			}
-			if localcrc != icoscrc {
-				return rsp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", icoscrc, localcrc, resp.Header)
-			}
-		}
 		return rsp, err
 	}
 	// 断点续载
@@ -1968,6 +1987,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		}
 	}()
 	err = nil
+	partCRCs := make(map[int]partCRC)
 	for i := 0; i < partNum; i++ {
 		if chunks[i].Done {
 			if err == nil {
@@ -1987,6 +2007,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			err = fmt.Errorf("part %d get resp Content. error: %s", res.PartNumber, res.err.Error())
 			continue
 		}
+		partCRCs[res.PartNumber] = partCRC{crc: res.CRC64, size: chunks[res.PartNumber-1].Size}
 		// Dump CheckPoint Info
 		if opt.CheckPoint {
 			cpfd.Truncate(0)
@@ -2020,14 +2041,33 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	}
 	if coscrc != "" && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
-		fd, err := os.Open(filepath)
-		if err != nil {
-			return resp, err
+		// 对已完成的(断点续载)分块，从文件中读取数据计算 CRC64
+		for i := 0; i < partNum; i++ {
+			if !chunks[i].Done {
+				continue
+			}
+			fd, ferr := os.Open(filepath)
+			if ferr != nil {
+				return resp, ferr
+			}
+			_, ferr = fd.Seek(chunks[i].OffSet, os.SEEK_SET)
+			if ferr != nil {
+				return resp, ferr
+			}
+			partHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+			_, ferr = io.CopyN(partHash, fd, chunks[i].Size)
+			if ferr != nil {
+				return resp, ferr
+			}
+			fd.Close()
+			partCRCs[chunks[i].Number] = partCRC{crc: partHash.Sum64(), size: chunks[i].Size}
 		}
-		defer fd.Close()
-		localcrc, err := calCRC64(fd)
-		if err != nil {
-			return resp, err
+		// 按分块顺序合并 CRC64
+		var localcrc uint64
+		for i := 1; i <= partNum; i++ {
+			if pc, ok := partCRCs[i]; ok {
+				localcrc = CRC64Combine(localcrc, pc.crc, pc.size)
+			}
 		}
 		if localcrc != icoscrc {
 			return resp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", icoscrc, localcrc, resp.Header)
