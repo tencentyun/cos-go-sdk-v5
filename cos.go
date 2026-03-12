@@ -31,6 +31,9 @@ const (
 	contentTypeXML        = "application/xml"
 	defaultServiceBaseURL = "http://service.cos.myqcloud.com"
 	XOptionalKey          = "cos-go-sdk-v5-XOptionalKey"
+
+	CAMAllUsers  = "http://cam.qcloud.com/groups/global/AllUsers"
+	CAMAuthUsers = "http://cam.qcloud.com/groups/global/AuthenticatedUsers"
 )
 
 var (
@@ -276,6 +279,9 @@ func (c *Client) newPresignedRequest(ctx context.Context, sendOpt *sendOptions, 
 	req.Header, err = addHeaderOptions(ctx, req.Header, sendOpt.optHeader)
 	if err != nil {
 		return
+	}
+	if c.Host != "" {
+		req.Host = c.Host
 	}
 	return req, err
 }

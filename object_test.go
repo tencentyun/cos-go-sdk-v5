@@ -2729,3 +2729,165 @@ func TestObjectService_Redirect(t *testing.T) {
 		t.Fatalf("Object.Get not redirect")
 	}
 }
+
+func TestObjectService_UploadWithChannel(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	b := make([]byte, 1024*1024*33)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	var mu sync.Mutex
+	rb := make([][]byte, 33)
+	uploadid := "test-cos-multiupload-uploadid"
+	partmap := make(map[int64]int)
+	mux.HandleFunc("/test.go.upload", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if r.Method == http.MethodPut {
+			r.ParseForm()
+			part, _ := strconv.ParseInt(r.Form.Get("partNumber"), 10, 64)
+			if partmap[part] == 0 {
+				partmap[part]++
+				ioutil.ReadAll(r.Body)
+				w.WriteHeader(http.StatusGatewayTimeout)
+			} else if partmap[part] == 1 {
+				partmap[part]++
+				w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			} else {
+				bs, _ := ioutil.ReadAll(r.Body)
+				rb[part-1] = bs
+				md := hex.EncodeToString(calMD5Digest(bs))
+				crc := crc64.Update(0, crc64.MakeTable(crc64.ECMA), bs)
+				w.Header().Add("ETag", md)
+				w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+			}
+		} else {
+			testMethod(t, r, http.MethodPost)
+			initreq := url.Values{}
+			initreq.Set("uploads", "")
+			compreq := url.Values{}
+			compreq.Set("uploadId", uploadid)
+			r.ParseForm()
+			if reflect.DeepEqual(r.Form, initreq) {
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+                    <Bucket></Bucket>
+                    <Key>%v</Key>
+                    <UploadId>%v</UploadId>
+                </InitiateMultipartUploadResult>`, "test.go.upload", uploadid)
+			} else if reflect.DeepEqual(r.Form, compreq) {
+				tb := crc64.MakeTable(crc64.ECMA)
+				crc := uint64(0)
+				for _, v := range rb {
+					crc = crc64.Update(crc, tb, v)
+				}
+				w.Header().Add("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+				fmt.Fprintf(w, `<CompleteMultipartUploadResult>
+                    <Location>/test.go.upload</Location>
+                    <Bucket></Bucket>
+                    <Key>test.go.upload</Key>
+                    <ETag>&quot;%v&quot;</ETag>
+                </CompleteMultipartUploadResult>`, hex.EncodeToString(calMD5Digest(b)))
+			} else {
+				t.Errorf("TestObjectService_UploadWithChannel Unknown Request")
+			}
+		}
+	})
+
+	ctx := context.Background()
+	chjobs := make(chan *Jobs, 100)
+	chresults := make(chan *Results, 10000)
+	poolSize := 3
+	for w := 0; w < poolSize; w++ {
+		go worker(ctx, client.Object, chjobs, chresults)
+	}
+
+	opt := &MultiUploadOptions{
+		PartSize: 1,
+		OptIni: &InitiateMultipartUploadOptions{
+			nil,
+			&ObjectPutHeaderOptions{
+				XCosMetaXXX: &http.Header{},
+			},
+		},
+		WorkerChannel: chjobs,
+		ResultChannel: chresults,
+	}
+	opt.OptIni.XCosMetaXXX.Add("x-cos-meta-test", "test")
+	_, _, err = client.Object.Upload(ctx, "test.go.upload", filePath, opt)
+	if err != nil {
+		t.Fatalf("Object.Upload returned error: %v", err)
+	}
+	close(chjobs)
+	close(chresults)
+}
+
+func TestObjectService_DownloadWithChannel(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*9 + 1230)
+	b := make([]byte, totalBytes)
+	_, err := rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	mux.HandleFunc("/test.go.download", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	ctx := context.Background()
+	chjobs := make(chan *Jobs, 100)
+	chresults := make(chan *Results, 10000)
+	poolSize := 3
+	for w := 0; w < poolSize; w++ {
+		go downloadWorker(ctx, client.Object, chjobs, chresults)
+	}
+
+	opt := &MultiDownloadOptions{
+		PartSize: 1,
+		Opt: &ObjectGetOptions{
+			XCosSSECustomerAglo:   "AES256",
+			XCosSSECustomerKey:    "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=",
+			XCosSSECustomerKeyMD5: "U5L61r7jcwdNvT7frmUG8g==",
+		},
+		WorkerChannel: chjobs,
+		ResultChannel: chresults,
+	}
+	downPath := "down.file" + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err = client.Object.Download(ctx, "test.go.download", downPath, opt)
+	if err != nil {
+		t.Fatalf("Object.Download returned error: %v", err)
+	}
+	close(chjobs)
+	close(chresults)
+
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open download file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if bytes.Compare(bs, b) != 0 {
+		t.Fatalf("Download data isn't consistent")
+	}
+}
