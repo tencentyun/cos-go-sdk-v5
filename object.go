@@ -972,6 +972,8 @@ type MultiUploadOptions struct {
 	ThreadPoolSize  int
 	CheckPoint      bool
 	DisableChecksum bool
+	WorkerChannel   chan<- *Jobs
+	ResultChannel   <-chan *Results
 }
 
 type MultiDownloadOptions struct {
@@ -981,6 +983,8 @@ type MultiDownloadOptions struct {
 	CheckPoint      bool
 	CheckPointFile  string
 	DisableChecksum bool
+	WorkerChannel   chan<- *Jobs
+	ResultChannel   <-chan *Results
 }
 
 type MultiDownloadCPInfo struct {
@@ -1009,10 +1013,10 @@ type Jobs struct {
 	UploadId   string
 	FilePath   string
 	RetryTimes int
-	VersionId  []string
+	VersionId  string
 	Chunk      Chunk
 	Data       io.Reader
-	Opt        *ObjectUploadPartOptions
+	UpOpt      *ObjectUploadPartOptions
 	DownOpt    *ObjectGetOptions
 }
 
@@ -1069,9 +1073,14 @@ func (drc *DiscardReadCloser) Close() error {
 	return nil
 }
 
+// Worker 用于分块上传的工作协程，调用方可通过 MultiUploadOptions 的 WorkerChannel/ResultChannel 传入外部 channel 来复用
+func UploadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
+	worker(ctx, s, jobs, results)
+}
+
 func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
-		j.Opt.ContentLength = j.Chunk.Size
+		j.UpOpt.ContentLength = j.Chunk.Size
 
 		rt := j.RetryTimes
 		for {
@@ -1087,7 +1096,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 			}
 			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			resp, err := s.UploadPart(ctx, j.Name, j.UploadId, j.Chunk.Number,
-				LimitReadCloser(fd, j.Chunk.Size), j.Opt)
+				LimitReadCloser(fd, j.Chunk.Size), j.UpOpt)
 			res.PartNumber = j.Chunk.Number
 			res.Resp = resp
 			res.err = err
@@ -1100,7 +1109,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 				if s.client.Conf.RetryOpt.AutoSwitchHost {
 					// 收不到报文 或者 不存在RequestId
 					if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
-						j.Opt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
+						j.UpOpt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
 					}
 				}
 				time.Sleep(time.Millisecond)
@@ -1110,6 +1119,11 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 			break
 		}
 	}
+}
+
+// DownloadWorker 用于分块下载的工作协程，调用方可通过 MultiDownloadOptions 的 WorkerChannel/ResultChannel 传入外部 channel 来复用
+func DownloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
+	downloadWorker(ctx, s, jobs, results)
 }
 
 func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
@@ -1125,7 +1139,7 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 		for {
 			var res Results
 			res.PartNumber = j.Chunk.Number
-			resp, err := s.Get(ctx, j.Name, j.DownOpt, j.VersionId...)
+			resp, err := s.Get(ctx, j.Name, j.DownOpt, j.VersionId)
 			res.err = err
 			res.Resp = resp
 			if err != nil {
@@ -1373,22 +1387,27 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		}
 		uploadID = res.UploadID
 	}
-	var poolSize int
-	if opt.ThreadPoolSize > 0 {
-		poolSize = opt.ThreadPoolSize
-	} else {
-		// Default is one
-		poolSize = 1
+
+	useExternalWorker := opt.WorkerChannel != nil && opt.ResultChannel != nil
+	var chjobs chan *Jobs
+	var chresults chan *Results
+	if !useExternalWorker {
+		var poolSize int
+		if opt.ThreadPoolSize > 0 {
+			poolSize = opt.ThreadPoolSize
+		} else {
+			// Default is one
+			poolSize = 1
+		}
+		chjobs = make(chan *Jobs, 100)
+		chresults = make(chan *Results, 10000)
+		// 3.Start worker
+		for w := 1; w <= poolSize; w++ {
+			go worker(ctx, s, chjobs, chresults)
+		}
 	}
 
-	chjobs := make(chan *Jobs, 100)
-	chresults := make(chan *Results, 10000)
 	optcom := &CompleteMultipartUploadOptions{}
-
-	// 3.Start worker
-	for w := 1; w <= poolSize; w++ {
-		go worker(ctx, s, chjobs, chresults)
-	}
 
 	// progress started event
 	var listener ProgressListener
@@ -1422,11 +1441,17 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 				FilePath:   filepath,
 				UploadId:   uploadID,
 				Chunk:      chunk,
-				Opt:        partOpt,
+				UpOpt:      partOpt,
 			}
-			chjobs <- job
+			if !useExternalWorker {
+				chjobs <- job
+			} else {
+				opt.WorkerChannel <- job
+			}
 		}
-		close(chjobs)
+		if !useExternalWorker {
+			close(chjobs)
+		}
 	}()
 
 	// 5.Recv the resp etag to complete
@@ -1443,7 +1468,12 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			}
 			continue
 		}
-		res := <-chresults
+		var res *Results
+		if !useExternalWorker {
+			res = <-chresults
+		} else {
+			res = <-opt.ResultChannel
+		}
 		// Notice one part fail can not get the etag according.
 		if res.Resp == nil || res.err != nil {
 			// Some part already fail, can not to get the header inside.
@@ -1461,7 +1491,9 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 			progressCallback(listener, event)
 		}
 	}
-	close(chresults)
+	if !useExternalWorker {
+		close(chresults)
+	}
 	if err != nil {
 		event = newProgressEvent(ProgressFailedEvent, 0, consumedBytes, totalBytes, err)
 		progressCallback(listener, event)
@@ -1607,7 +1639,7 @@ func (s *ObjectService) UploadWithPicOperations(ctx context.Context, name string
 				FilePath:   filepath,
 				UploadId:   uploadID,
 				Chunk:      chunk,
-				Opt:        partOpt,
+				UpOpt:      partOpt,
 			}
 			chjobs <- job
 		}
@@ -1879,16 +1911,21 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		nfile.Close()
 	}
 
-	var poolSize int
-	if opt.ThreadPoolSize > 0 {
-		poolSize = opt.ThreadPoolSize
-	} else {
-		poolSize = 1
-	}
-	chjobs := make(chan *Jobs, 100)
-	chresults := make(chan *Results, 10000)
-	for w := 1; w <= poolSize; w++ {
-		go downloadWorker(ctx, s, chjobs, chresults)
+	useExternalWorker := opt.WorkerChannel != nil && opt.ResultChannel != nil
+	var chjobs chan *Jobs
+	var chresults chan *Results
+	if !useExternalWorker {
+		var poolSize int
+		if opt.ThreadPoolSize > 0 {
+			poolSize = opt.ThreadPoolSize
+		} else {
+			poolSize = 1
+		}
+		chjobs = make(chan *Jobs, 100)
+		chresults = make(chan *Results, 10000)
+		for w := 1; w <= poolSize; w++ {
+			go downloadWorker(ctx, s, chjobs, chresults)
+		}
 	}
 
 	var listener ProgressListener
@@ -1917,11 +1954,18 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 				DownOpt:    &downOpt,
 			}
 			if len(id) > 0 {
-				job.VersionId = append(job.VersionId, id...)
+				job.VersionId = id[0]
 			}
-			chjobs <- job
+			if !useExternalWorker {
+				chjobs <- job
+			} else {
+				opt.WorkerChannel <- job
+
+			}
 		}
-		close(chjobs)
+		if !useExternalWorker {
+			close(chjobs)
+		}
 	}()
 	err = nil
 	for i := 0; i < partNum; i++ {
@@ -1933,7 +1977,12 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			}
 			continue
 		}
-		res := <-chresults
+		var res *Results
+		if !useExternalWorker {
+			res = <-chresults
+		} else {
+			res = <-opt.ResultChannel
+		}
 		if res.Resp == nil || res.err != nil {
 			err = fmt.Errorf("part %d get resp Content. error: %s", res.PartNumber, res.err.Error())
 			continue
@@ -1954,7 +2003,9 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		event = newProgressEvent(ProgressDataEvent, chunks[res.PartNumber-1].Size, consumedBytes, totalBytes)
 		progressCallback(listener, event)
 	}
-	close(chresults)
+	if !useExternalWorker {
+		close(chresults)
+	}
 	if cpfd != nil {
 		cpfd.Close()
 	}

@@ -512,8 +512,11 @@ func (s *ObjectService) innerHead(ctx context.Context, sourceURL string, id []st
 	if len(surl) < 2 {
 		return nil, fmt.Errorf("sourceURL format error: %s", sourceURL)
 	}
-
-	u, err := url.Parse(fmt.Sprintf("http://%s", surl[0]))
+	scheme := "http"
+	if s.client.BaseURL.BucketURL != nil && s.client.BaseURL.BucketURL.Scheme == "https" {
+		scheme = "https"
+	}
+	u, err := url.Parse(fmt.Sprintf("%s://%s", scheme, surl[0]))
 	if err != nil {
 		return nil, err
 	}
