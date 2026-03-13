@@ -123,21 +123,15 @@ func main() {
 	createIndexResult, _, err := c.Vector.CreateIndex(context.Background(),
 		&cos.CreateIndexOptions{
 			VectorBucketName: bucketName,
-		},
-		&cos.IndexDefinition{
-			IndexName:   indexName,
-			Dimension:   4,
-			Metric:      "COSINE",
-			Params: &cos.IndexParams{
-				EfConstruction: 200,
-				M:              16,
-			},
-			Description: "示例向量索引",
+			IndexName:        indexName,
+			DataType:         "float32",
+			Dimension:        4,
+			DistanceMetric:   "cosine",
 		},
 	)
 	logStatus(err)
 	if err == nil {
-		fmt.Printf("索引创建成功: %s, 状态: %s\n", createIndexResult.Index.IndexName, createIndexResult.Index.Status)
+		fmt.Printf("索引创建成功, QCS: %s\n", createIndexResult.IndexQcs)
 	}
 
 	// 5. 查询索引信息
@@ -149,7 +143,7 @@ func main() {
 	logStatus(err)
 	if err == nil && getIndexResult.Index != nil {
 		fmt.Printf("索引名称: %s, 维度: %d, 度量: %s\n",
-			getIndexResult.Index.IndexName, getIndexResult.Index.Dimension, getIndexResult.Index.Metric)
+			getIndexResult.Index.IndexName, getIndexResult.Index.Dimension, getIndexResult.Index.DistanceMetric)
 	}
 
 	// 6. 列出所有索引
@@ -173,7 +167,7 @@ func main() {
 			VectorBucketName: bucketName,
 			IndexName:        indexName,
 		},
-		[]cos.Vector{
+		[]cos.InputVector{
 			{
 				Key:  "doc-001",
 				Data: &cos.VectorData{Float32: []float32{0.1, 0.2, 0.3, 0.4}},
@@ -211,8 +205,8 @@ func main() {
 		&cos.GetVectorsOptions{
 			VectorBucketName: bucketName,
 			IndexName:        indexName,
-			ReturnData:       true,
-			ReturnMetadata:   true,
+			ReturnData:       cos.Bool(true),
+			ReturnMetadata:   cos.Bool(true),
 		},
 		[]string{"doc-001", "doc-002"},
 	)
@@ -241,9 +235,9 @@ func main() {
 		&cos.QueryVectorsOptions{
 			VectorBucketName: bucketName,
 			IndexName:        indexName,
-			ReturnData:       true,
-			ReturnMetadata:   true,
-			ReturnDistance:    true,
+			ReturnData:       cos.Bool(true),
+			ReturnMetadata:   cos.Bool(true),
+			ReturnDistance:    cos.Bool(true),
 		},
 		&cos.VectorData{Float32: []float32{0.5, 0.5, 0.6, 0.7}},
 		3,
@@ -267,8 +261,8 @@ func main() {
 					"$eq": "AI",
 				},
 			},
-			ReturnMetadata: true,
-			ReturnDistance:  true,
+			ReturnMetadata: cos.Bool(true),
+			ReturnDistance:  cos.Bool(true),
 		},
 		&cos.VectorData{Float32: []float32{0.5, 0.5, 0.6, 0.7}},
 		3,

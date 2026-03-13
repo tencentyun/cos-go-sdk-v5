@@ -379,9 +379,9 @@ func (s *VectorService) ListVectorBuckets(ctx context.Context, opt *ListVectorBu
 
 // PutVectorBucketPolicyOptions 设置向量桶策略请求参数
 type PutVectorBucketPolicyOptions struct {
-	VectorBucketName string      `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string      `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
-	Policy           interface{} `json:"policy"`                     // 策略内容
+	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称，与 VectorBucketQcs 二选一
+	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	Policy           string `json:"policy"`                     // 策略内容，JSON 格式的策略信息序列化后的字符串
 }
 
 // PutVectorBucketPolicy 设置向量桶策略
@@ -401,7 +401,7 @@ type GetVectorBucketPolicyOptions struct {
 
 // GetVectorBucketPolicyResult 获取向量桶策略响应
 type GetVectorBucketPolicyResult struct {
-	Policy interface{} `json:"policy"` // 策略内容
+	Policy string `json:"policy"` // 策略内容，JSON 格式的策略信息序列化后的字符串
 }
 
 // GetVectorBucketPolicy 获取向量桶策略
@@ -437,80 +437,47 @@ func (s *VectorService) DeleteVectorBucketPolicy(ctx context.Context, opt *Delet
 
 // ==================== 向量索引管理 ====================
 
-// IndexParams 索引构建参数
-type IndexParams struct {
-	EfConstruction int `json:"efConstruction,omitempty"` // 构建索引时的搜索范围，默认200，范围 [1, 500]
-	M              int `json:"m,omitempty"`              // 图的连接度，默认16，范围 [2, 100]
+// MetadataConfiguration 元数据配置
+type MetadataConfiguration struct {
+	NonFilterableMetadataKeys []string `json:"nonFilterableMetadataKeys,omitempty"` // 不可用于过滤的元数据键，最少1个，最多10个
 }
 
-// CreateIndexOptions 创建索引请求选项（指定目标向量桶）
+// CreateIndexOptions 创建索引请求参数
 type CreateIndexOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	VectorBucketName      string                 `json:"vectorBucketName,omitempty"`      // 向量桶名称，与 VectorBucketQcs 二选一
+	VectorBucketQcs       string                 `json:"vectorBucketQcs,omitempty"`       // 向量桶资源名称 (QCS)
+	IndexName             string                 `json:"indexName"`                       // 索引名称（必填）
+	DataType              string                 `json:"dataType"`                        // 向量数据类型，默认 float32（必填）
+	Dimension             int                    `json:"dimension"`                       // 向量维度，范围 [1, 4096]（必填）
+	DistanceMetric        string                 `json:"distanceMetric"`                  // 距离度量方式: euclidean, cosine（必填）
+	MetadataConfiguration *MetadataConfiguration `json:"metadataConfiguration,omitempty"` // 元数据配置（可选）
 }
 
-// IndexDefinition 索引定义（索引的业务配置数据）
-type IndexDefinition struct {
-	IndexName   string       `json:"indexName"`             // 索引名称
-	Dimension   int          `json:"dimension"`             // 向量维度
-	Metric      string       `json:"metric"`                // 距离度量方式: L2, INNER_PRODUCT, COSINE
-	Params      *IndexParams `json:"params,omitempty"`      // 索引构建参数
-	Description string       `json:"description,omitempty"` // 索引描述信息
-}
-
-// createIndexRequest 创建索引的内部请求体（合并 opt + indexDef）
-type createIndexRequest struct {
-	VectorBucketName string       `json:"vectorBucketName,omitempty"`
-	VectorBucketQcs  string       `json:"vectorBucketQcs,omitempty"`
-	IndexName        string       `json:"indexName"`
-	Dimension        int          `json:"dimension"`
-	Metric           string       `json:"metric"`
-	Params           *IndexParams `json:"params,omitempty"`
-	Description      string       `json:"description,omitempty"`
-}
-
-// IndexInfo 索引信息
+// IndexInfo 索引信息（GetIndex 响应）
 type IndexInfo struct {
-	IndexQcs         string       `json:"indexQcs"`                   // 索引资源名称 (QCS)
-	IndexName        string       `json:"indexName"`                  // 索引名称
-	VectorBucketName string       `json:"vectorBucketName"`           // 向量桶名称
-	CreationTime     int64        `json:"creationTime"`               // 创建时间戳
-	Dimension        int          `json:"dimension"`                  // 向量维度
-	Metric           string       `json:"metric"`                     // 距离度量方式
-	Params           *IndexParams `json:"params,omitempty"`           // 索引参数
-	Description      string       `json:"description,omitempty"`      // 描述信息
-	Status           string       `json:"status,omitempty"`           // 索引状态
+	IndexQcs              string                 `json:"indexQcs"`                        // 索引资源名称 (QCS)
+	IndexName             string                 `json:"indexName"`                       // 索引名称
+	VectorBucketName      string                 `json:"vectorBucketName"`                // 向量桶名称
+	CreationTime          int64                  `json:"creationTime"`                    // 创建时间戳
+	DataType              string                 `json:"dataType,omitempty"`              // 向量数据类型
+	Dimension             int                    `json:"dimension"`                       // 向量维度
+	DistanceMetric        string                 `json:"distanceMetric"`                  // 距离度量方式
+	MetadataConfiguration *MetadataConfiguration `json:"metadataConfiguration,omitempty"` // 元数据配置
 }
 
 // CreateIndexResult 创建索引响应
 type CreateIndexResult struct {
-	Index *IndexInfo `json:"index"` // 索引信息
+	IndexQcs string `json:"indexQcs"` // 向量索引资源名称 (QCS)
 }
 
 // CreateIndex 创建向量索引
-//
-//	opt: 请求选项（指定目标向量桶）
-//	indexDef: 索引定义（名称、维度、度量方式等）
-//
 // https://cloud.tencent.com/document/product/436/127715
-func (s *VectorService) CreateIndex(ctx context.Context, opt *CreateIndexOptions, indexDef *IndexDefinition) (*CreateIndexResult, *Response, error) {
+func (s *VectorService) CreateIndex(ctx context.Context, opt *CreateIndexOptions) (*CreateIndexResult, *Response, error) {
 	var res CreateIndexResult
 	if opt == nil {
 		return nil, nil, fmt.Errorf("opt param nil")
 	}
-	if indexDef == nil {
-		return nil, nil, fmt.Errorf("indexDef param nil")
-	}
-	reqBody := &createIndexRequest{
-		VectorBucketName: opt.VectorBucketName,
-		VectorBucketQcs:  opt.VectorBucketQcs,
-		IndexName:        indexDef.IndexName,
-		Dimension:        indexDef.Dimension,
-		Metric:           indexDef.Metric,
-		Params:           indexDef.Params,
-		Description:      indexDef.Description,
-	}
-	buf, resp, err := s.baseSend(ctx, reqBody, "/CreateIndex", http.MethodPost)
+	buf, resp, err := s.baseSend(ctx, opt, "/CreateIndex", http.MethodPost)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -522,9 +489,9 @@ func (s *VectorService) CreateIndex(ctx context.Context, opt *CreateIndexOptions
 
 // GetIndexOptions 查询索引请求参数
 type GetIndexOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
+	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称，与 indexQcs 二选一
 	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName,omitempty"`        // 索引名称
+	IndexName        string `json:"indexName,omitempty"`        // 索引名称，当 indexQcs 有值时可选
 }
 
 // GetIndexResult 查询索引响应
@@ -533,6 +500,7 @@ type GetIndexResult struct {
 }
 
 // GetIndex 查询索引信息
+// https://cloud.tencent.com/document/product/436/127717
 func (s *VectorService) GetIndex(ctx context.Context, opt *GetIndexOptions) (*GetIndexResult, *Response, error) {
 	var res GetIndexResult
 	if opt == nil {
@@ -590,9 +558,9 @@ func (s *VectorService) ListIndexes(ctx context.Context, opt *ListIndexesOptions
 
 // DeleteIndexOptions 删除索引请求参数
 type DeleteIndexOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
+	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称，与 indexQcs 二选一
 	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName"`                  // 索引名称
+	IndexName        string `json:"indexName"`                  // 索引名称（必填）
 }
 
 // DeleteIndex 删除索引
@@ -612,8 +580,15 @@ type VectorData struct {
 	Float32 []float32 `json:"float32,omitempty"` // float32 类型的向量数据
 }
 
-// Vector 完整的向量信息
-type Vector struct {
+// InputVector 写入时的向量信息（data 必填）
+type InputVector struct {
+	Key      string                 `json:"key"`                // 向量主键（必填）
+	Data     *VectorData            `json:"data"`               // 向量数据（必填）
+	Metadata map[string]interface{} `json:"metadata,omitempty"` // 元数据（可选）
+}
+
+// OutputVector 读取时的向量信息（data 可选返回）
+type OutputVector struct {
 	Key      string                 `json:"key"`                // 向量主键
 	Data     *VectorData            `json:"data,omitempty"`     // 向量数据
 	Metadata map[string]interface{} `json:"metadata,omitempty"` // 元数据
@@ -628,10 +603,10 @@ type PutVectorsOptions struct {
 
 // putVectorsRequest 插入向量的内部请求体（合并 opt + vectors）
 type putVectorsRequest struct {
-	VectorBucketName string   `json:"vectorBucketName,omitempty"`
-	IndexQcs         string   `json:"indexQcs,omitempty"`
-	IndexName        string   `json:"indexName,omitempty"`
-	Vectors          []Vector `json:"vectors"`
+	VectorBucketName string        `json:"vectorBucketName,omitempty"`
+	IndexQcs         string        `json:"indexQcs,omitempty"`
+	IndexName        string        `json:"indexName,omitempty"`
+	Vectors          []InputVector `json:"vectors"`
 }
 
 // PutVectors 插入或更新向量数据
@@ -640,7 +615,7 @@ type putVectorsRequest struct {
 //	vectors: 向量数据列表，最大500条
 //
 // https://cloud.tencent.com/document/product/436/127719
-func (s *VectorService) PutVectors(ctx context.Context, opt *PutVectorsOptions, vectors []Vector) (*Response, error) {
+func (s *VectorService) PutVectors(ctx context.Context, opt *PutVectorsOptions, vectors []InputVector) (*Response, error) {
 	if opt == nil {
 		return nil, fmt.Errorf("opt param nil")
 	}
@@ -662,8 +637,8 @@ type GetVectorsOptions struct {
 	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
 	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
 	IndexName        string `json:"indexName,omitempty"`        // 索引名称
-	ReturnData       bool   `json:"returnData,omitempty"`       // 是否返回向量数据
-	ReturnMetadata   bool   `json:"returnMetadata,omitempty"`   // 是否返回元数据
+	ReturnData       *bool  `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
+	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
 }
 
 // getVectorsRequest 获取向量的内部请求体（合并 opt + keys）
@@ -672,13 +647,13 @@ type getVectorsRequest struct {
 	IndexQcs         string   `json:"indexQcs,omitempty"`
 	IndexName        string   `json:"indexName,omitempty"`
 	Keys             []string `json:"keys"`
-	ReturnData       bool     `json:"returnData,omitempty"`
-	ReturnMetadata   bool     `json:"returnMetadata,omitempty"`
+	ReturnData       *bool    `json:"returnData,omitempty"`
+	ReturnMetadata   *bool    `json:"returnMetadata,omitempty"`
 }
 
 // GetVectorsResult 获取向量响应
 type GetVectorsResult struct {
-	Vectors []Vector `json:"vectors"` // 向量列表
+	Vectors []OutputVector `json:"vectors"` // 向量列表
 }
 
 // GetVectors 获取指定向量
@@ -718,18 +693,18 @@ type ListVectorsOptions struct {
 	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
 	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
 	IndexName        string `json:"indexName,omitempty"`        // 索引名称
-	MaxResults       int    `json:"maxResults,omitempty"`       // 最大返回数量
+	MaxResults       int    `json:"maxResults,omitempty"`       // 最大返回数量，默认500，最大1000
 	NextToken        string `json:"nextToken,omitempty"`        // 分页标记
-	ReturnData       bool   `json:"returnData,omitempty"`       // 是否返回向量数据
-	ReturnMetadata   bool   `json:"returnMetadata,omitempty"`   // 是否返回元数据
-	SegmentCount     int    `json:"segmentCount,omitempty"`     // 分段总数
-	SegmentIndex     int    `json:"segmentIndex,omitempty"`     // 分段索引（从0开始）
+	ReturnData       *bool  `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
+	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
+	SegmentCount     int    `json:"segmentCount,omitempty"`     // 并行列举总段数，范围 [1, 16]
+	SegmentIndex     int    `json:"segmentIndex,omitempty"`     // 当前段索引（从0开始，需小于 segmentCount）
 }
 
 // ListVectorsResult 列出向量响应
 type ListVectorsResult struct {
-	Vectors   []Vector `json:"vectors"`             // 向量列表
-	NextToken string   `json:"nextToken,omitempty"` // 下一页分页标记
+	Vectors   []OutputVector `json:"vectors"`             // 向量列表
+	NextToken string         `json:"nextToken,omitempty"` // 下一页分页标记
 }
 
 // ListVectors 列出向量列表
@@ -793,9 +768,9 @@ type QueryVectorsOptions struct {
 	IndexQcs         string      `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
 	IndexName        string      `json:"indexName,omitempty"`        // 索引名称
 	Filter           interface{} `json:"filter,omitempty"`           // 过滤条件
-	ReturnData       bool        `json:"returnData,omitempty"`       // 是否返回向量数据
-	ReturnMetadata   bool        `json:"returnMetadata,omitempty"`   // 是否返回元数据
-	ReturnDistance   bool        `json:"returnDistance,omitempty"`   // 是否返回距离值
+	ReturnData       *bool       `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
+	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
+	ReturnDistance   *bool       `json:"returnDistance,omitempty"`   // 是否返回距离值，默认 false
 }
 
 // queryVectorsRequest 相似度搜索的内部请求体（合并 opt + queryVector + topK）
@@ -806,13 +781,13 @@ type queryVectorsRequest struct {
 	QueryVector      *VectorData `json:"queryVector"`
 	TopK             int         `json:"topK"`
 	Filter           interface{} `json:"filter,omitempty"`
-	ReturnData       bool        `json:"returnData,omitempty"`
-	ReturnMetadata   bool        `json:"returnMetadata,omitempty"`
-	ReturnDistance   bool        `json:"returnDistance,omitempty"`
+	ReturnData       *bool       `json:"returnData,omitempty"`
+	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"`
+	ReturnDistance   *bool       `json:"returnDistance,omitempty"`
 }
 
-// QueryVector 查询结果向量（包含距离）
-type QueryVector struct {
+// QueryOutputVector 查询结果向量（包含距离）
+type QueryOutputVector struct {
 	Key      string                 `json:"key"`                // 向量主键
 	Data     *VectorData            `json:"data,omitempty"`     // 向量数据
 	Metadata map[string]interface{} `json:"metadata,omitempty"` // 元数据
@@ -821,7 +796,7 @@ type QueryVector struct {
 
 // QueryVectorsResult 相似度搜索响应
 type QueryVectorsResult struct {
-	Vectors []QueryVector `json:"vectors"` // 结果向量列表
+	Vectors []QueryOutputVector `json:"vectors"` // 结果向量列表
 }
 
 // QueryVectors 向量相似度搜索

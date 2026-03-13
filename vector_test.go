@@ -313,15 +313,7 @@ func TestVectorService_PutVectorBucketPolicy(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	policy := map[string]interface{}{
-		"Statement": []interface{}{
-			map[string]interface{}{
-				"Effect":   "Allow",
-				"Action":   "cos:GetVectors",
-				"Resource": "*",
-			},
-		},
-	}
+	policy := `{"Statement":[{"Effect":"Allow","Action":"cos:GetVectors","Resource":"*"}]}`
 	opt := &PutVectorBucketPolicyOptions{
 		VectorBucketName: "examplebucket-1250000000",
 		Policy:           policy,
@@ -339,15 +331,7 @@ func TestVectorService_GetVectorBucketPolicy(t *testing.T) {
 	mux.HandleFunc("/GetVectorBucketPolicy", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, `{
-			"policy": {
-				"Statement": [
-					{
-						"Effect": "Allow",
-						"Action": "cos:GetVectors",
-						"Resource": "*"
-					}
-				]
-			}
+			"policy": "{\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"cos:GetVectors\",\"Resource\":\"*\"}]}"
 		}`)
 	})
 
@@ -358,8 +342,8 @@ func TestVectorService_GetVectorBucketPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Vector.GetVectorBucketPolicy returned error: %v", err)
 	}
-	if res.Policy == nil {
-		t.Error("Expected non-nil policy")
+	if res.Policy == "" {
+		t.Error("Expected non-empty policy")
 	}
 }
 
@@ -399,55 +383,32 @@ func TestVectorService_CreateIndex(t *testing.T) {
 		if req["vectorBucketName"] != "examplebucket-1250000000" {
 			t.Errorf("Expected vectorBucketName examplebucket-1250000000, got %v", req["vectorBucketName"])
 		}
+		if req["dataType"] != "float32" {
+			t.Errorf("Expected dataType float32, got %v", req["dataType"])
+		}
+		if req["distanceMetric"] != "cosine" {
+			t.Errorf("Expected distanceMetric cosine, got %v", req["distanceMetric"])
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, `{
-			"index": {
-				"indexQcs": "qcs::cosvector:ap-guangzhou:uid/1250000000:bucket/examplebucket-1250000000:index/test-index",
-				"indexName": "test-index",
-				"vectorBucketName": "examplebucket-1250000000",
-				"creationTime": 1735445700,
-				"dimension": 128,
-				"metric": "COSINE",
-				"params": {
-					"efConstruction": 200,
-					"m": 16
-				},
-				"status": "Active"
-			}
+			"indexQcs": "qcs::cosvector:ap-guangzhou:uid/1250000000:bucket/examplebucket-1250000000/index/test-index"
 		}`)
 	})
 
 	opt := &CreateIndexOptions{
 		VectorBucketName: "examplebucket-1250000000",
+		IndexName:        "test-index",
+		DataType:         "float32",
+		Dimension:        128,
+		DistanceMetric:   "cosine",
 	}
-	indexDef := &IndexDefinition{
-		IndexName: "test-index",
-		Dimension: 128,
-		Metric:    "COSINE",
-		Params: &IndexParams{
-			EfConstruction: 200,
-			M:              16,
-		},
-	}
-	res, _, err := client.Vector.CreateIndex(context.Background(), opt, indexDef)
+	res, _, err := client.Vector.CreateIndex(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("Vector.CreateIndex returned error: %v", err)
 	}
-	if res.Index == nil {
-		t.Fatal("Expected non-nil Index")
-	}
-	if res.Index.IndexName != "test-index" {
-		t.Errorf("Expected index name test-index, got %s", res.Index.IndexName)
-	}
-	if res.Index.Dimension != 128 {
-		t.Errorf("Expected dimension 128, got %d", res.Index.Dimension)
-	}
-	if res.Index.Status != "Active" {
-		t.Errorf("Expected status Active, got %s", res.Index.Status)
-	}
-	if res.Index.Params == nil || res.Index.Params.EfConstruction != 200 {
-		t.Error("Expected params with efConstruction=200")
+	if res.IndexQcs != "qcs::cosvector:ap-guangzhou:uid/1250000000:bucket/examplebucket-1250000000/index/test-index" {
+		t.Errorf("Expected indexQcs, got %s", res.IndexQcs)
 	}
 }
 
@@ -464,8 +425,8 @@ func TestVectorService_GetIndex(t *testing.T) {
 				"vectorBucketName": "examplebucket-1250000000",
 				"creationTime": 1735445700,
 				"dimension": 128,
-				"metric": "COSINE",
-				"status": "Active"
+				"dataType": "float32",
+				"distanceMetric": "cosine"
 			}
 		}`)
 	})
@@ -481,8 +442,8 @@ func TestVectorService_GetIndex(t *testing.T) {
 	if res.Index == nil {
 		t.Fatal("Expected non-nil Index")
 	}
-	if res.Index.Metric != "COSINE" {
-		t.Errorf("Expected metric COSINE, got %s", res.Index.Metric)
+	if res.Index.DistanceMetric != "cosine" {
+		t.Errorf("Expected distanceMetric cosine, got %s", res.Index.DistanceMetric)
 	}
 }
 
@@ -576,7 +537,7 @@ func TestVectorService_PutVectors(t *testing.T) {
 		VectorBucketName: "examplebucket-1250000000",
 		IndexName:        "test-index",
 	}
-	vectors := []Vector{
+	vectors := []InputVector{
 		{
 			Key:  "doc-001",
 			Data: &VectorData{Float32: []float32{0.1, 0.2, 0.3, 0.4}},
@@ -629,8 +590,8 @@ func TestVectorService_GetVectors(t *testing.T) {
 	opt := &GetVectorsOptions{
 		VectorBucketName: "examplebucket-1250000000",
 		IndexName:        "test-index",
-		ReturnData:       true,
-		ReturnMetadata:   true,
+		ReturnData:       Bool(true),
+		ReturnMetadata:   Bool(true),
 	}
 	keys := []string{"doc-001", "doc-002"}
 	res, _, err := client.Vector.GetVectors(context.Background(), opt, keys)
@@ -742,9 +703,9 @@ func TestVectorService_QueryVectors(t *testing.T) {
 	opt := &QueryVectorsOptions{
 		VectorBucketName: "examplebucket-1250000000",
 		IndexName:        "test-index",
-		ReturnData:       true,
-		ReturnMetadata:   true,
-		ReturnDistance:    true,
+		ReturnData:       Bool(true),
+		ReturnMetadata:   Bool(true),
+		ReturnDistance:    Bool(true),
 	}
 	queryVector := &VectorData{Float32: []float32{1.0, 2.0}}
 	res, _, err := client.Vector.QueryVectors(context.Background(), opt, queryVector, 5)
@@ -796,7 +757,7 @@ func TestVectorService_QueryVectorsWithFilter(t *testing.T) {
 				"$eq": "AI",
 			},
 		},
-		ReturnDistance: true,
+		ReturnDistance: Bool(true),
 	}
 	queryVector := &VectorData{Float32: []float32{1.0, 2.0}}
 	res, _, err := client.Vector.QueryVectors(context.Background(), opt, queryVector, 5)
@@ -982,7 +943,7 @@ func TestVectorService_Error_TooManyRequestsException(t *testing.T) {
 		VectorBucketName: "examplebucket-1250000000",
 		IndexName:        "test-index",
 	}
-	vectors := []Vector{{Key: "doc-001"}}
+	vectors := []InputVector{{Key: "doc-001", Data: &VectorData{Float32: []float32{0.1}}}}
 	_, err := client.Vector.PutVectors(context.Background(), opt, vectors)
 	if err == nil {
 		t.Fatal("Expected error for 429 response")
@@ -1280,15 +1241,9 @@ func TestVectorService_NilParams(t *testing.T) {
 		t.Error("Expected error for nil DeleteVectorBucketPolicy options")
 	}
 
-	_, _, err = client.Vector.CreateIndex(context.Background(), nil, nil)
+	_, _, err = client.Vector.CreateIndex(context.Background(), nil)
 	if err == nil {
 		t.Error("Expected error for nil CreateIndex options")
-	}
-
-	// CreateIndex: opt 非 nil 但 indexDef 为 nil
-	_, _, err = client.Vector.CreateIndex(context.Background(), &CreateIndexOptions{}, nil)
-	if err == nil {
-		t.Error("Expected error for nil CreateIndex indexDef")
 	}
 
 	_, _, err = client.Vector.GetIndex(context.Background(), nil)
