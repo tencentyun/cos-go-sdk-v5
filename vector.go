@@ -291,8 +291,7 @@ func (s *VectorService) CreateVectorBucket(ctx context.Context, opt *CreateVecto
 
 // GetVectorBucketOptions 查询向量桶请求参数
 type GetVectorBucketOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
 }
 
 // VectorBucketInfo 向量桶信息
@@ -327,8 +326,7 @@ func (s *VectorService) GetVectorBucket(ctx context.Context, opt *GetVectorBucke
 
 // DeleteVectorBucketOptions 删除向量桶请求参数
 type DeleteVectorBucketOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
 }
 
 // DeleteVectorBucket 删除向量桶
@@ -379,9 +377,8 @@ func (s *VectorService) ListVectorBuckets(ctx context.Context, opt *ListVectorBu
 
 // PutVectorBucketPolicyOptions 设置向量桶策略请求参数
 type PutVectorBucketPolicyOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称，与 VectorBucketQcs 二选一
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
-	Policy           string `json:"policy"`                     // 策略内容，JSON 格式的策略信息序列化后的字符串
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	Policy           string `json:"policy"`           // 策略内容，JSON 格式的策略信息序列化后的字符串
 }
 
 // PutVectorBucketPolicy 设置向量桶策略
@@ -395,8 +392,7 @@ func (s *VectorService) PutVectorBucketPolicy(ctx context.Context, opt *PutVecto
 
 // GetVectorBucketPolicyOptions 获取向量桶策略请求参数
 type GetVectorBucketPolicyOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
 }
 
 // GetVectorBucketPolicyResult 获取向量桶策略响应
@@ -422,8 +418,7 @@ func (s *VectorService) GetVectorBucketPolicy(ctx context.Context, opt *GetVecto
 
 // DeleteVectorBucketPolicyOptions 删除向量桶策略请求参数
 type DeleteVectorBucketPolicyOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
 }
 
 // DeleteVectorBucketPolicy 删除向量桶策略
@@ -444,8 +439,7 @@ type MetadataConfiguration struct {
 
 // CreateIndexOptions 创建索引请求参数
 type CreateIndexOptions struct {
-	VectorBucketName      string                 `json:"vectorBucketName,omitempty"`      // 向量桶名称，与 VectorBucketQcs 二选一
-	VectorBucketQcs       string                 `json:"vectorBucketQcs,omitempty"`       // 向量桶资源名称 (QCS)
+	VectorBucketName      string                 `json:"vectorBucketName"`                // 向量桶名称（必填）
 	IndexName             string                 `json:"indexName"`                       // 索引名称（必填）
 	DataType              string                 `json:"dataType"`                        // 向量数据类型，默认 float32（必填）
 	Dimension             int                    `json:"dimension"`                       // 向量维度，范围 [1, 4096]（必填）
@@ -489,9 +483,8 @@ func (s *VectorService) CreateIndex(ctx context.Context, opt *CreateIndexOptions
 
 // GetIndexOptions 查询索引请求参数
 type GetIndexOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称，与 indexQcs 二选一
-	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName,omitempty"`        // 索引名称，当 indexQcs 有值时可选
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`        // 索引名称（必填）
 }
 
 // GetIndexResult 查询索引响应
@@ -518,8 +511,7 @@ func (s *VectorService) GetIndex(ctx context.Context, opt *GetIndexOptions) (*Ge
 
 // ListIndexesOptions 列出索引请求参数
 type ListIndexesOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	VectorBucketQcs  string `json:"vectorBucketQcs,omitempty"`  // 向量桶资源名称 (QCS)
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
 	MaxResults       int    `json:"maxResults,omitempty"`       // 最大返回数量
 	NextToken        string `json:"nextToken,omitempty"`        // 分页标记
 	Prefix           string `json:"prefix,omitempty"`           // 索引名前缀过滤
@@ -558,9 +550,8 @@ func (s *VectorService) ListIndexes(ctx context.Context, opt *ListIndexesOptions
 
 // DeleteIndexOptions 删除索引请求参数
 type DeleteIndexOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称，与 indexQcs 二选一
-	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName"`                  // 索引名称（必填）
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`        // 索引名称（必填）
 }
 
 // DeleteIndex 删除索引
@@ -596,16 +587,14 @@ type OutputVector struct {
 
 // PutVectorsOptions 插入/更新向量请求选项（指定目标索引）
 type PutVectorsOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName,omitempty"`        // 索引名称
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`        // 索引名称（必填）
 }
 
 // putVectorsRequest 插入向量的内部请求体（合并 opt + vectors）
 type putVectorsRequest struct {
-	VectorBucketName string        `json:"vectorBucketName,omitempty"`
-	IndexQcs         string        `json:"indexQcs,omitempty"`
-	IndexName        string        `json:"indexName,omitempty"`
+	VectorBucketName string        `json:"vectorBucketName"`
+	IndexName        string        `json:"indexName"`
 	Vectors          []InputVector `json:"vectors"`
 }
 
@@ -624,7 +613,6 @@ func (s *VectorService) PutVectors(ctx context.Context, opt *PutVectorsOptions, 
 	}
 	reqBody := &putVectorsRequest{
 		VectorBucketName: opt.VectorBucketName,
-		IndexQcs:         opt.IndexQcs,
 		IndexName:        opt.IndexName,
 		Vectors:          vectors,
 	}
@@ -634,18 +622,16 @@ func (s *VectorService) PutVectors(ctx context.Context, opt *PutVectorsOptions, 
 
 // GetVectorsOptions 获取指定向量请求选项（指定目标索引和返回控制）
 type GetVectorsOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName,omitempty"`        // 索引名称
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`        // 索引名称（必填）
 	ReturnData       *bool  `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
 	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
 }
 
 // getVectorsRequest 获取向量的内部请求体（合并 opt + keys）
 type getVectorsRequest struct {
-	VectorBucketName string   `json:"vectorBucketName,omitempty"`
-	IndexQcs         string   `json:"indexQcs,omitempty"`
-	IndexName        string   `json:"indexName,omitempty"`
+	VectorBucketName string   `json:"vectorBucketName"`
+	IndexName        string   `json:"indexName"`
 	Keys             []string `json:"keys"`
 	ReturnData       *bool    `json:"returnData,omitempty"`
 	ReturnMetadata   *bool    `json:"returnMetadata,omitempty"`
@@ -672,7 +658,6 @@ func (s *VectorService) GetVectors(ctx context.Context, opt *GetVectorsOptions, 
 	}
 	reqBody := &getVectorsRequest{
 		VectorBucketName: opt.VectorBucketName,
-		IndexQcs:         opt.IndexQcs,
 		IndexName:        opt.IndexName,
 		Keys:             keys,
 		ReturnData:       opt.ReturnData,
@@ -690,9 +675,8 @@ func (s *VectorService) GetVectors(ctx context.Context, opt *GetVectorsOptions, 
 
 // ListVectorsOptions 列出向量请求参数
 type ListVectorsOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName,omitempty"`        // 索引名称
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`        // 索引名称（必填）
 	MaxResults       int    `json:"maxResults,omitempty"`       // 最大返回数量，默认500，最大1000
 	NextToken        string `json:"nextToken,omitempty"`        // 分页标记
 	ReturnData       *bool  `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
@@ -726,16 +710,14 @@ func (s *VectorService) ListVectors(ctx context.Context, opt *ListVectorsOptions
 
 // DeleteVectorsOptions 删除向量请求选项（指定目标索引）
 type DeleteVectorsOptions struct {
-	VectorBucketName string `json:"vectorBucketName,omitempty"` // 向量桶名称
-	IndexQcs         string `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName,omitempty"`        // 索引名称
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`        // 索引名称（必填）
 }
 
 // deleteVectorsRequest 删除向量的内部请求体（合并 opt + keys）
 type deleteVectorsRequest struct {
-	VectorBucketName string   `json:"vectorBucketName,omitempty"`
-	IndexQcs         string   `json:"indexQcs,omitempty"`
-	IndexName        string   `json:"indexName,omitempty"`
+	VectorBucketName string   `json:"vectorBucketName"`
+	IndexName        string   `json:"indexName"`
 	Keys             []string `json:"keys"`
 }
 
@@ -754,7 +736,6 @@ func (s *VectorService) DeleteVectors(ctx context.Context, opt *DeleteVectorsOpt
 	}
 	reqBody := &deleteVectorsRequest{
 		VectorBucketName: opt.VectorBucketName,
-		IndexQcs:         opt.IndexQcs,
 		IndexName:        opt.IndexName,
 		Keys:             keys,
 	}
@@ -764,9 +745,8 @@ func (s *VectorService) DeleteVectors(ctx context.Context, opt *DeleteVectorsOpt
 
 // QueryVectorsOptions 相似度搜索请求选项（指定目标索引和搜索控制）
 type QueryVectorsOptions struct {
-	VectorBucketName string      `json:"vectorBucketName,omitempty"` // 向量桶名称
-	IndexQcs         string      `json:"indexQcs,omitempty"`         // 索引资源名称 (QCS)
-	IndexName        string      `json:"indexName,omitempty"`        // 索引名称
+	VectorBucketName string      `json:"vectorBucketName"` // 向量桶名称（必填）
+	IndexName        string      `json:"indexName"`        // 索引名称（必填）
 	Filter           interface{} `json:"filter,omitempty"`           // 过滤条件
 	ReturnData       *bool       `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
 	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
@@ -775,9 +755,8 @@ type QueryVectorsOptions struct {
 
 // queryVectorsRequest 相似度搜索的内部请求体（合并 opt + queryVector + topK）
 type queryVectorsRequest struct {
-	VectorBucketName string      `json:"vectorBucketName,omitempty"`
-	IndexQcs         string      `json:"indexQcs,omitempty"`
-	IndexName        string      `json:"indexName,omitempty"`
+	VectorBucketName string      `json:"vectorBucketName"`
+	IndexName        string      `json:"indexName"`
 	QueryVector      *VectorData `json:"queryVector"`
 	TopK             int         `json:"topK"`
 	Filter           interface{} `json:"filter,omitempty"`
@@ -819,7 +798,6 @@ func (s *VectorService) QueryVectors(ctx context.Context, opt *QueryVectorsOptio
 	}
 	reqBody := &queryVectorsRequest{
 		VectorBucketName: opt.VectorBucketName,
-		IndexQcs:         opt.IndexQcs,
 		IndexName:        opt.IndexName,
 		QueryVector:      queryVector,
 		TopK:             topK,
