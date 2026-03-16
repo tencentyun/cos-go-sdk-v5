@@ -625,3 +625,11 @@ func Test_BaseURL_InnerCheck(t *testing.T) {
 		t.Errorf("BaseURL with trailing slash should pass Check: %v", withSlash)
 	}
 }
+
+func TestUniqueGrantID(t *testing.T) {
+	ids := []string{"abc", "abc", "ab"}
+	actual := uniqueGrantID(ids)
+	if actual != "abc,ab" {
+		t.Errorf("expect uniqueIDs to be abc,ab, got %v", actual)
+	}
+}
