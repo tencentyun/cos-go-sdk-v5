@@ -44,11 +44,11 @@ var (
 	)
 
 	// {<http://>|<https://>}{bucketname-appid}.{cos|cos-internal|cos-website|ci}.{region}.{myqcloud.com/tencentcos.cn}{/}
-	hostSuffix            = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
-	hostPrefix            = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
-	metaInsightHostPrefix = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}((cos|cos-internal|cos-website|ci)\.[a-z-1]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	hostSuffix            = regexp.MustCompile(`^.*((cos|cos-internal|cos-website|ci)\.[a-z0-9-]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	hostPrefix            = regexp.MustCompile(`^(http://|https://){0,1}([a-z0-9-]+-[0-9]+\.){0,1}((cos|cos-internal|cos-website|ci)\.[a-z0-9-]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
+	metaInsightHostPrefix = regexp.MustCompile(`^(http://|https://){0,1}([0-9]+\.){1}((cos|cos-internal|cos-website|ci)\.[a-z0-9-]+|file)\.(myqcloud\.com|tencentcos\.cn).*$`)
 	bucketChecker         = regexp.MustCompile(`^[a-z0-9-]+-[0-9]+$`)
-	regionChecker         = regexp.MustCompile(`^[a-z-1]+$`)
+	regionChecker         = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 	// 校验传入的url
 	domainSuffix        = regexp.MustCompile(`^.*\.(myqcloud\.com(:[0-9]+){0,1}|tencentcos\.cn(:[0-9]+){0,1})$`)

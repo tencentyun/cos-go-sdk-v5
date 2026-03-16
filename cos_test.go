@@ -350,3 +350,278 @@ func Test_BaseURL(t *testing.T) {
 		t.Errorf("BaseURL check failed: %v", u)
 	}
 }
+
+// ==================== hostSuffix 正则测试 ====================
+
+func Test_HostSuffix(t *testing.T) {
+	// 应匹配的 COS 标准域名后缀
+	matchCases := []string{
+		"https://bucket-123.cos.ap-guangzhou.myqcloud.com",
+		"http://bucket-123.cos-internal.ap-beijing.myqcloud.com",
+		"https://bucket-123.cos-website.ap-shanghai.myqcloud.com",
+		"https://bucket-123.ci.ap-chengdu.myqcloud.com",
+		"https://bucket-123.cos.ap-guangzhou.tencentcos.cn",
+		"http://bucket-123.cos-internal.ap-beijing.tencentcos.cn",
+		"https://bucket-123.cos-website.ap-shanghai.tencentcos.cn",
+		"https://bucket-123.ci.ap-chengdu.tencentcos.cn",
+		"https://file.myqcloud.com",
+		"https://file.tencentcos.cn",
+		"https://bucket-123.cos.accelerate.myqcloud.com",
+		"https://cos.ap-guangzhou.myqcloud.com",
+		"https://bucket-123.cos.ap-guangzhou.myqcloud.com/key/path",
+	}
+	for _, c := range matchCases {
+		if !hostSuffix.MatchString(c) {
+			t.Errorf("hostSuffix should match: %v", c)
+		}
+	}
+
+	// 不应匹配的非 COS 域名
+	noMatchCases := []string{
+		"https://example.com",
+		"https://bucket-123.s3.amazonaws.com",
+		"https://myqcloud.com",
+		"https://tencentcos.cn",
+		"https://bucket.other.mysite.com",
+	}
+	for _, c := range noMatchCases {
+		if hostSuffix.MatchString(c) {
+			t.Errorf("hostSuffix should not match: %v", c)
+		}
+	}
+}
+
+// ==================== hostPrefix 正则测试 ====================
+
+func Test_HostPrefix(t *testing.T) {
+	// 合法的带 bucket-appid 前缀的域名
+	matchCases := []string{
+		"https://bucket-123456.cos.ap-guangzhou.myqcloud.com",
+		"http://test-appid-999.cos-internal.ap-beijing.myqcloud.com",
+		"https://my-bucket-123.cos-website.ap-shanghai.tencentcos.cn",
+		"https://abc-0.ci.ap-chengdu.myqcloud.com",
+		// 无 bucket 前缀但 hostPrefix 允许（{0,1} 表示可选）
+		"https://cos.ap-guangzhou.myqcloud.com",
+		"http://cos-internal.ap-beijing.tencentcos.cn",
+		"https://file.myqcloud.com",
+		"https://file.tencentcos.cn",
+	}
+	for _, c := range matchCases {
+		if !hostPrefix.MatchString(c) {
+			t.Errorf("hostPrefix should match: %v", c)
+		}
+	}
+
+	// 不合法的前缀（bucket 名不以数字结尾的 appid 格式，或 SSRF 类攻击 URL）
+	noMatchCases := []string{
+		"https://bucket.cos.ap-guangzhou@attack.com/.myqcloud.com",
+		"https://example.com",
+	}
+	for _, c := range noMatchCases {
+		if hostPrefix.MatchString(c) {
+			t.Errorf("hostPrefix should not match: %v", c)
+		}
+	}
+}
+
+// ==================== domainSuffix 正则测试 ====================
+
+func Test_DomainSuffix(t *testing.T) {
+	// 应匹配：以 .myqcloud.com 或 .tencentcos.cn 结尾（可带端口）
+	matchCases := []string{
+		"cos.ap-guangzhou.myqcloud.com",
+		"bucket-123.cos.ap-guangzhou.myqcloud.com",
+		"bucket-123.cos.ap-guangzhou.myqcloud.com:8080",
+		"bucket-123.cos.ap-guangzhou.tencentcos.cn",
+		"bucket-123.cos.ap-guangzhou.tencentcos.cn:443",
+		"service.cos.myqcloud.com",
+		"service.cos-internal.tencentcos.cn:80",
+		"https://bucket-123.cos.ap-guangzhou-3.myqcloud.com",
+		"http://bucket-123.cos.ap-guangzhou-2.tencentcos.cn:8080",
+	}
+	for _, c := range matchCases {
+		if !domainSuffix.MatchString(c) {
+			t.Errorf("domainSuffix should match: %v", c)
+		}
+	}
+
+	// 不应匹配
+	noMatchCases := []string{
+		"myqcloud.com",         // 缺少子域名前缀的点
+		"tencentcos.cn",        // 缺少子域名前缀的点
+		"example.com",          // 非腾讯云域名
+		"cos.amazonaws.com",    // 非腾讯云域名
+		"bucket.myqcloud.org",  // 后缀不对
+		"bucket.tencentcos.com", // 后缀不对
+	}
+	for _, c := range noMatchCases {
+		if domainSuffix.MatchString(c) {
+			t.Errorf("domainSuffix should not match: %v", c)
+		}
+	}
+}
+
+// ==================== bucketDomainChecker 正则测试 ====================
+
+func Test_BucketDomainChecker(t *testing.T) {
+	// 合法的 bucket 域名格式
+	matchCases := []string{
+		"https://bucket-123.cos.ap-guangzhou.myqcloud.com",
+		"http://bucket-123.cos-internal.ap-beijing.tencentcos.cn",
+		"https://bucket-123.cos.accelerate.myqcloud.com",
+		"http://service.cos.myqcloud.com",
+		"https://cos.ap-guangzhou.myqcloud.com",
+		"http://bucket-123.cos.ap-guangzhou.myqcloud.com:8080",
+		"https://bucket-123.cos.ap-guangzhou.tencentcos.cn:443",
+		"https://cluster-1.cos-2.ap-guangzhou.myqcloud.com",
+		"https://test-1250000.global.tencentcos.cn",
+		"http://1.cos-c-internal.ap-singapore.tencentcos.cn",
+		// 无 scheme
+		"bucket-123.cos.ap-guangzhou.myqcloud.com",
+	}
+	for _, c := range matchCases {
+		if !bucketDomainChecker.MatchString(c) {
+			t.Errorf("bucketDomainChecker should match: %v", c)
+		}
+	}
+
+	// 不合法的域名格式（SSRF 攻击类）
+	noMatchCases := []string{
+		"https://cos@qq.com/.myqcloud.com",
+		"https://bucket.cos.ap-chengdu@123.com/.myqcloud.com",
+		"https://bucket.cos.ap-chengdu@123.com/.myqcloud.com:443",
+		// 大写字母
+		"https://Bucket-123.cos.ap-guangzhou.myqcloud.com",
+		// 特殊字符
+		"https://bucket_123.cos.ap-guangzhou.myqcloud.com",
+	}
+	for _, c := range noMatchCases {
+		if bucketDomainChecker.MatchString(c) {
+			t.Errorf("bucketDomainChecker should not match: %v", c)
+		}
+	}
+}
+
+// ==================== checkURL 函数测试 ====================
+
+func Test_CheckURL(t *testing.T) {
+	// nil URL 应返回 false
+	if checkURL(nil) {
+		t.Errorf("checkURL(nil) should return false")
+	}
+
+	// 合法 URL：COS 标准域名带 bucket-appid 前缀
+	validCases := []string{
+		"https://bucket-123.cos.ap-guangzhou.myqcloud.com",
+		"http://bucket-123.cos-internal.ap-beijing.myqcloud.com",
+		"https://bucket-123.cos-website.ap-shanghai.tencentcos.cn",
+		"https://bucket-123.ci.ap-chengdu.myqcloud.com",
+		"https://bucket-123.cos.accelerate.myqcloud.com",
+		"https://file.myqcloud.com",
+		"https://file.tencentcos.cn",
+		// 非 COS 域名（自定义域名），checkURL 应返回 true
+		"https://cdn.example.com",
+		"https://my-custom-domain.com/path",
+		// 无 bucket 前缀的 COS 服务域名也是合法的
+		"https://cos.ap-guangzhou.myqcloud.com",
+	}
+	for _, c := range validCases {
+		u, _ := url.Parse(c)
+		if !checkURL(u) {
+			t.Errorf("checkURL should return true for: %v", c)
+		}
+	}
+
+	// SSRF 类攻击 URL: url.Parse 后 hostname 为 attack.com（@ 前为 userinfo），
+	// 不匹配 COS 域名后缀，checkURL 不拦截（此类场景由 BaseURL.Check 拦截）
+	ssrfCases := []string{
+		"https://bucket.cos.ap-guangzhou@attack.com/.myqcloud.com",
+	}
+	for _, c := range ssrfCases {
+		u, _ := url.Parse(c)
+		if !checkURL(u) {
+			t.Errorf("checkURL should return true for non-COS hostname SSRF URL (handled by BaseURL.Check): %v", c)
+		}
+	}
+
+	// 缺少 Scheme
+	u, _ := url.Parse("bucket-123.cos.ap-guangzhou.myqcloud.com")
+	if checkURL(u) {
+		t.Errorf("checkURL should return false when scheme is empty")
+	}
+}
+
+// ==================== BaseURL.Check + innerCheck 综合测试 ====================
+
+func Test_BaseURL_InnerCheck(t *testing.T) {
+	// nil URL 字段应通过（innerCheck 对 nil 返回 true）
+	if !(&BaseURL{}).Check() {
+		t.Errorf("BaseURL with all nil should pass Check")
+	}
+
+	// 只设置部分字段为 nil，其他为合法
+	u, _ := url.Parse("https://bucket-123.cos.ap-guangzhou.myqcloud.com")
+	if !(&BaseURL{BucketURL: u}).Check() {
+		t.Errorf("BaseURL with only BucketURL should pass Check")
+	}
+	if !(&BaseURL{ServiceURL: u}).Check() {
+		t.Errorf("BaseURL with only ServiceURL should pass Check")
+	}
+	if !(&BaseURL{BatchURL: u}).Check() {
+		t.Errorf("BaseURL with only BatchURL should pass Check")
+	}
+
+	// 无 scheme 应失败
+	noScheme, _ := url.Parse("bucket-123.cos.ap-guangzhou.myqcloud.com")
+	if (&BaseURL{BucketURL: noScheme}).Check() {
+		t.Errorf("BaseURL without scheme should fail Check")
+	}
+
+	// 非腾讯云域名（不匹配 domainSuffix），不校验格式，应通过
+	custom, _ := url.Parse("https://my-custom-cdn.example.com")
+	if !(&BaseURL{BucketURL: custom}).Check() {
+		t.Errorf("BaseURL with custom domain should pass Check")
+	}
+
+	// 腾讯云域名但格式非法（SSRF 类攻击）
+	ssrf, _ := url.Parse("https://cos@qq.com/.myqcloud.com")
+	if (&BaseURL{BucketURL: ssrf}).Check() {
+		t.Errorf("BaseURL with SSRF URL in BucketURL should fail Check")
+	}
+	if (&BaseURL{ServiceURL: ssrf}).Check() {
+		t.Errorf("BaseURL with SSRF URL in ServiceURL should fail Check")
+	}
+	if (&BaseURL{BatchURL: ssrf}).Check() {
+		t.Errorf("BaseURL with SSRF URL in BatchURL should fail Check")
+	}
+
+	// 带端口的合法 URL
+	withPort, _ := url.Parse("http://bucket-123.cos.ap-guangzhou.myqcloud.com:8080")
+	if !(&BaseURL{BucketURL: withPort}).Check() {
+		t.Errorf("BaseURL with port should pass Check: %v", withPort)
+	}
+
+	// 带端口的 tencentcos.cn 域名
+	withPortTcn, _ := url.Parse("https://bucket-123.cos.ap-guangzhou.tencentcos.cn:443")
+	if !(&BaseURL{BucketURL: withPortTcn}).Check() {
+		t.Errorf("BaseURL with tencentcos.cn port should pass Check: %v", withPortTcn)
+	}
+
+	// 三个字段其中一个非法，整体应失败
+	valid, _ := url.Parse("https://bucket-123.cos.ap-guangzhou.myqcloud.com")
+	if (&BaseURL{BucketURL: valid, ServiceURL: ssrf, BatchURL: valid}).Check() {
+		t.Errorf("BaseURL should fail if any URL is invalid")
+	}
+	if (&BaseURL{BucketURL: ssrf, ServiceURL: valid, BatchURL: valid}).Check() {
+		t.Errorf("BaseURL should fail if BucketURL is invalid")
+	}
+	if (&BaseURL{BucketURL: valid, ServiceURL: valid, BatchURL: ssrf}).Check() {
+		t.Errorf("BaseURL should fail if BatchURL is invalid")
+	}
+
+	// 带路径后缀的合法 URL（尾部 / 会被 TrimRight 去除）
+	withSlash, _ := url.Parse("https://bucket-123.cos.ap-guangzhou.myqcloud.com/")
+	if !(&BaseURL{BucketURL: withSlash}).Check() {
+		t.Errorf("BaseURL with trailing slash should pass Check: %v", withSlash)
+	}
+}

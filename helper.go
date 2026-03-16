@@ -49,6 +49,83 @@ func calCRC64(fd io.Reader) (uint64, error) {
 	return sum, nil
 }
 
+// CRC64Combine 合并两个 CRC64 值（适用于 CRC64-ECMA 反射算法）
+// crc1 是前一段数据的 CRC64，crc2 是后一段数据的 CRC64，len2 是后一段数据的长度
+func CRC64Combine(crc1, crc2 uint64, len2 int64) uint64 {
+	if len2 == 0 {
+		return crc1
+	}
+	return crc64Combine(crc1, crc2, len2)
+}
+
+func crc64Combine(crc1, crc2 uint64, len2 int64) uint64 {
+	// CRC64-ECMA reflected polynomial (Go's crc64.ECMA uses reflected/LSB-first)
+	const poly uint64 = 0xC96C5795D7870F42
+
+	var even [64]uint64
+	var odd [64]uint64
+
+	if len2 <= 0 {
+		return crc1
+	}
+
+	// put operator for one zero bit in odd (reflected: right-shift based)
+	// For reflected CRC, the operator for appending a zero bit is:
+	// if (crc & 1) then (crc >> 1) ^ poly else (crc >> 1)
+	// This is represented as a matrix where:
+	// - odd[0] = poly (applied when bit 0 is set)
+	// - odd[n] = 1 << (n-1) for n >= 1 (right shift by 1)
+	odd[0] = poly
+	for n := 1; n < 64; n++ {
+		odd[n] = uint64(1) << uint(n-1)
+	}
+
+	// put operator for two zero bits in even
+	gf2MatrixSquare(&even, &odd)
+	// put operator for four zero bits in odd
+	gf2MatrixSquare(&odd, &even)
+
+	// apply len2 zeros to crc1 (first square will put the operator for one
+	// zero byte, eight zero bits, in even)
+	for len2 != 0 {
+		gf2MatrixSquare(&even, &odd)
+		if len2&1 != 0 {
+			crc1 = gf2MatrixTimes(&even, crc1)
+		}
+		len2 >>= 1
+
+		if len2 == 0 {
+			break
+		}
+
+		gf2MatrixSquare(&odd, &even)
+		if len2&1 != 0 {
+			crc1 = gf2MatrixTimes(&odd, crc1)
+		}
+		len2 >>= 1
+	}
+
+	crc1 ^= crc2
+	return crc1
+}
+
+func gf2MatrixTimes(mat *[64]uint64, vec uint64) uint64 {
+	var sum uint64
+	for i := 0; vec != 0; i++ {
+		if vec&1 != 0 {
+			sum ^= mat[i]
+		}
+		vec >>= 1
+	}
+	return sum
+}
+
+func gf2MatrixSquare(square, mat *[64]uint64) {
+	for n := 0; n < 64; n++ {
+		square[n] = gf2MatrixTimes(mat, mat[n])
+	}
+}
+
 // cloneRequest returns a clone of the provided *http.Request. The clone is a
 // shallow copy of the struct and its Header map.
 func cloneRequest(r *http.Request) *http.Request {
