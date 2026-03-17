@@ -154,8 +154,10 @@ func (r *VectorErrorResponse) Error() string {
 	}
 	var reqURL string
 	if r.Response != nil && r.Response.Request != nil {
-		reqURL, _ = decodeURIComponent(r.Response.Request.URL.String())
-		if reqURL == "" {
+		var err error
+		reqURL, err = decodeURIComponent(r.Response.Request.URL.String())
+		if err != nil {
+			// 解码失败时使用原始URL作为降级策略
 			reqURL = r.Response.Request.URL.String()
 		}
 	}
