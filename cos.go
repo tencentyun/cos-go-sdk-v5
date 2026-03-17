@@ -77,6 +77,8 @@ type BaseURL struct {
 	FetchURL *url.URL
 	// 访问 MetaInsight 的基础 URL
 	MetaInsightURL *url.URL
+	// 访问 Vector 的基础 URL
+	VectorURL *url.URL
 }
 
 func (*BaseURL) innerCheck(u *url.URL, reg *regexp.Regexp) bool {
@@ -159,6 +161,7 @@ type Client struct {
 	Batch       *BatchService
 	CI          *CIService
 	MetaInsight *MetaInsightService
+	Vector      *VectorService
 
 	Conf *Config
 
@@ -197,6 +200,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 		baseURL.CIURL = uri.CIURL
 		baseURL.FetchURL = uri.FetchURL
 		baseURL.MetaInsightURL = uri.MetaInsightURL
+		baseURL.VectorURL = uri.VectorURL
 	}
 	if baseURL.ServiceURL == nil {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)
@@ -229,6 +233,7 @@ func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	c.Batch = (*BatchService)(&c.common)
 	c.CI = (*CIService)(&c.common)
 	c.MetaInsight = (*MetaInsightService)(&c.common)
+	c.Vector = (*VectorService)(&c.common)
 	return c
 }
 
