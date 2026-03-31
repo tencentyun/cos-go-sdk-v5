@@ -196,7 +196,12 @@ func checkVectorResponse(r *http.Response) error {
 	// 读取并解析 JSON 错误体
 	data, err := ioutil.ReadAll(r.Body)
 	if err == nil && len(data) > 0 {
-		json.Unmarshal(data, vectorError)
+		if jsonErr := json.Unmarshal(data, vectorError); jsonErr != nil {
+			// JSON 解析失败时将原始响应体作为 message（可能是 HTML 错误页面等）
+			if vectorError.Message == "" {
+				vectorError.Message = string(data)
+			}
+		}
 	}
 
 	return vectorError
