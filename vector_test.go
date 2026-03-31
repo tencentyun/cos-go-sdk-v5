@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -21,6 +23,58 @@ func vectorSetup() (mux *http.ServeMux, server *httptest.Server, client *Client)
 	u, _ := url.Parse(server.URL)
 	client = NewClient(&BaseURL{VectorURL: u}, nil)
 	return
+}
+
+// deleteVectorsByActualCount 模拟文档示例中的“按实际向量数量分批删除”逻辑
+func deleteVectorsByActualCount(ctx context.Context, client *Client, bucketName, indexName string, batchSize int) (total int, deleted int, err error) {
+	if batchSize <= 0 {
+		return 0, 0, fmt.Errorf("batchSize must be greater than 0")
+	}
+
+	listOpt := &ListVectorsOptions{
+		VectorBucketName: bucketName,
+		IndexName:        indexName,
+		MaxResults:       1000,
+	}
+
+	allKeys := make([]string, 0, 1000)
+	for {
+		listRes, _, listErr := client.Vector.ListVectors(ctx, listOpt)
+		if listErr != nil {
+			return 0, 0, listErr
+		}
+		for _, v := range listRes.Vectors {
+			allKeys = append(allKeys, v.Key)
+		}
+		if listRes.NextToken == "" {
+			break
+		}
+		listOpt.NextToken = listRes.NextToken
+	}
+
+	total = len(allKeys)
+	if total == 0 {
+		return 0, 0, nil
+	}
+
+	deleteOpt := &DeleteVectorsOptions{
+		VectorBucketName: bucketName,
+		IndexName:        indexName,
+	}
+
+	for i := 0; i < total; i += batchSize {
+		end := i + batchSize
+		if end > total {
+			end = total
+		}
+		_, delErr := client.Vector.DeleteVectors(ctx, deleteOpt, allKeys[i:end])
+		if delErr != nil {
+			return total, deleted, delErr
+		}
+		deleted += end - i
+	}
+
+	return total, deleted, nil
 }
 
 // ==================== NewVectorURL 测试 ====================
@@ -642,6 +696,95 @@ func TestVectorService_ListVectors(t *testing.T) {
 	}
 }
 
+func TestVectorService_ListVectors_SegmentIndexZeroShouldBeSent(t *testing.T) {
+	mux, server, client := vectorSetup()
+	defer server.Close()
+
+	mux.HandleFunc("/ListVectors", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		var req map[string]interface{}
+		_ = json.Unmarshal(body, &req)
+
+		if req["segmentCount"] != float64(4) {
+			t.Fatalf("Expected segmentCount=4, got %v", req["segmentCount"])
+		}
+		segVal, ok := req["segmentIndex"]
+		if !ok {
+			t.Fatal("Expected segmentIndex to exist in request body")
+		}
+		if segVal != float64(0) {
+			t.Fatalf("Expected segmentIndex=0, got %v", segVal)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"vectors": []}`)
+	})
+
+	opt := &ListVectorsOptions{
+		VectorBucketName: "examplebucket-1250000000",
+		IndexName:        "test-index",
+		SegmentCount:     4,
+		SegmentIndex:     0,
+	}
+	_, _, err := client.Vector.ListVectors(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Vector.ListVectors returned error: %v", err)
+	}
+}
+
+func TestVectorService_ListVectors_SegmentParamsValidation(t *testing.T) {
+	_, server, client := vectorSetup()
+	defer server.Close()
+
+	tests := []struct {
+		name string
+		opt  *ListVectorsOptions
+		want string
+	}{
+		{
+			name: "segmentIndex without segmentCount",
+			opt: &ListVectorsOptions{
+				VectorBucketName: "examplebucket-1250000000",
+				IndexName:        "test-index",
+				SegmentIndex:     1,
+			},
+			want: "segmentIndex requires segmentCount",
+		},
+		{
+			name: "segmentCount out of range",
+			opt: &ListVectorsOptions{
+				VectorBucketName: "examplebucket-1250000000",
+				IndexName:        "test-index",
+				SegmentCount:     17,
+				SegmentIndex:     0,
+			},
+			want: "segmentCount must be in [1,16]",
+		},
+		{
+			name: "segmentIndex out of range",
+			opt: &ListVectorsOptions{
+				VectorBucketName: "examplebucket-1250000000",
+				IndexName:        "test-index",
+				SegmentCount:     4,
+				SegmentIndex:     4,
+			},
+			want: "segmentIndex must be in [0,segmentCount)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := client.Vector.ListVectors(context.Background(), tt.opt)
+			if err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("expected error containing %q, got %q", tt.want, err.Error())
+			}
+		})
+	}
+}
+
 func TestVectorService_DeleteVectors(t *testing.T) {
 	mux, server, client := vectorSetup()
 	defer server.Close()
@@ -666,6 +809,112 @@ func TestVectorService_DeleteVectors(t *testing.T) {
 	_, err := client.Vector.DeleteVectors(context.Background(), opt, keys)
 	if err != nil {
 		t.Fatalf("Vector.DeleteVectors returned error: %v", err)
+	}
+}
+
+func TestVectorService_DeleteVectorsBatchByActualCount(t *testing.T) {
+	testCases := []struct {
+		name               string
+		totalVectors       int
+		expectDeleteBatches []int
+		wantListCalls      int
+	}{
+		{
+			name:               "no vectors",
+			totalVectors:       0,
+			expectDeleteBatches: []int{},
+			wantListCalls:      1,
+		},
+		{
+			name:               "less than one batch",
+			totalVectors:       320,
+			expectDeleteBatches: []int{320},
+			wantListCalls:      1,
+		},
+		{
+			name:               "cross multiple batches",
+			totalVectors:       1201,
+			expectDeleteBatches: []int{500, 500, 201},
+			wantListCalls:      4,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mux, server, client := vectorSetup()
+			defer server.Close()
+
+			allKeys := make([]string, 0, tc.totalVectors)
+			for i := 0; i < tc.totalVectors; i++ {
+				allKeys = append(allKeys, fmt.Sprintf("vec-%04d", i))
+			}
+
+			const pageSize = 400
+			listCalls := 0
+			deleteBatchLens := make([]int, 0)
+
+			mux.HandleFunc("/ListVectors", func(w http.ResponseWriter, r *http.Request) {
+				listCalls++
+				body, _ := ioutil.ReadAll(r.Body)
+				var req ListVectorsOptions
+				_ = json.Unmarshal(body, &req)
+
+				start := 0
+				if req.NextToken != "" {
+					offset, convErr := strconv.Atoi(req.NextToken)
+					if convErr != nil {
+						t.Fatalf("invalid nextToken %q: %v", req.NextToken, convErr)
+					}
+					start = offset
+				}
+				if start > len(allKeys) {
+					start = len(allKeys)
+				}
+
+				end := start + pageSize
+				if end > len(allKeys) {
+					end = len(allKeys)
+				}
+
+				vectors := make([]OutputVector, 0, end-start)
+				for _, k := range allKeys[start:end] {
+					vectors = append(vectors, OutputVector{Key: k})
+				}
+
+				res := ListVectorsResult{Vectors: vectors}
+				if end < len(allKeys) {
+					res.NextToken = fmt.Sprintf("%d", end)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(res)
+			})
+
+			mux.HandleFunc("/DeleteVectors", func(w http.ResponseWriter, r *http.Request) {
+				body, _ := ioutil.ReadAll(r.Body)
+				var req deleteVectorsRequest
+				_ = json.Unmarshal(body, &req)
+				deleteBatchLens = append(deleteBatchLens, len(req.Keys))
+				w.WriteHeader(http.StatusOK)
+			})
+
+			total, deleted, err := deleteVectorsByActualCount(context.Background(), client, "examplebucket-1250000000", "test-index", 500)
+			if err != nil {
+				t.Fatalf("deleteVectorsByActualCount returned error: %v", err)
+			}
+			if total != tc.totalVectors {
+				t.Fatalf("total mismatch: got %d, want %d", total, tc.totalVectors)
+			}
+			if deleted != tc.totalVectors {
+				t.Fatalf("deleted mismatch: got %d, want %d", deleted, tc.totalVectors)
+			}
+			if listCalls != tc.wantListCalls {
+				t.Fatalf("list call count mismatch: got %d, want %d", listCalls, tc.wantListCalls)
+			}
+			if !reflect.DeepEqual(deleteBatchLens, tc.expectDeleteBatches) {
+				t.Fatalf("delete batches mismatch: got %v, want %v", deleteBatchLens, tc.expectDeleteBatches)
+			}
+		})
 	}
 }
 
@@ -1357,16 +1606,7 @@ func TestVectorErrorResponse_Error(t *testing.T) {
 
 	// 检查格式包含关键信息
 	for _, expected := range []string{"POST", "CreateVectorBucket", "400", "ValidationException", "VectorBucketName is invalid", "req-123", "/vectorBucketName"} {
-		found := false
-		if len(errStr) > 0 {
-			for i := 0; i <= len(errStr)-len(expected); i++ {
-				if errStr[i:i+len(expected)] == expected {
-					found = true
-					break
-				}
-			}
-		}
-		if !found {
+		if !strings.Contains(errStr, expected) {
 			t.Errorf("Error string missing expected content '%s': %s", expected, errStr)
 		}
 	}

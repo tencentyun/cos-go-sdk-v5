@@ -18,7 +18,15 @@ var (
 
 func retrysetup(host string) *Client {
 	u, _ := url.Parse("http://" + host)
-	cli := NewClient(&BaseURL{u, u, u, u, u, u, u}, &http.Client{
+	cli := NewClient(&BaseURL{
+		BucketURL:      u,
+		ServiceURL:     u,
+		BatchURL:       u,
+		CIURL:          u,
+		FetchURL:       u,
+		MetaInsightURL: u,
+		VectorURL:      u,
+	}, &http.Client{
 		Timeout: 6 * time.Second,
 	})
 	cli.Conf.RetryOpt.Count = 2

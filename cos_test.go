@@ -33,7 +33,15 @@ func setup() {
 	mux = http.NewServeMux()
 	server = httptest.NewServer(mux)
 	u, _ := url.Parse(server.URL)
-	client = NewClient(&BaseURL{u, u, u, u, u, u, u}, nil)
+	client = NewClient(&BaseURL{
+		BucketURL:      u,
+		ServiceURL:     u,
+		BatchURL:       u,
+		CIURL:          u,
+		FetchURL:       u,
+		MetaInsightURL: u,
+		VectorURL:      u,
+	}, nil)
 }
 
 // teardown closes the test HTTP server.
