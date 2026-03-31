@@ -422,9 +422,10 @@ type DeleteVectorBucketPolicyOptions struct {
 }
 
 // DeleteVectorBucketPolicy 删除向量桶策略
+// https://cloud.tencent.com/document/product/436/127733
 func (s *VectorService) DeleteVectorBucketPolicy(ctx context.Context, opt *DeleteVectorBucketPolicyOptions) (*Response, error) {
 	if opt == nil {
-		return nil, fmt.Errorf("opt param nil")
+		return nil, fmt.Errorf("DeleteVectorBucketPolicy: opt is required")
 	}
 	_, resp, err := s.baseSend(ctx, opt, "/DeleteVectorBucketPolicy", http.MethodPost)
 	return resp, err
@@ -651,10 +652,10 @@ type GetVectorsResult struct {
 func (s *VectorService) GetVectors(ctx context.Context, opt *GetVectorsOptions, keys []string) (*GetVectorsResult, *Response, error) {
 	var res GetVectorsResult
 	if opt == nil {
-		return nil, nil, fmt.Errorf("opt param nil")
+		return nil, nil, fmt.Errorf("GetVectors: opt is required")
 	}
 	if len(keys) == 0 {
-		return nil, nil, fmt.Errorf("keys param is empty")
+		return nil, nil, fmt.Errorf("GetVectors: keys is empty")
 	}
 	reqBody := &getVectorsRequest{
 		VectorBucketName: opt.VectorBucketName,
@@ -685,6 +686,20 @@ type ListVectorsOptions struct {
 	SegmentIndex     int    `json:"segmentIndex,omitempty"`     // 当前段索引（从0开始，需小于 segmentCount）
 }
 
+// listVectorsRequest 列出向量的内部请求体
+// 使用指针字段避免 segmentIndex=0 被 omitempty 省略
+// 同时保持对历史行为的兼容：仅在分段列举或显式非0时发送 segmentIndex
+type listVectorsRequest struct {
+	VectorBucketName string `json:"vectorBucketName"`
+	IndexName        string `json:"indexName"`
+	MaxResults       int    `json:"maxResults,omitempty"`
+	NextToken        string `json:"nextToken,omitempty"`
+	ReturnData       *bool  `json:"returnData,omitempty"`
+	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`
+	SegmentCount     *int   `json:"segmentCount,omitempty"`
+	SegmentIndex     *int   `json:"segmentIndex,omitempty"`
+}
+
 // ListVectorsResult 列出向量响应
 type ListVectorsResult struct {
 	Vectors   []OutputVector `json:"vectors"`             // 向量列表
@@ -698,7 +713,30 @@ func (s *VectorService) ListVectors(ctx context.Context, opt *ListVectorsOptions
 	if opt == nil {
 		return nil, nil, fmt.Errorf("opt param nil")
 	}
-	buf, resp, err := s.baseSend(ctx, opt, "/ListVectors", http.MethodPost)
+
+	reqBody := &listVectorsRequest{
+		VectorBucketName: opt.VectorBucketName,
+		IndexName:        opt.IndexName,
+		MaxResults:       opt.MaxResults,
+		NextToken:        opt.NextToken,
+		ReturnData:       opt.ReturnData,
+		ReturnMetadata:   opt.ReturnMetadata,
+	}
+	if opt.SegmentCount == 0 && opt.SegmentIndex != 0 {
+		return nil, nil, fmt.Errorf("ListVectors: segmentIndex requires segmentCount")
+	}
+	if opt.SegmentCount != 0 {
+		if opt.SegmentCount < 1 || opt.SegmentCount > 16 {
+			return nil, nil, fmt.Errorf("ListVectors: segmentCount must be in [1,16]")
+		}
+		if opt.SegmentIndex < 0 || opt.SegmentIndex >= opt.SegmentCount {
+			return nil, nil, fmt.Errorf("ListVectors: segmentIndex must be in [0,segmentCount)")
+		}
+		reqBody.SegmentCount = &opt.SegmentCount
+		reqBody.SegmentIndex = &opt.SegmentIndex
+	}
+
+	buf, resp, err := s.baseSend(ctx, reqBody, "/ListVectors", http.MethodPost)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -729,10 +767,10 @@ type deleteVectorsRequest struct {
 // https://cloud.tencent.com/document/product/436/127722
 func (s *VectorService) DeleteVectors(ctx context.Context, opt *DeleteVectorsOptions, keys []string) (*Response, error) {
 	if opt == nil {
-		return nil, fmt.Errorf("opt param nil")
+		return nil, fmt.Errorf("DeleteVectors: opt is required")
 	}
 	if len(keys) == 0 {
-		return nil, fmt.Errorf("keys param is empty")
+		return nil, fmt.Errorf("DeleteVectors: keys is empty")
 	}
 	reqBody := &deleteVectorsRequest{
 		VectorBucketName: opt.VectorBucketName,
