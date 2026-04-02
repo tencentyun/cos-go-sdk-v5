@@ -60,7 +60,8 @@ func (s *MetaInsightService) baseSend(ctx context.Context, opt interface{}, opti
 type CreateDatasetOptions struct {
 	DatasetName     string      `json:"DatasetName, omitempty" url:"-" `     // 数据集名称，同一个账户下唯一。命名规则如下： 长度为1~32字符。 只能包含小写英文字母，数字，短划线（-）。 必须以英文字母和数字开头。
 	Description     string      `json:"Description, omitempty" url:"-" `     // 数据集描述信息。长度为1~256个英文或中文字符，默认值为空。
-	TemplateId      string      `json:"TemplateId, omitempty" url:"-" `      // 指模板，在建立元数据索引时，后端将根据模板来决定收集哪些元数据。每个模板都包含一个或多个算子，不同的算子表示不同的元数据。目前支持的模板： Official:DefaultEmptyId：默认为空的模板，表示不进行元数据的采集。 Official:COSBasicMeta：基础信息模板，包含 COS 文件基础元信息算子，表示采集 COS 文件的名称、类型、ACL等基础元信息数据。 Official:FaceSearch：人脸检索模板，包含人脸检索、COS 文件基础元信息算子。Official:ImageSearch：图像检索模板，包含图像检索、COS 文件基础元信息算子。
+	TemplateId      string      `json:"TemplateId, omitempty" url:"-" `      // 与数据集关联的检索模板，在建立元数据索引时，后端将根据模板来决定采集哪些元数据。每个检索模板都包含若干个算子，不同的算子表示不同的处理能力。更多信息请参见检索模板与算子。默认值为空，即不关联检索模板，不进行任何元数据的采集。
+	DatasetType     int         `json:"DatasetType, omitempty" url:"-" `     // 表示数据集的类型，默认为0，表示普通数据集，值为1时表示该数据集为控制台文件列表专用的数据集。
 	Version         string      `json:"Version, omitempty" url:"-" `         // 数据集版本。basic、standard，默认为basic。
 	Volume          int         `json:"Volume, omitempty" url:"-" `          // Version为basic时为50w。Version为standard时，默认为500w，可设置1-10000，单位w。传0采用默认值。
 	TrainingMode    int         `json:"TrainingMode, omitempty" url:"-" `    // 训练数据的来源模式。默认为0，表示训练数据来源于指定数据集，值为1时表示训练数据来源于cos某个bucket目录下文件。仅在Version为standard时生效。
@@ -609,6 +610,45 @@ func (s *MetaInsightService) SearchImage(ctx context.Context, opt *SearchImageOp
 		return nil, nil, fmt.Errorf("opt param nil")
 	}
 	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/"+"datasetquery"+"/"+"imagesearch", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type HybridSearchOptions struct {
+	DatasetName    string                 `json:"DatasetName, omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
+	Mode           string                 `json:"Mode, omitempty" url:"-" `           // 指定检索的输入类型，默认值为 pic。有效值为：pic：表示输入图片进行以图搜图的检索。text：表示输入文本进行检索，支持输入自然语言，例如"包含一棵大树的图片"。
+	Templates      string                 `json:"Templates, omitempty" url:"-" `      // 指定输出的数据类型，有效值为：ImageSearch：进行图像检索，输出的是图片类型的结果。DocSearch：进行文档检索，输出的是文档类型的结果(Mode 必须为 text)。
+	SearchText     string                 `json:"SearchText, omitempty" url:"-" `     // 检索语句。最多支持60个 UTF-8编码字符。例如"包含一棵大树的图片"。当 Mode 为 text 时必选，当使用的算子模板是图像搜索模板并进行"以文搜图"操作时必选，使用文档类 Template 时必选。
+	SearchURIs     []string               `json:"SearchURIs, omitempty" url:"-" `     // 资源标识字段。当前仅支持 COS 存储桶，字段规则：cos://<BucketName>/<Path>，其中 BucketName 表示 COS 存储桶名称，Path 表示资源路径，例如：cos://examplebucket-1250000000/test.jpg。当 Mode 为 pic 时必选，当使用的算子模板是图像搜索模板并进行"以图搜图"操作时必选。
+	Limit          int                    `json:"Limit, omitempty" url:"-" `          // 返回相关图片的数量，默认值为10，取值范围为(0, 100]。
+	MatchThreshold int                    `json:"MatchThreshold, omitempty" url:"-" ` // 限制返回图片或文档的最低相关度分数，只有超过 MatchThreshold 值的图片才会返回。默认值为0，推荐值为80，取值范围为(0, 100]。例如：设置 MatchThreshold 的值为80，则检索结果中仅会返回相关度分数大于等于80分的图片或文档。
+	Filter         map[string]interface{} `json:"Filter,omitempty" url:"-" `          // 简单查询参数条件，可选参数，可以包含三个条件。支持 MongoDB 风格的查询语法，如 $and、$or、$in、$gt 等。
+	OptHeaders     *OptHeaders            `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type DocResult struct {
+	URI       string            `json:"URI"`       // 文档在对象存储中的统一资源标识符（URI）。
+	TextPage  int               `json:"TextPage"`  // 文档中匹配内容所在的页码（仅部分结果包含）。
+	Score     int               `json:"Score"`     // 搜索结果的相关度评分，数值越高表示相关性越强。
+	Text      string            `json:"Text"`      // 匹配的原始文本内容，可能包含占位符（如 {Image_0}）。
+	ImageUrls map[string]string `json:"ImageUrls"` // 图片占位符到实际图片标识符（或 URL）的映射集。
+}
+
+type HybridSearchResult struct {
+	ImageResult []*ImageResult `json:"ImageResult"` // 图像检索识别结果信息列表。
+	DocResult   []*DocResult   `json:"DocResult"`   // 文档检索识别结果信息列表。
+	RequestId   string         `json:"RequestId"`   // 请求ID。
+}
+
+// HybridSearch 多模态检索
+func (s *MetaInsightService) HybridSearch(ctx context.Context, opt *HybridSearchOptions) (*HybridSearchResult, *Response, error) {
+	var res HybridSearchResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/"+"datasetquery"+"/"+"hybridsearch", http.MethodPost)
 	if buf.Len() > 0 {
 		err = json.Unmarshal(buf.Bytes(), &res)
 	}
