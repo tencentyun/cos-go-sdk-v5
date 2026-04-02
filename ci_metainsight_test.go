@@ -10,7 +10,7 @@ import (
 func TestCIService_CreateDataset(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"Version\":\"\",\"Volume\":0,\"TrainingMode\":0,\"TrainingDataset\":\"\",\"TrainingURI\":\"\",\"SceneType\":\"general\"}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"DatasetType\":0,\"Version\":\"\",\"Volume\":0,\"TrainingMode\":0,\"TrainingDataset\":\"\",\"TrainingURI\":\"\",\"SceneType\":\"general\"}"
 
 	mux.HandleFunc("/dataset", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -422,5 +422,47 @@ func TestCIService_SearchImage(t *testing.T) {
 	_, _, err := client.MetaInsight.SearchImage(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.SearchImage returned error: %v", err)
+	}
+}
+
+func TestCIService_HybridSearch(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "{\"DatasetName\":\"adataset\",\"Mode\":\"pic\",\"Templates\":\"ImageSearch\",\"SearchText\":\"\",\"SearchURIs\":[\"cos://examplebucket-1250000000/test.jpg\"],\"Limit\":10,\"MatchThreshold\":80,\"Filter\":{\"$and\":[{\"MediaType\":{\"$in\":[\"image\",\"document\"]}},{\"Size\":{\"$gt\":123}}]}}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"hybridsearch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"ImageResult\":[{\"URI\":\"cos://examplebucket-1250000000/result.jpg\",\"Score\":95}],\"DocResult\":[{\"URI\":\"cos://examplebucket-1250000000/doc.pdf\",\"TextPage\":3,\"Score\":88,\"Text\":\"包含一棵大树的图片 {Image_0}\",\"ImageUrls\":{\"Image_0\":\"cos://examplebucket-1250000000/tree.jpg\"}}],\"RequestId\":\"NjYzYjc1NDZfNTc2ODk0MGJfNjZkNF8zYzA2MTI=\"}")
+	})
+
+	client.MetaInsight.HybridSearch(context.Background(), nil)
+
+	opt := &HybridSearchOptions{
+		DatasetName:    "adataset",
+		Mode:           "pic",
+		Templates:      "ImageSearch",
+		SearchURIs:     []string{"cos://examplebucket-1250000000/test.jpg"},
+		Limit:          10,
+		MatchThreshold: 80,
+		Filter: map[string]interface{}{
+			"$and": []map[string]interface{}{
+				{
+					"MediaType": map[string]interface{}{
+						"$in": []string{"image", "document"},
+					},
+				},
+				{
+					"Size": map[string]interface{}{
+						"$gt": 123,
+					},
+				},
+			},
+		},
+	}
+	_, _, err := client.MetaInsight.HybridSearch(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.HybridSearch returned error: %v", err)
 	}
 }

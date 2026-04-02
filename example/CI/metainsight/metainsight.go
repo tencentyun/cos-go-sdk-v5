@@ -53,7 +53,7 @@ func getClient() *cos.Client {
 func CreateDataSet() {
 	c := getClient()
 	opt := &cos.CreateDatasetOptions{
-		DatasetName: "dataset1",
+		DatasetName: "adataset",
 		Description: "dataset test",
 		TemplateId:  "Official:COSBasicMeta",
 		Version:     "standard",
@@ -288,6 +288,36 @@ func SearchImage() {
 	fmt.Printf("%+v\n", res)
 }
 
+// HybridSearch 多模态检索
+func HybridSearch() {
+	c := getClient()
+	opt := &cos.HybridSearchOptions{
+		DatasetName:    "adataset",
+		Mode:           "text",
+		Templates:      "ImageSearch",
+		SearchText:     "包含一棵大树的图片",
+		Limit:          10,
+		MatchThreshold: 1,
+		Filter: map[string]interface{}{
+			"$and": []map[string]interface{}{
+				{
+					"MediaType": map[string]interface{}{
+						"$in": []string{"image", "document"},
+					},
+				},
+				{
+					"Size": map[string]interface{}{
+						"$gt": 123,
+					},
+				},
+			},
+		},
+	}
+	res, _, err := c.MetaInsight.HybridSearch(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
 func main() {
 	// CreateDataSet()
 	// DescribeDatasets()
@@ -306,4 +336,5 @@ func main() {
 	// DeleteDatasetBinding()
 	// DatasetFaceSearch()
 	// SearchImage()
+	// HybridSearch()
 }
