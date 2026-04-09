@@ -1514,7 +1514,7 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 		// Notice one part fail can not get the etag according.
 		if res.Resp == nil || res.err != nil {
 			// Some part already fail, can not to get the header inside.
-			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
+			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %w", uploadID, res.PartNumber, res.err)
 			continue
 		}
 		// Notice one part fail can not get the etag according.
@@ -1701,7 +1701,7 @@ func (s *ObjectService) UploadWithPicOperations(ctx context.Context, name string
 		// Notice one part fail can not get the etag according.
 		if res.Resp == nil || res.err != nil {
 			// Some part already fail, can not to get the header inside.
-			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
+			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %w", uploadID, res.PartNumber, res.err)
 			continue
 		}
 		// Notice one part fail can not get the etag according.
@@ -2004,7 +2004,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			res = <-opt.ResultChannel
 		}
 		if res.Resp == nil || res.err != nil {
-			err = fmt.Errorf("part %d get resp Content. error: %s", res.PartNumber, res.err.Error())
+			err = fmt.Errorf("part %d get resp Content. error: %w", res.PartNumber, res.err)
 			continue
 		}
 		partCRCs[res.PartNumber] = partCRC{crc: res.CRC64, size: chunks[res.PartNumber-1].Size}

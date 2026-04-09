@@ -626,7 +626,7 @@ func (s *ObjectService) MultiCopy(ctx context.Context, name string, sourceURL st
 	for i := 0; i < partNum; i++ {
 		res := <-chresults
 		if res.res == nil || res.err != nil {
-			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %s", uploadID, res.PartNumber, res.err.Error())
+			err = fmt.Errorf("UploadID %s, part %d failed to get resp content. error: %w", uploadID, res.PartNumber, res.err)
 			continue
 		}
 		etag := res.res.ETag
