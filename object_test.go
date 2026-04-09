@@ -3480,3 +3480,85 @@ func TestObjectService_DownloadWithCheckPoint_CRC64(t *testing.T) {
 		t.Errorf("Download checkpoint data isn't consistent")
 	}
 }
+
+// 测试 Upload 所有分块持续失败（耗尽重试）后返回的 error
+func TestObjectService_UploadPartFailed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	b := make([]byte, 1024*1024*3)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	uploadid := "test-upload-part-failed-id"
+	mux.HandleFunc("/test.upload.partfailed", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			r.ParseForm()
+			initreq := url.Values{}
+			initreq.Set("uploads", "")
+			if reflect.DeepEqual(r.Form, initreq) {
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+                    <Bucket></Bucket>
+                    <Key>test.upload.partfailed</Key>
+                    <UploadId>%v</UploadId>
+                </InitiateMultipartUploadResult>`, uploadid)
+				return
+			}
+		}
+		if r.Method == http.MethodPut {
+			ioutil.ReadAll(r.Body)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	})
+
+	opt := &MultiUploadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	_, _, err = client.Object.Upload(context.Background(), "test.upload.partfailed", filePath, opt)
+	if err == nil {
+		t.Fatalf("Upload should fail when all parts return 500")
+	}
+	if !strings.Contains(err.Error(), "failed to get resp content") {
+		t.Fatalf("Upload error should contain 'failed to get resp content', got: %v", err)
+	}
+}
+
+// 测试 Download 所有分块持续失败后返回的 error
+func TestObjectService_DownloadPartFailed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 123)
+
+	mux.HandleFunc("/test.download.partfailed", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.partfailed." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.partfailed", downPath, opt)
+	if err == nil {
+		t.Fatalf("Download should fail when all parts return 500")
+	}
+	if !strings.Contains(err.Error(), "get resp Content") {
+		t.Fatalf("Download error should contain 'get resp Content', got: %v", err)
+	}
+}

@@ -813,3 +813,53 @@ func TestObjectService_UploadPartRetry(t *testing.T) {
 		t.Errorf("Object.UploadPart failed: %v", err)
 	}
 }
+
+// 测试 MultiCopy 所有分块持续失败（耗尽重试）后返回的 error
+func TestObjectService_MultiCopyPartFailed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := 1024 * 1024 * 35
+
+	mux.HandleFunc("/test.src.copyfail", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "HEAD")
+		w.Header().Add("Content-Length", strconv.FormatInt(int64(totalBytes), 10))
+	})
+
+	uploadid := "test-multicopy-partfailed-id"
+	mux.HandleFunc("/test.dst.copyfail", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if r.Method == http.MethodPost {
+			r.ParseForm()
+			if r.Form.Get("uploadId") != "" {
+				// CompleteMultipartUpload - 不应该到达这里
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			// InitiateMultipartUpload
+			fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+	<Bucket></Bucket>
+	<Key>test.dst.copyfail</Key>
+	<UploadId>%v</UploadId>
+</InitiateMultipartUploadResult>`, uploadid)
+		}
+	})
+
+	opt := &MultiCopyOptions{
+		PartSize:       1,
+		ThreadPoolSize: 3,
+		useMulti:       true,
+	}
+	dest := "test.dst.copyfail"
+	sourceURL := fmt.Sprintf("%s/%s", client.BaseURL.BucketURL.Host, "test.src.copyfail")
+	_, _, err := client.Object.MultiCopy(context.Background(), dest, sourceURL, opt)
+	if err == nil {
+		t.Fatalf("MultiCopy should fail when all parts return 500")
+	}
+	if !strings.Contains(err.Error(), "failed to get resp content") {
+		t.Fatalf("MultiCopy error should contain 'failed to get resp content', got: %v", err)
+	}
+}
