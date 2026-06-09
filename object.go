@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -120,8 +121,13 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 	}
 
 	_, err = io.Copy(fd, resp.Body)
-	fd.Close()
 	if err != nil {
+		return resp, err
+	}
+	if err = fd.Sync(); err != nil {
+		return resp, err
+	}
+	if err = fd.Close(); err != nil {
 		return resp, err
 	}
 
@@ -1039,6 +1045,7 @@ type Jobs struct {
 	Name       string
 	UploadId   string
 	FilePath   string
+	Fd         *os.File // shared file descriptor for download workers (WriteAt)
 	RetryTimes int
 	VersionId  string
 	Chunk      Chunk
@@ -1154,6 +1161,18 @@ func DownloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 	downloadWorker(ctx, s, jobs, results)
 }
 
+// downloadCopyBufSize 是流式写入时使用的固定复制缓冲区大小。
+// 每个 worker goroutine 仅占用该大小的内存，与 chunkSize 无关。
+const downloadCopyBufSize = 32 * 1024 // 32 KB
+
+// downloadBufPool 复用 32KB 的复制缓冲区，降低 GC 压力。
+var downloadBufPool = sync.Pool{
+	New: func() interface{} {
+		buf := make([]byte, downloadCopyBufSize)
+		return &buf
+	},
+}
+
 func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results chan<- *Results) {
 	for j := range jobs {
 		opt := &RangeOptions{
@@ -1167,6 +1186,11 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 		for {
 			var res Results
 			res.PartNumber = j.Chunk.Number
+			if j.Fd == nil {
+				res.err = fmt.Errorf("download chunk Failed, part %d: Jobs.Fd is nil", j.Chunk.Number)
+				results <- &res
+				break
+			}
 			resp, err := s.Get(ctx, j.Name, j.DownOpt, j.VersionId)
 			res.err = err
 			res.Resp = resp
@@ -1174,23 +1198,15 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 				results <- &res
 				break
 			}
-			fd, err := os.OpenFile(j.FilePath, os.O_WRONLY, 0660)
-			if err != nil {
-				resp.Body.Close()
-				res.err = err
-				results <- &res
-				break
-			}
-			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
 			crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
-			w := io.MultiWriter(fd, crcHash)
-			n, err := io.Copy(w, LimitReadCloser(resp.Body, j.Chunk.Size))
-			if n != j.Chunk.Size || err != nil {
-				fd.Close()
-				resp.Body.Close()
+			bufp := downloadBufPool.Get().(*[]byte)
+			written, werr, isRetryErr := copyChunkToFileAt(j.Fd, resp.Body, j.Chunk.OffSet, j.Chunk.Size, *bufp, crcHash)
+			downloadBufPool.Put(bufp)
+			resp.Body.Close()
+			if written != j.Chunk.Size || werr != nil {
 				rt--
-				if rt == 0 {
-					res.err = fmt.Errorf("io.Copy Failed, nread:%v, want:%v, err:%v, reqid: %v", n, j.Chunk.Size, err, resp.Header.Get("X-Cos-Request-Id"))
+				if rt == 0 || !isRetryErr {
+					res.err = fmt.Errorf("download chunk Failed, nwrite:%v, want:%v, err:%v, reqid: %v, rt: %v, isRetryErr: %v", written, j.Chunk.Size, werr, resp.Header.Get("X-Cos-Request-Id"), rt, isRetryErr)
 					results <- &res
 					break
 				}
@@ -1198,12 +1214,55 @@ func downloadWorker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, re
 				continue
 			}
 			res.CRC64 = crcHash.Sum64()
-			fd.Close()
-			resp.Body.Close()
 			results <- &res
 			break
 		}
 	}
+}
+
+// copyChunkToFileAt 将 src 中 size 字节流式写入 fd 的 off 偏移处，同时更新 crcHash。
+// 使用调用方提供的固定大小 buf 避免按 chunkSize 分配大内存。
+// 返回值：(已写字节数, 错误, 是否可重试)
+//   - 写入错误（如磁盘满）：isRetry=false，不重试
+//   - 数据不足（io.ErrUnexpectedEOF / io.EOF）：统一返回 io.ErrUnexpectedEOF，isRetry=true，可重新请求
+func copyChunkToFileAt(fd *os.File, src io.Reader, off int64, size int64, buf []byte, crcHash io.Writer) (int64, error, bool) {
+	var written int64
+	remain := size
+	for remain > 0 {
+		readSize := int64(len(buf))
+		if remain < readSize {
+			readSize = remain
+		}
+		nr, rerr := io.ReadFull(src, buf[:readSize])
+		if nr > 0 {
+			nw, werr := fd.WriteAt(buf[:nr], off+written)
+			if nw > 0 {
+				crcHash.Write(buf[:nw])
+				written += int64(nw)
+				remain -= int64(nw)
+			}
+			if werr != nil {
+				return written, werr, false
+			}
+			if nw != nr {
+				return written, io.ErrShortWrite, false
+			}
+		}
+		if rerr != nil {
+			// io.ReadFull 在 nr==0 时返回 io.EOF，在 0<nr<readSize 时返回 io.ErrUnexpectedEOF。
+			// 两者都意味着 src 数据不足 size 字节，统一转为 io.ErrUnexpectedEOF 并标记可重试。
+			if rerr == io.EOF {
+				rerr = io.ErrUnexpectedEOF
+			}
+			return written, rerr, true
+		}
+		// 防御：nr==0 且 rerr==nil 理论上不应发生（io.ReadFull 保证），
+		// 若发生则视为数据不足并中止，避免死循环。
+		if nr == 0 {
+			return written, io.ErrUnexpectedEOF, true
+		}
+	}
+	return written, nil, false
 }
 
 func DividePart(fileSize int64, last int) (int64, int64) {
@@ -1918,16 +1977,18 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			return nil, fmt.Errorf("Open CheckPoint File[%v] Failed:%v", cpfile, err)
 		}
 	}
+	// 打开（或创建）文件，保持 fd 供所有 worker 通过 WriteAt 并发写入
+	var dlfd *os.File
 	if !resumableFlag {
-		// 创建文件
-		nfile, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
-		if err != nil {
-			if cpfd != nil {
-				cpfd.Close()
-			}
-			return resp, err
+		dlfd, err = os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0660)
+	} else {
+		dlfd, err = os.OpenFile(filepath, os.O_RDWR, 0660)
+	}
+	if err != nil {
+		if cpfd != nil {
+			cpfd.Close()
 		}
-		nfile.Close()
+		return resp, err
 	}
 
 	useExternalWorker := opt.WorkerChannel != nil && opt.ResultChannel != nil
@@ -1969,6 +2030,7 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 				Name:       name,
 				RetryTimes: 3,
 				FilePath:   filepath,
+				Fd:         dlfd,
 				Chunk:      chunk,
 				DownOpt:    &downOpt,
 			}
@@ -1979,7 +2041,6 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 				chjobs <- job
 			} else {
 				opt.WorkerChannel <- job
-
 			}
 		}
 		if !useExternalWorker {
@@ -2031,35 +2092,35 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 		cpfd.Close()
 	}
 	if err != nil {
+		dlfd.Close()
 		event = newProgressEvent(ProgressFailedEvent, 0, consumedBytes, totalBytes, err)
 		progressCallback(listener, event)
 		return nil, err
 	}
-	// 下载成功，删除checkpoint文件
+	// 以下成功或者失败都需要清理 checkpoint 文件
 	if opt.CheckPoint {
 		os.Remove(cpfile)
 	}
+	// 所有分块写入完毕，统一执行一次 Sync 保证数据持久化，然后关闭共享 fd
+	if syncErr := dlfd.Sync(); syncErr != nil {
+		dlfd.Close()
+		return nil, fmt.Errorf("sync failed: %w", syncErr)
+	}
 	if coscrc != "" && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
-		// 对已完成的(断点续载)分块，从文件中读取数据计算 CRC64
+		// 对已完成的(断点续载)分块，直接通过共享 fd 读取数据计算 CRC64
 		for i := 0; i < partNum; i++ {
 			if !chunks[i].Done {
 				continue
 			}
-			fd, ferr := os.Open(filepath)
-			if ferr != nil {
-				return resp, ferr
-			}
-			_, ferr = fd.Seek(chunks[i].OffSet, os.SEEK_SET)
-			if ferr != nil {
+			buf := make([]byte, chunks[i].Size)
+			_, ferr := dlfd.ReadAt(buf, chunks[i].OffSet)
+			if ferr != nil && ferr != io.EOF {
+				dlfd.Close()
 				return resp, ferr
 			}
 			partHash := crc64.New(crc64.MakeTable(crc64.ECMA))
-			_, ferr = io.CopyN(partHash, fd, chunks[i].Size)
-			if ferr != nil {
-				return resp, ferr
-			}
-			fd.Close()
+			partHash.Write(buf)
 			partCRCs[chunks[i].Number] = partCRC{crc: partHash.Sum64(), size: chunks[i].Size}
 		}
 		// 按分块顺序合并 CRC64
@@ -2070,8 +2131,13 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			}
 		}
 		if localcrc != icoscrc {
+			dlfd.Close()
 			return resp, fmt.Errorf("verification failed, want:%v, return:%v, header:%+v", icoscrc, localcrc, resp.Header)
 		}
+	}
+	err = dlfd.Close()
+	if err != nil {
+		return resp, err
 	}
 	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)
 	progressCallback(listener, event)
