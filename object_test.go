@@ -3480,3 +3480,573 @@ func TestObjectService_DownloadWithCheckPoint_CRC64(t *testing.T) {
 		t.Errorf("Download checkpoint data isn't consistent")
 	}
 }
+
+// 测试 Upload 所有分块持续失败（耗尽重试）后返回的 error
+func TestObjectService_UploadPartFailed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	filePath := "tmpfile" + time.Now().Format(time.RFC3339)
+	newfile, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("create tmp file failed")
+	}
+	defer os.Remove(filePath)
+	b := make([]byte, 1024*1024*3)
+	_, err = rand.Read(b)
+	newfile.Write(b)
+	newfile.Close()
+
+	uploadid := "test-upload-part-failed-id"
+	mux.HandleFunc("/test.upload.partfailed", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			r.ParseForm()
+			initreq := url.Values{}
+			initreq.Set("uploads", "")
+			if reflect.DeepEqual(r.Form, initreq) {
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult>
+                    <Bucket></Bucket>
+                    <Key>test.upload.partfailed</Key>
+                    <UploadId>%v</UploadId>
+                </InitiateMultipartUploadResult>`, uploadid)
+				return
+			}
+		}
+		if r.Method == http.MethodPut {
+			ioutil.ReadAll(r.Body)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	})
+
+	opt := &MultiUploadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	_, _, err = client.Object.Upload(context.Background(), "test.upload.partfailed", filePath, opt)
+	if err == nil {
+		t.Fatalf("Upload should fail when all parts return 500")
+	}
+	if !strings.Contains(err.Error(), "failed to get resp content") {
+		t.Fatalf("Upload error should contain 'failed to get resp content', got: %v", err)
+	}
+}
+
+// 测试 Download 所有分块持续失败后返回的 error
+func TestObjectService_DownloadPartFailed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 123)
+
+	mux.HandleFunc("/test.download.partfailed", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", "123456789")
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 3,
+		PartSize:       1,
+	}
+	downPath := "down.partfailed." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.partfailed", downPath, opt)
+	if err == nil {
+		t.Fatalf("Download should fail when all parts return 500")
+	}
+	if !strings.Contains(err.Error(), "get resp Content") {
+		t.Fatalf("Download error should contain 'get resp Content', got: %v", err)
+	}
+}
+
+// ==================== copyChunkToFileAt 单元测试 ====================
+
+// 辅助：创建临时文件，用完自动删除
+func newTempFile(t *testing.T) *os.File {
+	t.Helper()
+	f, err := os.CreateTemp("", "copyChunk-*")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	t.Cleanup(func() {
+		f.Close()
+		os.Remove(f.Name())
+	})
+	return f
+}
+
+// 正常写入：src 恰好 size 字节，期望全部落盘，CRC 正确，无错误
+func TestCopyChunkToFileAt_Normal(t *testing.T) {
+	data := []byte("hello world, this is a test chunk!")
+	fd := newTempFile(t)
+	// 预分配文件空间（WriteAt 不要求文件预先有内容）
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 16)
+	written, err, isRetry := copyChunkToFileAt(fd, bytes.NewReader(data), 0, int64(len(data)), buf, crcHash)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if isRetry {
+		t.Fatalf("isRetryErr should be false on success")
+	}
+	if written != int64(len(data)) {
+		t.Fatalf("written=%d, want %d", written, len(data))
+	}
+	// 验证磁盘内容
+	got := make([]byte, len(data))
+	fd.ReadAt(got, 0)
+	if !bytes.Equal(got, data) {
+		t.Fatalf("file content mismatch")
+	}
+	// 验证 CRC
+	wantCRC := crc64.Update(0, crc64.MakeTable(crc64.ECMA), data)
+	if crcHash.Sum64() != wantCRC {
+		t.Fatalf("CRC64 mismatch: got %d, want %d", crcHash.Sum64(), wantCRC)
+	}
+}
+
+// 正常写入：size > buf，跨多次循环
+func TestCopyChunkToFileAt_MultiBuf(t *testing.T) {
+	data := make([]byte, 1024)
+	rand.Read(data)
+	fd := newTempFile(t)
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 100) // 故意小于 data，触发多次循环
+	written, err, _ := copyChunkToFileAt(fd, bytes.NewReader(data), 0, int64(len(data)), buf, crcHash)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if written != int64(len(data)) {
+		t.Fatalf("written=%d, want %d", written, len(data))
+	}
+	got := make([]byte, len(data))
+	fd.ReadAt(got, 0)
+	if !bytes.Equal(got, data) {
+		t.Fatalf("file content mismatch")
+	}
+}
+
+// 正常写入：指定 off 偏移，数据写入文件正确位置
+func TestCopyChunkToFileAt_Offset(t *testing.T) {
+	data := []byte("OFFSET_DATA")
+	fd := newTempFile(t)
+	// 先写 8 字节占位
+	fd.WriteAt(make([]byte, 8+len(data)), 0)
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 64)
+	written, err, _ := copyChunkToFileAt(fd, bytes.NewReader(data), 8, int64(len(data)), buf, crcHash)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if written != int64(len(data)) {
+		t.Fatalf("written=%d, want %d", written, len(data))
+	}
+	got := make([]byte, len(data))
+	fd.ReadAt(got, 8)
+	if !bytes.Equal(got, data) {
+		t.Fatalf("file content at offset mismatch: got %q", got)
+	}
+}
+
+// io.ErrUnexpectedEOF：src 数据不足 size，已读部分应先落盘再返回错误
+func TestCopyChunkToFileAt_UnexpectedEOF(t *testing.T) {
+	data := []byte("short") // 5 字节
+	size := int64(10)       // 期望 10 字节
+	fd := newTempFile(t)
+	fd.WriteAt(make([]byte, size), 0)
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 64)
+	written, err, isRetry := copyChunkToFileAt(fd, bytes.NewReader(data), 0, size, buf, crcHash)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	if err != io.ErrUnexpectedEOF {
+		t.Fatalf("expected io.ErrUnexpectedEOF, got %v", err)
+	}
+	if !isRetry {
+		t.Fatalf("isRetryErr should be true for io.ErrUnexpectedEOF")
+	}
+	// 已读的 5 字节应已落盘
+	if written != int64(len(data)) {
+		t.Fatalf("written=%d, want %d (partial data should be flushed)", written, len(data))
+	}
+	got := make([]byte, len(data))
+	fd.ReadAt(got, 0)
+	if !bytes.Equal(got, data) {
+		t.Fatalf("partial data not flushed to disk: got %q, want %q", got, data)
+	}
+}
+
+// io.EOF（nr==0）应被统一转换为 io.ErrUnexpectedEOF，并标记 isRetry=true
+// 场景：src 完全为空，但 size > 0
+func TestCopyChunkToFileAt_EOFConvertedToUnexpectedEOF(t *testing.T) {
+	fd := newTempFile(t)
+	fd.WriteAt(make([]byte, 10), 0)
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 64)
+	// 空 Reader：io.ReadFull 读 0 字节后返回 io.EOF
+	written, err, isRetry := copyChunkToFileAt(fd, bytes.NewReader(nil), 0, 10, buf, crcHash)
+	if err != io.ErrUnexpectedEOF {
+		t.Fatalf("expected io.ErrUnexpectedEOF when src is empty, got %v", err)
+	}
+	if !isRetry {
+		t.Fatalf("isRetryErr should be true when src is empty")
+	}
+	if written != 0 {
+		t.Fatalf("written should be 0 for empty src, got %d", written)
+	}
+}
+
+// 防御性测试：nr==0 且 rerr==nil（理论极端场景），应返回 io.ErrUnexpectedEOF 而非死循环
+// 使用自定义 Reader 模拟该行为
+func TestCopyChunkToFileAt_NrZeroNoErrDefense(t *testing.T) {
+	fd := newTempFile(t)
+	fd.WriteAt(make([]byte, 10), 0)
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 64)
+
+	// zeroReader：每次 Read 返回 (0, nil)，模拟行为异常的 Reader
+	// io.ReadFull 内部遇到 (0, nil) 会持续重试直到读满或出错。
+	// 但我们可以通过只在第一次返回 (0, nil)，之后返回 (0, io.EOF) 来避免 io.ReadFull 本身死循环。
+	callCount := 0
+	zr := &funcReader{fn: func(p []byte) (int, error) {
+		callCount++
+		if callCount <= 1 {
+			return 0, nil // 第一次：(0, nil)
+		}
+		return 0, io.EOF // 之后：触发 io.ReadFull 返回 io.EOF
+	}}
+	written, err, isRetry := copyChunkToFileAt(fd, zr, 0, 10, buf, crcHash)
+	if err != io.ErrUnexpectedEOF {
+		t.Fatalf("expected io.ErrUnexpectedEOF as defense, got %v", err)
+	}
+	if !isRetry {
+		t.Fatalf("isRetryErr should be true")
+	}
+	if written != 0 {
+		t.Fatalf("written should be 0, got %d", written)
+	}
+}
+
+type funcReader struct {
+	fn func([]byte) (int, error)
+}
+
+func (r *funcReader) Read(p []byte) (int, error) { return r.fn(p) }
+
+// 模拟写入错误的 os.File — 用只读文件代替
+func TestCopyChunkToFileAt_WriteError(t *testing.T) {
+	data := []byte("write error test")
+	// 创建只读临时文件
+	f, err := os.CreateTemp("", "readonly-*")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	name := f.Name()
+	f.Close()
+	defer os.Remove(name)
+
+	// 以只读方式重新打开，WriteAt 会失败
+	ro, err := os.Open(name)
+	if err != nil {
+		t.Fatalf("Open readonly: %v", err)
+	}
+	defer ro.Close()
+
+	crcHash := crc64.New(crc64.MakeTable(crc64.ECMA))
+	buf := make([]byte, 64)
+	_, werr, isRetry := copyChunkToFileAt(ro, bytes.NewReader(data), 0, int64(len(data)), buf, crcHash)
+	if werr == nil {
+		t.Fatalf("expected write error, got nil")
+	}
+	if isRetry {
+		t.Fatalf("isRetryErr should be false for write error (non-retryable)")
+	}
+}
+
+// ==================== downloadWorker 单元测试 ====================
+
+// Fd == nil 时，worker 应立即返回包含 "Jobs.Fd is nil" 的错误，不重试
+func TestDownloadWorker_FdNil(t *testing.T) {
+	setup()
+	defer teardown()
+
+	chjobs := make(chan *Jobs, 1)
+	chresults := make(chan *Results, 1)
+	ctx := context.Background()
+	go downloadWorker(ctx, client.Object, chjobs, chresults)
+
+	chjobs <- &Jobs{
+		Name:       "test/fdnil",
+		RetryTimes: 3,
+		Fd:         nil,
+		DownOpt:    &ObjectGetOptions{},
+		Chunk:      Chunk{Number: 1, OffSet: 0, Size: 100},
+	}
+	close(chjobs)
+
+	res := <-chresults
+	if res.err == nil {
+		t.Fatalf("expected error when Fd is nil, got nil")
+	}
+	if !strings.Contains(res.err.Error(), "Jobs.Fd is nil") {
+		t.Fatalf("error should contain 'Jobs.Fd is nil', got: %v", res.err)
+	}
+}
+
+// GET 返回 5xx，worker 应把错误写入 results（重试耗尽）
+func TestDownloadWorker_GetError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test/worker.geterr", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	fd := newTempFile(t)
+	fd.WriteAt(make([]byte, 100), 0)
+
+	chjobs := make(chan *Jobs, 1)
+	chresults := make(chan *Results, 1)
+	ctx := context.Background()
+	go downloadWorker(ctx, client.Object, chjobs, chresults)
+
+	chjobs <- &Jobs{
+		Name:       "test/worker.geterr",
+		RetryTimes: 1,
+		Fd:         fd,
+		DownOpt:    &ObjectGetOptions{},
+		Chunk:      Chunk{Number: 1, OffSet: 0, Size: 100},
+	}
+	close(chjobs)
+
+	res := <-chresults
+	if res.err == nil {
+		t.Fatalf("expected error on 500 response, got nil")
+	}
+}
+
+// 数据截断 → 第1次失败，第2次正常 → 验证重试成功
+func TestDownloadWorker_RetryOnTruncated(t *testing.T) {
+	setup()
+	defer teardown()
+
+	data := make([]byte, 512)
+	rand.Read(data)
+	attempt := 0
+
+	mux.HandleFunc("/test/worker.retry", func(w http.ResponseWriter, r *http.Request) {
+		attempt++
+		if attempt == 1 {
+			// 第1次只写一半，模拟截断
+			w.Write(data[:256])
+			return
+		}
+		w.Write(data)
+	})
+
+	fd := newTempFile(t)
+	fd.WriteAt(make([]byte, 512), 0)
+
+	chjobs := make(chan *Jobs, 1)
+	chresults := make(chan *Results, 1)
+	ctx := context.Background()
+	go downloadWorker(ctx, client.Object, chjobs, chresults)
+
+	chjobs <- &Jobs{
+		Name:       "test/worker.retry",
+		RetryTimes: 3,
+		Fd:         fd,
+		DownOpt:    &ObjectGetOptions{},
+		Chunk:      Chunk{Number: 1, OffSet: 0, Size: 512},
+	}
+	close(chjobs)
+
+	res := <-chresults
+	if res.err != nil {
+		t.Fatalf("expected success after retry, got error: %v", res.err)
+	}
+	if attempt < 2 {
+		t.Fatalf("expected at least 2 attempts, got %d", attempt)
+	}
+	// 验证磁盘内容
+	got := make([]byte, 512)
+	fd.ReadAt(got, 0)
+	if !bytes.Equal(got, data) {
+		t.Fatalf("downloaded data mismatch after retry")
+	}
+}
+
+// ==================== Download 集成测试（补充场景）====================
+
+// 带 Range 选项时 Download 应直接返回错误
+func TestObjectService_Download_RangeOptionForbidden(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &MultiDownloadOptions{
+		Opt: &ObjectGetOptions{Range: "bytes=0-1023"},
+	}
+	_, err := client.Object.Download(context.Background(), "any.file", "any.out", opt)
+	if err == nil {
+		t.Fatalf("expected error when Range option is set")
+	}
+	if !strings.Contains(err.Error(), "Range") {
+		t.Fatalf("error should mention Range, got: %v", err)
+	}
+}
+
+// Head 请求失败时 Download 应透传错误
+func TestObjectService_Download_HeadFailed(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.download.headfail", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})
+
+	opt := &MultiDownloadOptions{PartSize: 1}
+	_, err := client.Object.Download(context.Background(), "test.download.headfail", "any.out", opt)
+	if err == nil {
+		t.Fatalf("expected error on Head failure")
+	}
+}
+
+// Content-Length 非法（非数字）时 Download 应返回解析错误
+func TestObjectService_Download_InvalidContentLength(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/test.download.badlength", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", "not-a-number")
+			return
+		}
+	})
+
+	opt := &MultiDownloadOptions{PartSize: 1}
+	_, err := client.Object.Download(context.Background(), "test.download.badlength", "any.out", opt)
+	if err == nil {
+		t.Fatalf("expected error on invalid Content-Length")
+	}
+}
+
+// 使用公开的 DownloadWorker 函数（而非内部 downloadWorker）进行多分块下载
+func TestObjectService_Download_WithPublicDownloadWorker(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 777)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	mux.HandleFunc("/test.download.pubworker", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	ctx := context.Background()
+	chjobs := make(chan *Jobs, 100)
+	chresults := make(chan *Results, 10000)
+	for w := 0; w < 3; w++ {
+		go DownloadWorker(ctx, client.Object, chjobs, chresults)
+	}
+
+	opt := &MultiDownloadOptions{
+		PartSize:      1,
+		WorkerChannel: chjobs,
+		ResultChannel: chresults,
+	}
+	downPath := "down.pubworker." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(ctx, "test.download.pubworker", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download with public DownloadWorker returned error: %v", err)
+	}
+	close(chjobs)
+	close(chresults)
+
+	fd, err := os.Open(downPath)
+	if err != nil {
+		t.Fatalf("Open download file failed: %v", err)
+	}
+	defer fd.Close()
+	bs, _ := ioutil.ReadAll(fd)
+	if !bytes.Equal(bs, b) {
+		t.Fatalf("Download data isn't consistent")
+	}
+}
+
+// Download 多分块带进度监听，验证 ProgressCompletedEvent 被触发
+func TestObjectService_Download_WithProgressListener(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 111)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+
+	mux.HandleFunc("/test.download.progress", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	var completedCalled int32
+	pl := &testProgressListener{onEvent: func(event *ProgressEvent) {
+		if event.EventType == ProgressCompletedEvent {
+			atomic.AddInt32(&completedCalled, 1)
+		}
+	}}
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 2,
+		PartSize:       1,
+		Opt:            &ObjectGetOptions{Listener: pl},
+	}
+	downPath := "down.progress." + time.Now().Format(time.RFC3339)
+	defer os.Remove(downPath)
+	_, err := client.Object.Download(context.Background(), "test.download.progress", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download with listener returned error: %v", err)
+	}
+	if atomic.LoadInt32(&completedCalled) == 0 {
+		t.Fatalf("ProgressCompletedEvent was not triggered")
+	}
+}
+
+// testProgressListener 用于测试进度回调
+type testProgressListener struct {
+	onEvent func(*ProgressEvent)
+}
+
+func (l *testProgressListener) ProgressChangedCallback(event *ProgressEvent) {
+	if l.onEvent != nil {
+		l.onEvent(event)
+	}
+}
