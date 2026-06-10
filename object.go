@@ -12,7 +12,6 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -125,6 +124,7 @@ func (s *ObjectService) GetToFile(ctx context.Context, name, localpath string, o
 		return resp, err
 	}
 	if err = fd.Sync(); err != nil {
+		fd.Close()
 		return resp, err
 	}
 	if err = fd.Close(); err != nil {
@@ -622,6 +622,7 @@ type ObjectCopyHeaderOptions struct {
 	Expires                         string `header:"Expires,omitempty" url:"-"`
 	Expect                          string `header:"Expect,omitempty" url:"-"`
 	XCosMetadataDirective           string `header:"x-cos-metadata-directive,omitempty" url:"-" xml:"-"`
+	XCosTaggingDirective            string `header:"x-cos-tagging-directive,omitempty" url:"-" xml:"-"`
 	XCosCopySourceIfModifiedSince   string `header:"x-cos-copy-source-If-Modified-Since,omitempty" url:"-" xml:"-"`
 	XCosCopySourceIfUnmodifiedSince string `header:"x-cos-copy-source-If-Unmodified-Since,omitempty" url:"-" xml:"-"`
 	XCosCopySourceIfMatch           string `header:"x-cos-copy-source-If-Match,omitempty" url:"-" xml:"-"`
@@ -671,7 +672,7 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	}
 	surl := strings.SplitN(sourceURL, "/", 2)
 	if len(surl) < 2 {
-		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
+		return nil, nil, fmt.Errorf("x-cos-copy-source format error: %s", sourceURL)
 	}
 	var u string
 	if len(id) == 1 {
@@ -1129,7 +1130,7 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 				results <- &res
 				break
 			}
-			fd.Seek(j.Chunk.OffSet, os.SEEK_SET)
+			fd.Seek(j.Chunk.OffSet, io.SeekStart)
 			resp, err := s.UploadPart(ctx, j.Name, j.UploadId, j.Chunk.Number,
 				LimitReadCloser(fd, j.Chunk.Size), j.UpOpt)
 			res.PartNumber = j.Chunk.Number
@@ -1383,14 +1384,14 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 			return ret(errors.New("Part Number is not consistent"))
 		}
 		partNumber = partNumber - 1
-		fd.Seek(chunks[partNumber].OffSet, os.SEEK_SET)
-		bs, err := ioutil.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
+		fd.Seek(chunks[partNumber].OffSet, io.SeekStart)
+		bs, err := io.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
 		if err != nil {
 			return ret(err)
 		}
 		localMD5 := fmt.Sprintf("\"%x\"", md5.Sum(bs))
 		if localMD5 != part.ETag {
-			return ret(errors.New(fmt.Sprintf("CheckSum Failed in Part[%d]", part.PartNumber)))
+			return ret(fmt.Errorf("CheckSum Failed in Part[%d]", part.PartNumber))
 		}
 		chunks[partNumber].Done = true
 		chunks[partNumber].ETag = part.ETag
@@ -2049,6 +2050,8 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	}()
 	err = nil
 	partCRCs := make(map[int]partCRC)
+	// 本次新下载成功的块，暂存于内存，等 sync 成功后才写入 checkpoint
+	var newlyDoneBlocks []DownloadedBlock
 	for i := 0; i < partNum; i++ {
 		if chunks[i].Done {
 			if err == nil {
@@ -2069,15 +2072,12 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			continue
 		}
 		partCRCs[res.PartNumber] = partCRC{crc: res.CRC64, size: chunks[res.PartNumber-1].Size}
-		// Dump CheckPoint Info
+		// 仅在内存中记录本次新完成的块，不在此处写 checkpoint
 		if opt.CheckPoint {
-			cpfd.Truncate(0)
-			cpfd.Seek(0, os.SEEK_SET)
-			resumableInfo.DownloadedBlocks = append(resumableInfo.DownloadedBlocks, DownloadedBlock{
+			newlyDoneBlocks = append(newlyDoneBlocks, DownloadedBlock{
 				From: chunks[res.PartNumber-1].OffSet,
 				To:   chunks[res.PartNumber-1].OffSet + chunks[res.PartNumber-1].Size - 1,
 			})
-			json.NewEncoder(cpfd).Encode(resumableInfo)
 		}
 
 		// 更新进度
@@ -2088,24 +2088,41 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 	if !useExternalWorker {
 		close(chresults)
 	}
-	if cpfd != nil {
+
+	// 所有分块写入完毕，统一执行一次 Sync 保证数据持久化，然后关闭共享 fd
+	// 无论下载成功还是失败，都先 sync，sync 结果决定是否更新 checkpoint
+	syncErr := dlfd.Sync()
+	if opt.CheckPoint && cpfd != nil {
+		if syncErr == nil {
+			// sync 成功：将本次新完成的块追加到 checkpoint，供下次断点续载使用（下载整体失败时）
+			// 下载整体成功后会删除 checkpoint 文件
+			resumableInfo.DownloadedBlocks = append(resumableInfo.DownloadedBlocks, newlyDoneBlocks...)
+			cpfd.Truncate(0)
+			cpfd.Seek(0, io.SeekStart)
+			json.NewEncoder(cpfd).Encode(resumableInfo)
+		}
+		// sync 失败：不更新 checkpoint，保留原有断点数据，下次重试时这些块会重新下载
 		cpfd.Close()
 	}
+	if syncErr != nil {
+		dlfd.Close()
+		if err != nil {
+			return nil, fmt.Errorf("sync failed: %v; download error: %w", syncErr, err)
+		}
+		return nil, fmt.Errorf("sync failed: %w", syncErr)
+	}
+
 	if err != nil {
 		dlfd.Close()
 		event = newProgressEvent(ProgressFailedEvent, 0, consumedBytes, totalBytes, err)
 		progressCallback(listener, event)
 		return nil, err
 	}
-	// 以下成功或者失败都需要清理 checkpoint 文件
+	// 整个下载成功，删除 checkpoint 文件
 	if opt.CheckPoint {
 		os.Remove(cpfile)
 	}
-	// 所有分块写入完毕，统一执行一次 Sync 保证数据持久化，然后关闭共享 fd
-	if syncErr := dlfd.Sync(); syncErr != nil {
-		dlfd.Close()
-		return nil, fmt.Errorf("sync failed: %w", syncErr)
-	}
+
 	if coscrc != "" && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		icoscrc, _ := strconv.ParseUint(coscrc, 10, 64)
 		// 对已完成的(断点续载)分块，直接通过共享 fd 读取数据计算 CRC64
@@ -2244,7 +2261,7 @@ type PutFetchTaskOptions struct {
 	IgnoreSameKey      bool         `json:"IgnoreSameKey,omitempty" header:"-" xml:"-"`
 	SuccessCallbackUrl string       `json:"SuccessCallbackUrl,omitempty" header:"-" xml:"-"`
 	FailureCallbackUrl string       `json:"FailureCallbackUrl,omitempty" header:"-" xml:"-"`
-	XOptionHeader      *http.Header `json:"-", xml:"-" header:"-,omitempty"`
+	XOptionHeader      *http.Header `json:"-" xml:"-" header:"-,omitempty"`
 }
 
 type PutFetchTaskResult struct {
@@ -2269,7 +2286,7 @@ type GetFetchTaskResult struct {
 }
 
 type innerFetchTaskHeader struct {
-	XOptionHeader *http.Header `json:"-", xml:"-" header:"-,omitempty"`
+	XOptionHeader *http.Header `json:"-" xml:"-" header:"-,omitempty"`
 }
 
 func (s *ObjectService) PutFetchTask(ctx context.Context, bucket string, opt *PutFetchTaskOptions) (*PutFetchTaskResult, *Response, error) {

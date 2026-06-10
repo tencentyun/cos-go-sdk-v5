@@ -3563,6 +3563,222 @@ func TestObjectService_DownloadPartFailed(t *testing.T) {
 	}
 }
 
+// ==================== checkpoint-after-sync 相关测试 ====================
+
+// TestObjectService_Download_CheckPointDeletedOnSuccess 验证下载完全成功后 checkpoint 文件被删除。
+func TestObjectService_Download_CheckPointDeletedOnSuccess(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*3 + 456)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+	partSize := 1024 * 1024
+
+	mux.HandleFunc("/test.download.cp.deleted", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	downPath := "down.cp.deleted." + time.Now().Format(time.RFC3339)
+	cpPath := downPath + ".cosresumabletask"
+	defer os.Remove(downPath)
+	defer os.Remove(cpPath)
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 2,
+		PartSize:       int64(partSize / (1024 * 1024)),
+		CheckPoint:     true,
+	}
+	_, err := client.Object.Download(context.Background(), "test.download.cp.deleted", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download should succeed, got error: %v", err)
+	}
+	// 下载成功后 checkpoint 文件应该被删除
+	if _, statErr := os.Stat(cpPath); !os.IsNotExist(statErr) {
+		t.Fatalf("Checkpoint file should be deleted after successful download, but it still exists")
+	}
+}
+
+// TestObjectService_Download_CheckPointKeptOnPartFailure 验证部分块下载失败时：
+//  1. checkpoint 文件保留（不被删除）
+//  2. checkpoint 只记录 sync 成功之前已完成的块（本次下载均未成功落盘，因此 checkpoint 为空）
+func TestObjectService_Download_CheckPointKeptOnPartFailure(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*4 + 789)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+	partSize := 1024 * 1024
+
+	// 奇数块始终返回截断数据（触发下载失败），偶数块正常
+	mux.HandleFunc("/test.download.cp.partfail", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if (start/int64(partSize))%2 == 1 {
+			// 奇数块截断：始终下载失败
+			io.Copy(w, bytes.NewBuffer(b[start:end]))
+		} else {
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+		}
+	})
+
+	downPath := "down.cp.partfail." + time.Now().Format(time.RFC3339)
+	cpPath := downPath + ".cosresumabletask"
+	defer os.Remove(downPath)
+	defer os.Remove(cpPath)
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 2,
+		PartSize:       int64(partSize / (1024 * 1024)),
+		CheckPoint:     true,
+	}
+	_, err := client.Object.Download(context.Background(), "test.download.cp.partfail", downPath, opt)
+	if err == nil {
+		t.Fatalf("Download should fail when odd parts are truncated")
+	}
+	// 下载失败后 checkpoint 文件应该保留
+	if _, statErr := os.Stat(cpPath); os.IsNotExist(statErr) {
+		t.Fatalf("Checkpoint file should be kept after failed download for resumption")
+	}
+}
+
+// TestObjectService_Download_CheckPointUpdatedAfterSync 验证 checkpoint 文件在 sync 成功后才更新：
+// 第一次下载部分块失败 → checkpoint 文件记录了成功块；
+// 第二次下载修复后使用 checkpoint 断点续载，只下载缺失的块。
+func TestObjectService_Download_CheckPointUpdatedAfterSync(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*4 + 321)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+	partSize := 1024 * 1024
+
+	oddok := false
+	var oddcount, evencount int32
+
+	mux.HandleFunc("/test.download.cp.aftersync", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if (start/int64(partSize))%2 == 1 {
+			if oddok {
+				io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			} else {
+				// 奇数块截断，引起 3 次重试失败
+				io.Copy(w, bytes.NewBuffer(b[start:end]))
+			}
+			atomic.AddInt32(&oddcount, 1)
+		} else {
+			io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+			atomic.AddInt32(&evencount, 1)
+		}
+	})
+
+	downPath := "down.cp.aftersync." + time.Now().Format(time.RFC3339)
+	cpPath := downPath + ".cosresumabletask"
+	defer os.Remove(downPath)
+	defer os.Remove(cpPath)
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 2,
+		PartSize:       int64(partSize / (1024 * 1024)),
+		CheckPoint:     true,
+	}
+
+	// 第一次下载：奇数块失败，偶数块成功
+	_, err := client.Object.Download(context.Background(), "test.download.cp.aftersync", downPath, opt)
+	if err == nil {
+		t.Fatalf("First download should fail when odd parts are truncated")
+	}
+
+	// checkpoint 文件必须存在
+	if _, statErr := os.Stat(cpPath); os.IsNotExist(statErr) {
+		t.Fatalf("Checkpoint file should exist after partial failure")
+	}
+
+	// 读取 checkpoint，验证它只记录了偶数（成功）块，说明 checkpoint 是 sync 之后写入的
+	cpfd, openErr := os.Open(cpPath)
+	if openErr != nil {
+		t.Fatalf("Open checkpoint file failed: %v", openErr)
+	}
+	var cpInfo MultiDownloadCPInfo
+	if decodeErr := json.NewDecoder(cpfd).Decode(&cpInfo); decodeErr != nil {
+		cpfd.Close()
+		t.Fatalf("Decode checkpoint file failed: %v", decodeErr)
+	}
+	cpfd.Close()
+
+	// totalParts = ceil(totalBytes / partSize)
+	totalParts := int((totalBytes + int64(partSize) - 1) / int64(partSize))
+	// 偶数块数量（0-indexed：part 0,2,4...）
+	expectedEvenParts := (totalParts + 1) / 2
+	if len(cpInfo.DownloadedBlocks) != expectedEvenParts {
+		t.Fatalf("Checkpoint should contain %d successfully synced even blocks, got %d",
+			expectedEvenParts, len(cpInfo.DownloadedBlocks))
+	}
+
+	// 第二次下载：修复奇数块，使用 checkpoint 断点续载
+	evenBefore := atomic.LoadInt32(&evencount)
+	oddok = true
+	_, err = client.Object.Download(context.Background(), "test.download.cp.aftersync", downPath, opt)
+	if err != nil {
+		t.Fatalf("Second download should succeed, got error: %v", err)
+	}
+
+	// 偶数块不应重新下载（已在 checkpoint 中记录）
+	evenAfter := atomic.LoadInt32(&evencount)
+	if evenAfter != evenBefore {
+		t.Fatalf("Even parts should not be re-downloaded, before=%d after=%d", evenBefore, evenAfter)
+	}
+
+	// 下载成功后 checkpoint 文件应该被删除
+	if _, statErr := os.Stat(cpPath); !os.IsNotExist(statErr) {
+		t.Fatalf("Checkpoint file should be deleted after successful download")
+	}
+
+	// 验证最终文件内容完整
+	gotData, readErr := os.ReadFile(downPath)
+	if readErr != nil {
+		t.Fatalf("Read downloaded file failed: %v", readErr)
+	}
+	if !bytes.Equal(gotData, b) {
+		t.Fatalf("Downloaded file content mismatch")
+	}
+}
+
 // ==================== copyChunkToFileAt 单元测试 ====================
 
 // 辅助：创建临时文件，用完自动删除
