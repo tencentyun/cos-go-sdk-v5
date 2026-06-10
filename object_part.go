@@ -361,7 +361,7 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 	}
 	surl := strings.SplitN(sourceURL, "/", 2)
 	if len(surl) < 2 {
-		return nil, nil, errors.New(fmt.Sprintf("x-cos-copy-source format error: %s", sourceURL))
+		return nil, nil, fmt.Errorf("x-cos-copy-source format error: %s", sourceURL)
 	}
 	var u string
 	if len(id) == 1 {
