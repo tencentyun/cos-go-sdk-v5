@@ -2078,6 +2078,84 @@ func TestCIService_CloseOriginProtect(t *testing.T) {
 	}
 }
 
+func TestCIService_PutHDRImageProcessing(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantOpt := &HDRImageProcessingOptions{HdrMode: "Auto,API"}
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+		v := values{
+			"hdr-image-processing": "",
+		}
+		testFormValues(t, r, v)
+
+		body := &HDRImageProcessingOptions{}
+		if err := xml.NewDecoder(r.Body).Decode(body); err != nil {
+			t.Errorf("CI.PutHDRImageProcessing decode body err: %v", err)
+		}
+		want := &HDRImageProcessingOptions{
+			XMLName: xml.Name{Local: "HdrImageProcessingConfiguration"},
+			HdrMode: "Auto,API",
+		}
+		if !reflect.DeepEqual(body, want) {
+			t.Errorf("CI.PutHDRImageProcessing request body: %+v, want %+v", body, want)
+		}
+	})
+
+	_, err := client.CI.PutHDRImageProcessing(context.Background(), wantOpt)
+	if err != nil {
+		t.Fatalf("CI.PutHDRImageProcessing returned error: %v", err)
+	}
+}
+
+func TestCIService_GetHDRImageProcessing(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"hdr-image-processing": "",
+		}
+		testFormValues(t, r, v)
+		fmt.Fprint(w, `<HdrImageProcessingConfiguration><Status>on</Status><HdrMode>Auto</HdrMode></HdrImageProcessingConfiguration>`)
+	})
+
+	want := &HDRImageProcessingResult{
+		XMLName: xml.Name{Local: "HdrImageProcessingConfiguration"},
+		Status:  "on",
+		HdrMode: "Auto",
+	}
+
+	res, _, err := client.CI.GetHDRImageProcessing(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetHDRImageProcessing returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetHDRImageProcessing failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_DeleteHDRImageProcessing(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodDelete)
+		v := values{
+			"hdr-image-processing": "",
+		}
+		testFormValues(t, r, v)
+	})
+
+	_, err := client.CI.DeleteHDRImageProcessing(context.Background())
+	if err != nil {
+		t.Fatalf("CI.DeleteHDRImageProcessing returned error: %v", err)
+	}
+}
+
 func TestCIService_PicTag(t *testing.T) {
 	setup()
 	defer teardown()
