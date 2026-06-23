@@ -259,7 +259,7 @@ func (s *VectorService) baseSend(ctx context.Context, opt interface{}, uri strin
 // CreateVectorBucketOptions 创建向量桶请求参数
 type CreateVectorBucketOptions struct {
 	VectorBucketName        string                  `json:"vectorBucketName"`                  // 向量桶名称，格式为 BucketName-APPID
-	EncryptionConfiguration *VectorEncryptionConfig  `json:"encryptionConfiguration,omitempty"` // 加密配置
+	EncryptionConfiguration *VectorEncryptionConfig `json:"encryptionConfiguration,omitempty"` // 加密配置
 }
 
 // VectorEncryptionConfig 加密配置
@@ -348,8 +348,8 @@ type ListVectorBucketsOptions struct {
 
 // ListVectorBucketsResult 列出所有向量桶响应
 type ListVectorBucketsResult struct {
-	NextToken     string             `json:"nextToken,omitempty"` // 下一页分页标记
-	VectorBuckets []VectorBucketBrief `json:"vectorBuckets"`      // 向量桶列表
+	NextToken     string              `json:"nextToken,omitempty"` // 下一页分页标记
+	VectorBuckets []VectorBucketBrief `json:"vectorBuckets"`       // 向量桶列表
 }
 
 // VectorBucketBrief 向量桶简要信息
@@ -512,18 +512,18 @@ func (s *VectorService) GetIndex(ctx context.Context, opt *GetIndexOptions) (*Ge
 
 // ListIndexesOptions 列出索引请求参数
 type ListIndexesOptions struct {
-	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
-	MaxResults       int    `json:"maxResults,omitempty"`       // 最大返回数量
-	NextToken        string `json:"nextToken,omitempty"`        // 分页标记
-	Prefix           string `json:"prefix,omitempty"`           // 索引名前缀过滤
+	VectorBucketName string `json:"vectorBucketName"`     // 向量桶名称（必填）
+	MaxResults       int    `json:"maxResults,omitempty"` // 最大返回数量
+	NextToken        string `json:"nextToken,omitempty"`  // 分页标记
+	Prefix           string `json:"prefix,omitempty"`     // 索引名前缀过滤
 }
 
 // IndexBrief 索引简要信息
 type IndexBrief struct {
 	CreationTime     int64  `json:"creationTime"`     // 创建时间戳
-	IndexQcs         string `json:"indexQcs"`          // 索引资源名称 (QCS)
-	IndexName        string `json:"indexName"`         // 索引名称
-	VectorBucketName string `json:"vectorBucketName"`  // 向量桶名称
+	IndexQcs         string `json:"indexQcs"`         // 索引资源名称 (QCS)
+	IndexName        string `json:"indexName"`        // 索引名称
+	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称
 }
 
 // ListIndexesResult 列出索引响应
@@ -623,10 +623,10 @@ func (s *VectorService) PutVectors(ctx context.Context, opt *PutVectorsOptions, 
 
 // GetVectorsOptions 获取指定向量请求选项（指定目标索引和返回控制）
 type GetVectorsOptions struct {
-	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
-	IndexName        string `json:"indexName"`        // 索引名称（必填）
-	ReturnData       *bool  `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
-	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
+	VectorBucketName string `json:"vectorBucketName"`         // 向量桶名称（必填）
+	IndexName        string `json:"indexName"`                // 索引名称（必填）
+	ReturnData       *bool  `json:"returnData,omitempty"`     // 是否返回向量数据，默认 false
+	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"` // 是否返回元数据，默认 false
 }
 
 // getVectorsRequest 获取向量的内部请求体（合并 opt + keys）
@@ -676,28 +676,30 @@ func (s *VectorService) GetVectors(ctx context.Context, opt *GetVectorsOptions, 
 
 // ListVectorsOptions 列出向量请求参数
 type ListVectorsOptions struct {
-	VectorBucketName string `json:"vectorBucketName"` // 向量桶名称（必填）
-	IndexName        string `json:"indexName"`        // 索引名称（必填）
-	MaxResults       int    `json:"maxResults,omitempty"`       // 最大返回数量，默认500，最大1000
-	NextToken        string `json:"nextToken,omitempty"`        // 分页标记
-	ReturnData       *bool  `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
-	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
-	SegmentCount     int    `json:"segmentCount,omitempty"`     // 并行列举总段数，范围 [1, 16]
-	SegmentIndex     int    `json:"segmentIndex,omitempty"`     // 当前段索引（从0开始，需小于 segmentCount）
+	VectorBucketName string      `json:"vectorBucketName"`         // 向量桶名称（必填）
+	IndexName        string      `json:"indexName"`                // 索引名称（必填）
+	MaxResults       int         `json:"maxResults,omitempty"`     // 最大返回数量，默认500，最大1000
+	Filter           interface{} `json:"filter,omitempty"`         // 过滤条件
+	NextToken        string      `json:"nextToken,omitempty"`      // 分页标记
+	ReturnData       *bool       `json:"returnData,omitempty"`     // 是否返回向量数据，默认 false
+	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"` // 是否返回元数据，默认 false
+	SegmentCount     int         `json:"segmentCount,omitempty"`   // 并行列举总段数，范围 [1, 16]
+	SegmentIndex     int         `json:"segmentIndex,omitempty"`   // 当前段索引（从0开始，需小于 segmentCount）
 }
 
 // listVectorsRequest 列出向量的内部请求体
 // 使用指针字段避免 segmentIndex=0 被 omitempty 省略
 // 同时保持对历史行为的兼容：仅在分段列举或显式非0时发送 segmentIndex
 type listVectorsRequest struct {
-	VectorBucketName string `json:"vectorBucketName"`
-	IndexName        string `json:"indexName"`
-	MaxResults       int    `json:"maxResults,omitempty"`
-	NextToken        string `json:"nextToken,omitempty"`
-	ReturnData       *bool  `json:"returnData,omitempty"`
-	ReturnMetadata   *bool  `json:"returnMetadata,omitempty"`
-	SegmentCount     *int   `json:"segmentCount,omitempty"`
-	SegmentIndex     *int   `json:"segmentIndex,omitempty"`
+	VectorBucketName string      `json:"vectorBucketName"`
+	IndexName        string      `json:"indexName"`
+	MaxResults       int         `json:"maxResults,omitempty"`
+	Filter           interface{} `json:"filter,omitempty"`
+	NextToken        string      `json:"nextToken,omitempty"`
+	ReturnData       *bool       `json:"returnData,omitempty"`
+	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"`
+	SegmentCount     *int        `json:"segmentCount,omitempty"`
+	SegmentIndex     *int        `json:"segmentIndex,omitempty"`
 }
 
 // ListVectorsResult 列出向量响应
@@ -718,6 +720,7 @@ func (s *VectorService) ListVectors(ctx context.Context, opt *ListVectorsOptions
 		VectorBucketName: opt.VectorBucketName,
 		IndexName:        opt.IndexName,
 		MaxResults:       opt.MaxResults,
+		Filter:           opt.Filter,
 		NextToken:        opt.NextToken,
 		ReturnData:       opt.ReturnData,
 		ReturnMetadata:   opt.ReturnMetadata,
@@ -783,12 +786,12 @@ func (s *VectorService) DeleteVectors(ctx context.Context, opt *DeleteVectorsOpt
 
 // QueryVectorsOptions 相似度搜索请求选项（指定目标索引和搜索控制）
 type QueryVectorsOptions struct {
-	VectorBucketName string      `json:"vectorBucketName"` // 向量桶名称（必填）
-	IndexName        string      `json:"indexName"`        // 索引名称（必填）
-	Filter           interface{} `json:"filter,omitempty"`           // 过滤条件
-	ReturnData       *bool       `json:"returnData,omitempty"`       // 是否返回向量数据，默认 false
-	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"`   // 是否返回元数据，默认 false
-	ReturnDistance   *bool       `json:"returnDistance,omitempty"`   // 是否返回距离值，默认 false
+	VectorBucketName string      `json:"vectorBucketName"`         // 向量桶名称（必填）
+	IndexName        string      `json:"indexName"`                // 索引名称（必填）
+	Filter           interface{} `json:"filter,omitempty"`         // 过滤条件
+	ReturnData       *bool       `json:"returnData,omitempty"`     // 是否返回向量数据，默认 false
+	ReturnMetadata   *bool       `json:"returnMetadata,omitempty"` // 是否返回元数据，默认 false
+	ReturnDistance   *bool       `json:"returnDistance,omitempty"` // 是否返回距离值，默认 false
 }
 
 // queryVectorsRequest 相似度搜索的内部请求体（合并 opt + queryVector + topK）
@@ -842,7 +845,7 @@ func (s *VectorService) QueryVectors(ctx context.Context, opt *QueryVectorsOptio
 		Filter:           opt.Filter,
 		ReturnData:       opt.ReturnData,
 		ReturnMetadata:   opt.ReturnMetadata,
-		ReturnDistance:    opt.ReturnDistance,
+		ReturnDistance:   opt.ReturnDistance,
 	}
 	buf, resp, err := s.baseSend(ctx, reqBody, "/QueryVectors", http.MethodPost)
 	if err != nil {
