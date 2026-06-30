@@ -3204,3 +3204,458 @@ func TestBucketService_DescribeCIBuckets(t *testing.T) {
 		t.Fatalf("CI.DescribeCIBuckets returned error: %v", err)
 	}
 }
+
+// ============================================================
+// TestCIService_CreateAIImageAnalysis_*  大模型批量图片分析
+// 接口: POST /?ci-process=AIImageAnalysis （走 CIURL）
+// ============================================================
+
+// #1: Description + general 多图 + 完整 LabelDetail 反序列化
+func TestCIService_CreateAIImageAnalysis_DescriptionGeneral_Success(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		if got := r.URL.Query().Get("ci-process"); got != "AIImageAnalysis" {
+			t.Errorf("ci-process = %q, want AIImageAnalysis", got)
+		}
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Description</Type>`+
+			`<DescriptionResult>`+
+			`<Description>两张图片均为风景照</Description>`+
+			`<LabelDetail>`+
+			`<LabelInfos>`+
+			`<ConfidenceLevel>high</ConfidenceLevel>`+
+			`<LabelInfo><LabelName>scene</LabelName><LabelValue>mountain</LabelValue></LabelInfo>`+
+			`<LabelInfo><LabelName>weather</LabelName><LabelValue>sunny</LabelValue></LabelInfo>`+
+			`</LabelInfos>`+
+			`</LabelDetail>`+
+			`</DescriptionResult>`+
+			`</AnalysisResult>`+
+			`<RequestId>req-001</RequestId>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{
+						{Type: "Image", ObjectKey: "test/img1.jpg"},
+						{Type: "Image", ObjectKey: "test/img2.jpg"},
+					},
+				},
+			},
+		},
+		Conf: &AIImageAnalysisConf{Type: "Description", TemplateName: "general"},
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+	if res.State != "Success" {
+		t.Errorf("State = %q, want Success", res.State)
+	}
+	if res.RequestId != "req-001" {
+		t.Errorf("RequestId = %q, want req-001", res.RequestId)
+	}
+	if res.AnalysisResult == nil {
+		t.Fatal("AnalysisResult is nil")
+	}
+	if res.AnalysisResult.Type != "Description" {
+		t.Errorf("AnalysisResult.Type = %q, want Description", res.AnalysisResult.Type)
+	}
+	if res.AnalysisResult.DescriptionResult == nil {
+		t.Fatal("DescriptionResult is nil")
+	}
+	if res.AnalysisResult.DescriptionResult.Description != "两张图片均为风景照" {
+		t.Errorf("Description = %q, want 两张图片均为风景照", res.AnalysisResult.DescriptionResult.Description)
+	}
+	ld := res.AnalysisResult.DescriptionResult.LabelDetail
+	if ld == nil {
+		t.Fatal("LabelDetail is nil")
+	}
+	if len(ld.LabelInfos) != 1 {
+		t.Fatalf("len(LabelInfos) = %d, want 1", len(ld.LabelInfos))
+	}
+	if ld.LabelInfos[0].ConfidenceLevel != "high" {
+		t.Errorf("ConfidenceLevel = %q, want high", ld.LabelInfos[0].ConfidenceLevel)
+	}
+	if len(ld.LabelInfos[0].LabelInfo) != 2 {
+		t.Fatalf("len(LabelInfo) = %d, want 2", len(ld.LabelInfos[0].LabelInfo))
+	}
+	wantLabels := []AIImageAnalysisLabelInfo{
+		{LabelName: "scene", LabelValue: "mountain"},
+		{LabelName: "weather", LabelValue: "sunny"},
+	}
+	if !reflect.DeepEqual(ld.LabelInfos[0].LabelInfo, wantLabels) {
+		t.Errorf("LabelInfo = %+v, want %+v", ld.LabelInfos[0].LabelInfo, wantLabels)
+	}
+}
+
+// #2: Description + ecommerce + 多组 LabelInfos（high/medium/low）
+func TestCIService_CreateAIImageAnalysis_DescriptionEcommerce_MultiLabelInfos(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		if got := r.URL.Query().Get("ci-process"); got != "AIImageAnalysis" {
+			t.Errorf("ci-process = %q, want AIImageAnalysis", got)
+		}
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Description</Type>`+
+			`<DescriptionResult>`+
+			`<Description>商品图</Description>`+
+			`<LabelDetail>`+
+			`<LabelInfos>`+
+			`<ConfidenceLevel>high</ConfidenceLevel>`+
+			`<LabelInfo><LabelName>category</LabelName><LabelValue>clothing</LabelValue></LabelInfo>`+
+			`</LabelInfos>`+
+			`<LabelInfos>`+
+			`<ConfidenceLevel>medium</ConfidenceLevel>`+
+			`<LabelInfo><LabelName>color</LabelName><LabelValue>red</LabelValue></LabelInfo>`+
+			`</LabelInfos>`+
+			`<LabelInfos>`+
+			`<ConfidenceLevel>low</ConfidenceLevel>`+
+			`<LabelInfo><LabelName>brand</LabelName><LabelValue>unknown</LabelValue></LabelInfo>`+
+			`</LabelInfos>`+
+			`</LabelDetail>`+
+			`</DescriptionResult>`+
+			`</AnalysisResult>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{
+						{Type: "Image", ObjectKey: "shop/a.jpg"},
+					},
+				},
+			},
+		},
+		Conf: &AIImageAnalysisConf{Type: "Description", TemplateName: "ecommerce"},
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+	if res.AnalysisResult == nil || res.AnalysisResult.DescriptionResult == nil ||
+		res.AnalysisResult.DescriptionResult.LabelDetail == nil {
+		t.Fatal("nested fields nil")
+	}
+	infos := res.AnalysisResult.DescriptionResult.LabelDetail.LabelInfos
+	if len(infos) != 3 {
+		t.Fatalf("len(LabelInfos) = %d, want 3", len(infos))
+	}
+	wantLevels := []string{"high", "medium", "low"}
+	for i, want := range wantLevels {
+		if infos[i].ConfidenceLevel != want {
+			t.Errorf("LabelInfos[%d].ConfidenceLevel = %q, want %q", i, infos[i].ConfidenceLevel, want)
+		}
+		if len(infos[i].LabelInfo) != 1 {
+			t.Errorf("LabelInfos[%d].LabelInfo len = %d, want 1", i, len(infos[i].LabelInfo))
+		}
+	}
+	// 抽样验证一个 LabelName/LabelValue
+	if infos[1].LabelInfo[0].LabelName != "color" || infos[1].LabelInfo[0].LabelValue != "red" {
+		t.Errorf("LabelInfos[1].LabelInfo[0] = %+v, want {color,red}", infos[1].LabelInfo[0])
+	}
+}
+
+// #3: Description 模式但大模型未输出标签（LabelDetail 缺失）
+func TestCIService_CreateAIImageAnalysis_DescriptionOnly_NoLabelDetail(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Description</Type>`+
+			`<DescriptionResult>`+
+			`<Description>仅描述文本</Description>`+
+			`</DescriptionResult>`+
+			`</AnalysisResult>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{{Type: "Image", ObjectKey: "x.jpg"}},
+				},
+			},
+		},
+		Conf: &AIImageAnalysisConf{Type: "Description"},
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+	if res.AnalysisResult == nil || res.AnalysisResult.DescriptionResult == nil {
+		t.Fatal("DescriptionResult nil")
+	}
+	if res.AnalysisResult.DescriptionResult.Description != "仅描述文本" {
+		t.Errorf("Description = %q, want 仅描述文本", res.AnalysisResult.DescriptionResult.Description)
+	}
+	if res.AnalysisResult.DescriptionResult.LabelDetail != nil {
+		t.Errorf("LabelDetail should be nil when not returned, got %+v",
+			res.AnalysisResult.DescriptionResult.LabelDetail)
+	}
+	if res.AnalysisResult.CustomResult != nil {
+		t.Errorf("CustomResult should be nil in Description mode, got %+v", res.AnalysisResult.CustomResult)
+	}
+}
+
+// #4: Custom + 图文混排 + CustomOutput 明文（含中文）
+func TestCIService_CreateAIImageAnalysis_Custom_TextAndImage_Success(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := `<Request>` +
+		`<Input><Message><Content>` +
+		`<Part><Type>Image</Type><ObjectKey>test/a.jpg</ObjectKey></Part>` +
+		`<Part><Type>Text</Type><Text>请用一句话总结</Text></Part>` +
+		`</Content></Message></Input>` +
+		`<Conf><Type>Custom</Type></Conf>` +
+		`</Request>`
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Custom</Type>`+
+			`<CustomResult>`+
+			`<CustomOutput>这是一张猫咪的图片，毛色为橙色。</CustomOutput>`+
+			`</CustomResult>`+
+			`</AnalysisResult>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{
+						{Type: "Image", ObjectKey: "test/a.jpg"},
+						{Type: "Text", Text: "请用一句话总结"},
+					},
+				},
+			},
+		},
+		Conf: &AIImageAnalysisConf{Type: "Custom"},
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+	if res.AnalysisResult == nil || res.AnalysisResult.CustomResult == nil {
+		t.Fatal("CustomResult nil")
+	}
+	if res.AnalysisResult.Type != "Custom" {
+		t.Errorf("Type = %q, want Custom", res.AnalysisResult.Type)
+	}
+	if res.AnalysisResult.CustomResult.CustomOutput != "这是一张猫咪的图片，毛色为橙色。" {
+		t.Errorf("CustomOutput = %q", res.AnalysisResult.CustomResult.CustomOutput)
+	}
+	if res.AnalysisResult.DescriptionResult != nil {
+		t.Errorf("DescriptionResult should be nil in Custom mode, got %+v", res.AnalysisResult.DescriptionResult)
+	}
+}
+
+// #5: ObjectKey 和 Url 混合
+func TestCIService_CreateAIImageAnalysis_MixedObjectKeyAndUrl_Success(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := `<Request>` +
+		`<Input><Message><Content>` +
+		`<Part><Type>Image</Type><ObjectKey>bucket/k.jpg</ObjectKey></Part>` +
+		`<Part><Type>Image</Type><Url>https://example.com/u.jpg</Url></Part>` +
+		`</Content></Message></Input>` +
+		`<Conf><Type>Description</Type><TemplateName>general</TemplateName><AiModel>qwen3.5-4b</AiModel></Conf>` +
+		`</Request>`
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Description</Type>`+
+			`<DescriptionResult><Description>mixed input</Description></DescriptionResult>`+
+			`</AnalysisResult>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{
+						{Type: "Image", ObjectKey: "bucket/k.jpg"},
+						{Type: "Image", Url: "https://example.com/u.jpg"},
+					},
+				},
+			},
+		},
+		Conf: &AIImageAnalysisConf{
+			Type:         "Description",
+			TemplateName: "general",
+			AiModel:      "qwen3.5-4b",
+		},
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+	if res.AnalysisResult == nil || res.AnalysisResult.DescriptionResult == nil {
+		t.Fatal("DescriptionResult nil")
+	}
+	if res.AnalysisResult.DescriptionResult.Description != "mixed input" {
+		t.Errorf("Description = %q, want mixed input", res.AnalysisResult.DescriptionResult.Description)
+	}
+}
+
+// #6: Conf 为 nil，验证 XML 中无 <Conf> 元素（omitempty 行为）
+func TestCIService_CreateAIImageAnalysis_OmitemptyXML_Verify(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := `<Request>` +
+		`<Input><Message><Content>` +
+		`<Part><Type>Image</Type><ObjectKey>only.jpg</ObjectKey></Part>` +
+		`</Content></Message></Input>` +
+		`</Request>`
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, `<Response><State>Success</State></Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{{Type: "Image", ObjectKey: "only.jpg"}},
+				},
+			},
+		},
+		// Conf 故意置 nil，期望 XML 中无 <Conf>
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+	if res.State != "Success" {
+		t.Errorf("State = %q, want Success", res.State)
+	}
+}
+
+// #7: 错误响应（Code/Message 非空，State=Failed）SDK 透传到 Result，不抛 err
+func TestCIService_CreateAIImageAnalysis_ErrorResponse_PassThrough(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		// 注意：返回 200 但 body 含业务错误（State=Failed），SDK 不抛 err
+		fmt.Fprint(w, `<Response>`+
+			`<Code>InvalidArgument</Code>`+
+			`<Message>Part is required</Message>`+
+			`<State>Failed</State>`+
+			`<RequestId>req-err-002</RequestId>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		// 故意不带 Input，模拟参数错误
+		Conf: &AIImageAnalysisConf{Type: "Description"},
+	}
+
+	res, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v (业务错误应透传到 Result 而非 err)", err)
+	}
+	if res.Code != "InvalidArgument" {
+		t.Errorf("Code = %q, want InvalidArgument", res.Code)
+	}
+	if res.Message != "Part is required" {
+		t.Errorf("Message = %q, want Part is required", res.Message)
+	}
+	if res.State != "Failed" {
+		t.Errorf("State = %q, want Failed", res.State)
+	}
+	if res.RequestId != "req-err-002" {
+		t.Errorf("RequestId = %q, want req-err-002", res.RequestId)
+	}
+	if res.AnalysisResult != nil {
+		t.Errorf("AnalysisResult should be nil on failure, got %+v", res.AnalysisResult)
+	}
+}
+
+// #8: 端到端 XML body 字符串匹配（SPEC §3.4 样例）
+func TestCIService_CreateAIImageAnalysis_RequestBodyXMLSchema(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := `<Request>` +
+		`<Input><Message><Content>` +
+		`<Part><Type>Image</Type><ObjectKey>a.jpg</ObjectKey></Part>` +
+		`<Part><Type>Image</Type><Url>https://x.com/b.jpg</Url></Part>` +
+		`<Part><Type>Text</Type><Text>请描述</Text></Part>` +
+		`</Content></Message></Input>` +
+		`<Conf><Type>Description</Type><TemplateName>general</TemplateName></Conf>` +
+		`</Request>`
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		if got := r.URL.Query().Get("ci-process"); got != "AIImageAnalysis" {
+			t.Errorf("ci-process = %q, want AIImageAnalysis", got)
+		}
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, `<Response><AnalysisResult><Type>Description</Type></AnalysisResult></Response>`)
+	})
+
+	opt := &CreateAIImageAnalysisOptions{
+		Input: &AIImageAnalysisInput{
+			Message: &AIImageAnalysisMessage{
+				Content: &AIImageAnalysisContent{
+					Part: []AIImageAnalysisPart{
+						{Type: "Image", ObjectKey: "a.jpg"},
+						{Type: "Image", Url: "https://x.com/b.jpg"},
+						{Type: "Text", Text: "请描述"},
+					},
+				},
+			},
+		},
+		Conf: &AIImageAnalysisConf{Type: "Description", TemplateName: "general"},
+	}
+
+	_, _, err := client.CI.CreateAIImageAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
+	}
+}
