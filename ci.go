@@ -719,9 +719,11 @@ type TextAuditingJobDetail struct {
 	Url           string               `xml:",omitempty"`
 	DataId        string               `xml:",omitempty"`
 	Content       string               `xml:",omitempty"`
+	ContextText   string               `xml:",omitempty"`
 	SectionCount  int                  `xml:",omitempty"`
 	Label         string               `xml:",omitempty"`
 	Result        int                  `xml:",omitempty"`
+	Score         int                  `xml:",omitempty"`
 	PornInfo      *TextRecognitionInfo `xml:",omitempty"`
 	TerrorismInfo *TextRecognitionInfo `xml:",omitempty"`
 	PoliticsInfo  *TextRecognitionInfo `xml:",omitempty"`
@@ -743,6 +745,20 @@ type TextLibResult struct {
 	Keywords []string `xml:"Keywords,omitempty"`
 }
 
+// TextPosition is the position of the hit keyword in the original text
+type TextPosition struct {
+	Start string `xml:",omitempty"`
+	End   string `xml:",omitempty"`
+}
+
+// TextHitInfo is the detail of hit sensitive content
+type TextHitInfo struct {
+	Keywords  string         `xml:",omitempty"`
+	LibName   string         `xml:",omitempty"`
+	Positions []TextPosition `xml:"Positions,omitempty"`
+	Type      string         `xml:",omitempty"`
+}
+
 // TextRecognitionInfo
 type TextRecognitionInfo struct {
 	Code       int             `xml:",omitempty"`
@@ -750,6 +766,7 @@ type TextRecognitionInfo struct {
 	Score      int             `xml:",omitempty"`
 	Count      int             `xml:",omitempty"`
 	Keywords   string          `xml:",omitempty"`
+	HitInfos   []TextHitInfo   `xml:"HitInfos,omitempty"`
 	LibResults []TextLibResult `xml:",omitempty"`
 	SubLabel   string          `xml:",omitempty"`
 }
