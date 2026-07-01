@@ -1769,6 +1769,69 @@ func (s *CIService) CloseOriginProtect(ctx context.Context) (*Response, error) {
 	return resp, err
 }
 
+// HDRImageProcessingOptions 开通 HDR 图片处理的请求体
+// 参考文档: https://cloud.tencent.com/document/product/460/118210
+type HDRImageProcessingOptions struct {
+	XMLName xml.Name `xml:"HdrImageProcessingConfiguration"`
+	// HdrMode HDR 图片处理模式，可选值：
+	//   - "API"：仅通过 API 调用支持对 HDR 图片进行处理
+	//   - "Auto"：无需携带 HDR 参数，使用万象基础处理参数时自动支持 HDR
+	//   - "Auto,API"：同时启用以上两种模式
+	HdrMode string `xml:"HdrMode"`
+}
+
+// HDRImageProcessingResult 查询 HDR 图片处理状态的响应体
+// 参考文档: https://cloud.tencent.com/document/product/460/118210
+type HDRImageProcessingResult struct {
+	XMLName xml.Name `xml:"HdrImageProcessingConfiguration"`
+	// Status HDR 图片处理服务状态，有效值："on"（已开启） / "off"（已关闭）
+	Status string `xml:"Status"`
+	// HdrMode HDR 图片处理模式，含义见 HDRImageProcessingOptions.HdrMode
+	HdrMode string `xml:"HdrMode"`
+}
+
+// PutHDRImageProcessing 开通 HDR 图片处理。
+// 子账号授权策略：ci:SetHDRImageProcess
+// 参考文档: https://cloud.tencent.com/document/product/460/118210
+func (s *CIService) PutHDRImageProcessing(ctx context.Context, opt *HDRImageProcessingOptions) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?hdr-image-processing",
+		method:  http.MethodPut,
+		body:    opt,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
+// GetHDRImageProcessing 查询 HDR 图片处理状态。
+// 子账号授权策略：ci:DescribeHDRImageProcess
+// 参考文档: https://cloud.tencent.com/document/product/460/118210
+func (s *CIService) GetHDRImageProcessing(ctx context.Context) (*HDRImageProcessingResult, *Response, error) {
+	var res HDRImageProcessingResult
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?hdr-image-processing",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return &res, resp, err
+}
+
+// DeleteHDRImageProcessing 关闭 HDR 图片处理。
+// 子账号授权策略：ci:SetHDRImageProcess
+// 参考文档: https://cloud.tencent.com/document/product/460/118210
+func (s *CIService) DeleteHDRImageProcessing(ctx context.Context) (*Response, error) {
+	sendOpt := &sendOptions{
+		baseURL: s.client.BaseURL.CIURL,
+		uri:     "/?hdr-image-processing",
+		method:  http.MethodDelete,
+	}
+	resp, err := s.client.send(ctx, sendOpt)
+	return resp, err
+}
+
 type PicTagResult struct {
 	XMLName xml.Name `xml:"RecognitionResult"`
 	Labels  []PicTag `xml:"Labels,omitempty"`
