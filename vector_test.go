@@ -668,6 +668,15 @@ func TestVectorService_ListVectors(t *testing.T) {
 	defer server.Close()
 
 	mux.HandleFunc("/ListVectors", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		var req map[string]interface{}
+		_ = json.Unmarshal(body, &req)
+
+		// 未传 Filter 时，请求体中不应出现 filter 字段（omitempty 生效，向后兼容）
+		if _, exists := req["filter"]; exists {
+			t.Errorf("Expected filter to be omitted when not set, got %v", req["filter"])
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, `{
 			"vectors": [
@@ -693,6 +702,84 @@ func TestVectorService_ListVectors(t *testing.T) {
 	}
 	if res.NextToken != "abc" {
 		t.Errorf("Expected nextToken abc, got %s", res.NextToken)
+	}
+}
+
+// TestVectorService_ListVectorsWithFilter 验证 ListVectors 接口的 Filter 字段
+// 1. Filter 字段被正确序列化到请求体
+// 2. 嵌套表达式（如 $eq/$in）结构能完整传递
+// 3. 服务端能基于过滤条件返回结果
+func TestVectorService_ListVectorsWithFilter(t *testing.T) {
+	mux, server, client := vectorSetup()
+	defer server.Close()
+
+	mux.HandleFunc("/ListVectors", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := ioutil.ReadAll(r.Body)
+		var req map[string]interface{}
+		if err := json.Unmarshal(body, &req); err != nil {
+			t.Fatalf("Failed to unmarshal request body: %v", err)
+		}
+
+		// 校验 filter 字段存在
+		filter, ok := req["filter"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("Expected filter to be a JSON object, got %v", req["filter"])
+		}
+
+		// 校验顶层 $and 表达式
+		andExpr, ok := filter["$and"].([]interface{})
+		if !ok || len(andExpr) != 2 {
+			t.Fatalf("Expected filter[$and] to have 2 conditions, got %v", filter["$and"])
+		}
+
+		// 第一个条件：category $eq AI
+		first, _ := andExpr[0].(map[string]interface{})
+		category, _ := first["category"].(map[string]interface{})
+		if category["$eq"] != "AI" {
+			t.Errorf("Expected category.$eq=AI, got %v", category["$eq"])
+		}
+
+		// 第二个条件：score $in [1,2,3]
+		second, _ := andExpr[1].(map[string]interface{})
+		score, _ := second["score"].(map[string]interface{})
+		inVals, ok := score["$in"].([]interface{})
+		if !ok || len(inVals) != 3 {
+			t.Errorf("Expected score.$in to have 3 values, got %v", score["$in"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{
+			"vectors": [
+				{"key": "doc-001", "metadata": {"category": "AI", "score": 1}}
+			]
+		}`)
+	})
+
+	opt := &ListVectorsOptions{
+		VectorBucketName: "examplebucket-1250000000",
+		IndexName:        "test-index",
+		MaxResults:       10,
+		Filter: map[string]interface{}{
+			"$and": []interface{}{
+				map[string]interface{}{
+					"category": map[string]interface{}{"$eq": "AI"},
+				},
+				map[string]interface{}{
+					"score": map[string]interface{}{"$in": []interface{}{1, 2, 3}},
+				},
+			},
+		},
+		ReturnMetadata: Bool(true),
+	}
+	res, _, err := client.Vector.ListVectors(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("Vector.ListVectors returned error: %v", err)
+	}
+	if len(res.Vectors) != 1 {
+		t.Fatalf("Expected 1 vector, got %d", len(res.Vectors))
+	}
+	if res.Vectors[0].Key != "doc-001" {
+		t.Errorf("Expected key doc-001, got %s", res.Vectors[0].Key)
 	}
 }
 
