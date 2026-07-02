@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -938,6 +939,48 @@ func TestCIService_GetPrivateM3U8(t *testing.T) {
 			t.Fatalf("CI.GetMediaInfo returned error: %v", err)
 		}
 		teardown()
+	}
+}
+
+// ============================================================================
+// 测试用例：GetPrivateM3U8 (WithUserData) / GetPlayList - S1 边转边播 user-data
+// ============================================================================
+
+// 覆盖：ci_media.go GetPrivateM3U8Options.UserData 字段（新增）
+// 断言：URL 同时携带 expires + user-data
+func TestCIService_GetPrivateM3U8_WithUserData(t *testing.T) {
+	setup()
+	defer teardown()
+
+	opt := &GetPrivateM3U8Options{
+		Expires:  3600,
+		UserData: "eyJhIjoiMSJ9",
+	}
+	data := make([]byte, 128)
+	rand.Read(data)
+
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		v := values{
+			"ci-process": "pm3u8",
+			"expires":    "3600",
+			"user-data":  "eyJhIjoiMSJ9",
+		}
+		testFormValues(t, r, v)
+		w.Write(data)
+	})
+
+	resp, err := client.CI.GetPrivateM3U8(context.Background(), "test", opt)
+	if err != nil {
+		t.Fatalf("CI.GetPrivateM3U8 returned error: %v", err)
+	}
+	defer resp.Body.Close()
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("CI.GetPrivateM3U8 ReadAll returned error: %v", err)
+	}
+	if bytes.Compare(bs, data) != 0 {
+		t.Errorf("CI.GetPrivateM3U8 Compare failed")
 	}
 }
 
@@ -3890,5 +3933,105 @@ func TestCIService_CreateASRProcessBucket(t *testing.T) {
 	_, _, err := client.CI.CreateASRProcessBucket(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.CreateASRProcessBucket returned error: %v", err)
+	}
+}
+
+// ============================================================================
+// 测试用例：Video.StdExtInfo / TranscodeProVideo.StdExtInfo — 转码扩展信息
+// ============================================================================
+
+// 覆盖：ci_media.go Video.StdExtInfo（新增字段）+ XML 正常序列化
+func TestVideo_StdExtInfo_MarshalXML(t *testing.T) {
+	v := &Video{
+		Codec:      "H.265",
+		StdExtInfo: "single-pps=1",
+	}
+	out, err := xml.Marshal(v)
+	if err != nil {
+		t.Fatalf("xml.Marshal Video returned error: %v", err)
+	}
+	if !strings.Contains(string(out), "<StdExtInfo>single-pps=1</StdExtInfo>") {
+		t.Errorf("Video XML should contain StdExtInfo tag, got: %s", string(out))
+	}
+}
+
+// 覆盖：ci_media.go Video.StdExtInfo omitempty 分支（空值不输出）
+func TestVideo_StdExtInfo_Empty_OmitInXML(t *testing.T) {
+	v := &Video{
+		Codec: "H.264",
+	}
+	out, err := xml.Marshal(v)
+	if err != nil {
+		t.Fatalf("xml.Marshal Video returned error: %v", err)
+	}
+	if strings.Contains(string(out), "StdExtInfo") {
+		t.Errorf("Video XML should NOT contain StdExtInfo tag when empty, got: %s", string(out))
+	}
+}
+
+// 覆盖：ci_media.go TranscodeProVideo.StdExtInfo（新增字段）+ XML 正常序列化
+func TestTranscodeProVideo_StdExtInfo_MarshalXML(t *testing.T) {
+	v := &TranscodeProVideo{
+		Codec:      "H.265",
+		StdExtInfo: "single-pps=1",
+	}
+	out, err := xml.Marshal(v)
+	if err != nil {
+		t.Fatalf("xml.Marshal TranscodeProVideo returned error: %v", err)
+	}
+	if !strings.Contains(string(out), "<StdExtInfo>single-pps=1</StdExtInfo>") {
+		t.Errorf("TranscodeProVideo XML should contain StdExtInfo tag, got: %s", string(out))
+	}
+}
+
+// 覆盖：ci_media.go TranscodeProVideo.StdExtInfo omitempty 分支
+func TestTranscodeProVideo_StdExtInfo_Empty_OmitInXML(t *testing.T) {
+	v := &TranscodeProVideo{
+		Codec: "H.264",
+	}
+	out, err := xml.Marshal(v)
+	if err != nil {
+		t.Fatalf("xml.Marshal TranscodeProVideo returned error: %v", err)
+	}
+	if strings.Contains(string(out), "StdExtInfo") {
+		t.Errorf("TranscodeProVideo XML should NOT contain StdExtInfo tag when empty, got: %s", string(out))
+	}
+}
+
+// 覆盖：ci_media.go StdExtInfo 端到端 — 通过 CreateMediaTranscodeProTemplate 发送请求，
+// 断言 HTTP 请求 Body 包含 <StdExtInfo>single-pps=1</StdExtInfo>
+func TestCIService_CreateMediaTranscodeProTemplate_WithStdExtInfo(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/template", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read body error: %v", err)
+		}
+		if !strings.Contains(string(body), "<StdExtInfo>single-pps=1</StdExtInfo>") {
+			t.Errorf("request body should contain StdExtInfo, got: %s", string(body))
+		}
+	})
+
+	opt := &CreateMediaTranscodeProTemplateOptions{
+		Tag:  "TranscodePro",
+		Name: "test-h265-single-pps",
+		Container: &Container{
+			Format: "mp4",
+		},
+		Video: &TranscodeProVideo{
+			Codec:      "H.265",
+			Width:      "1920",
+			Height:     "1080",
+			Bitrate:    "5000",
+			StdExtInfo: "single-pps=1",
+		},
+	}
+
+	_, _, err := client.CI.CreateMediaTranscodeProTemplate(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateMediaTranscodeProTemplate returned error: %v", err)
 	}
 }

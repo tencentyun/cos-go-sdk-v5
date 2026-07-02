@@ -1,6 +1,8 @@
 package cos
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -338,5 +340,79 @@ func Test_GetBucketRegionFromUrl(t *testing.T) {
 	bucket, region = GetBucketRegionFromUrl(u)
 	if bucket != "" || region != "" {
 		t.Errorf("GetBucketRegionFromUrl failed")
+	}
+}
+
+// ============================================================================
+// 测试用例：EncodeUserData - S1 边转边播 user-data helper
+// ============================================================================
+
+// 覆盖：helper.go EncodeUserData nil 分支
+func TestEncodeUserData_Nil(t *testing.T) {
+	got, err := EncodeUserData(nil)
+	if err != nil {
+		t.Fatalf("EncodeUserData(nil) unexpected err: %v", err)
+	}
+	if got != "" {
+		t.Errorf("EncodeUserData(nil) = %q, want empty string", got)
+	}
+}
+
+// 覆盖：helper.go EncodeUserData 空 map 分支
+// 空 map JSON 为 "{}", base64 = "e30"
+func TestEncodeUserData_Empty(t *testing.T) {
+	got, err := EncodeUserData(map[string]string{})
+	if err != nil {
+		t.Fatalf("EncodeUserData(empty) unexpected err: %v", err)
+	}
+	if got != "e30" {
+		t.Errorf("EncodeUserData(empty) = %q, want %q", got, "e30")
+	}
+}
+
+// 覆盖：helper.go EncodeUserData 稳定排序（同键值不同插入顺序应产生相同输出）
+func TestEncodeUserData_Deterministic(t *testing.T) {
+	a, err := EncodeUserData(map[string]string{"a": "1", "b": "2"})
+	if err != nil {
+		t.Fatalf("EncodeUserData a err: %v", err)
+	}
+	b, err := EncodeUserData(map[string]string{"b": "2", "a": "1"})
+	if err != nil {
+		t.Fatalf("EncodeUserData b err: %v", err)
+	}
+	if a != b {
+		t.Errorf("EncodeUserData not deterministic: %q vs %q", a, b)
+	}
+	if a == "" {
+		t.Errorf("EncodeUserData returned empty for non-empty map")
+	}
+}
+
+// 覆盖：helper.go EncodeUserData 特殊字符 + 中文
+// 断言：编码后可 base64 URL 解码 + JSON 反序列化，还原原值
+func TestEncodeUserData_SpecialChars(t *testing.T) {
+	in := map[string]string{
+		"slash":   "a/b+c=d",
+		"chinese": "测试值",
+		"empty":   "",
+	}
+	got, err := EncodeUserData(in)
+	if err != nil {
+		t.Fatalf("EncodeUserData err: %v", err)
+	}
+	if got == "" {
+		t.Fatalf("EncodeUserData returned empty for non-empty input")
+	}
+	// base64 URL 解码 + 反序列化
+	raw, err := base64.RawURLEncoding.DecodeString(got)
+	if err != nil {
+		t.Fatalf("base64 decode err: %v, encoded: %q", err, got)
+	}
+	out := map[string]string{}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatalf("json unmarshal err: %v, raw: %q", err, string(raw))
+	}
+	if !reflect.DeepEqual(in, out) {
+		t.Errorf("roundtrip mismatch: in=%v out=%v", in, out)
 	}
 }

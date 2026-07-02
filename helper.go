@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/mozillazg/go-httpheader"
@@ -13,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -554,4 +557,48 @@ func GetBucketRegionFromUrl(u *url.URL) (string, string) {
 
 func Bool(v bool) *bool {
 	return &v
+}
+
+// EncodeUserData 将自定义键值对编码为 pm3u8/getplaylist 接口 `user-data` 参数所需的字符串。
+//
+// 编码规则：
+//  1. 按 key 稳定排序，保证结果确定性（相同输入必产生相同输出）
+//  2. 使用 JSON 序列化为字节数组
+//  3. 使用 base64 URL 编码（无 padding, RFC 4648 §5）
+//
+// 当 kv 为 nil 或 encode 过程出错时，返回空字符串。
+// 空 map（非 nil）会被编码为 base64("{}")，即 "e30"。
+func EncodeUserData(kv map[string]string) (string, error) {
+	if kv == nil {
+		return "", nil
+	}
+	// 按 key 稳定排序，确保输出确定
+	keys := make([]string, 0, len(kv))
+	for k := range kv {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// 借助有序结构手动构造 JSON，避免 map 迭代顺序影响输出
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, k := range keys {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		kb, err := json.Marshal(k)
+		if err != nil {
+			return "", err
+		}
+		vb, err := json.Marshal(kv[k])
+		if err != nil {
+			return "", err
+		}
+		buf.Write(kb)
+		buf.WriteByte(':')
+		buf.Write(vb)
+	}
+	buf.WriteByte('}')
+
+	return base64.RawURLEncoding.EncodeToString(buf.Bytes()), nil
 }

@@ -12,6 +12,7 @@ import (
 
 type DocProcessJobInput struct {
 	Object string `xml:"Object,omitempty"`
+	Url    string `xml:"Url,omitempty"` // 第三方 URL 输入源，与 Object 二选一
 }
 
 type DocProcessJobOutput struct {
@@ -24,8 +25,16 @@ type DocWatermark struct {
 	SrcType string `xml:"SrcType,omitempty"`
 	Type    string `xml:"Type,omitempty"`
 	Image   string `xml:"Image,omitempty"`
-	Dx      string `xml:"Dx,omitempty"`
-	Dy      string `xml:"Dy,omitempty"`
+	// Dx PDF 水印场景下单位为像素（服务端 v7.3 起统一，非百分比）
+	Dx string `xml:"Dx,omitempty"`
+	// Dy PDF 水印场景下单位为像素（服务端 v7.3 起统一，非百分比）
+	Dy string `xml:"Dy,omitempty"`
+	// Batch 平铺模式开关，"1" 表示开启（水印在整页平铺）
+	Batch string `xml:"Batch,omitempty"`
+	// HorizontalSpacing 平铺模式下水平间距（像素），仅 Batch="1" 时生效
+	HorizontalSpacing string `xml:"HorizontalSpacing,omitempty"`
+	// VerticalSpacing 平铺模式下垂直间距（像素），仅 Batch="1" 时生效
+	VerticalSpacing string `xml:"VerticalSpacing,omitempty"`
 }
 
 type DocProcessJobDocProcess struct {
@@ -321,6 +330,8 @@ func (s *CIService) CreateDocProcessBucket(ctx context.Context, opt *CreateDocPr
 }
 
 type DocPreviewOptions struct {
+	// SrcType 源文件类型。支持：doc, docx, ppt, pptx, xls, xlsx, pdf, txt, ofd 等。
+	// 文档：https://cloud.tencent.com/document/product/436/54058
 	SrcType             string `url:"srcType,omitempty"`
 	Page                int    `url:"page,omitempty"`
 	ImageParams         string `url:"ImageParams,omitempty"`
@@ -337,9 +348,29 @@ type DocPreviewOptions struct {
 	TxtPagination       bool   `url:"txtPagination,omitempty"`
 	Scale               int    `url:"scale,omitempty"`
 	ImageDpi            int    `url:"imageDpi,omitempty"`
+	// --- 以下为 PDF 加水印场景参数（dstType=watermark 时生效）---
+	// Type 水印类型：Text / Image
+	Type string `url:"type,omitempty"`
+	// Text 文字水印内容（Type=Text 时使用）
+	Text string `url:"text,omitempty"`
+	// Image 图片水印 URL（Type=Image 时使用）
+	Image string `url:"image,omitempty"`
+	// Dx 水印水平偏移（像素，服务端 v7.3 起统一为像素）
+	Dx int `url:"dx,omitempty"`
+	// Dy 水印垂直偏移（像素，服务端 v7.3 起统一为像素）
+	Dy int `url:"dy,omitempty"`
+	// Batch 平铺模式开关，1=开启（整页平铺）
+	Batch int `url:"batch,omitempty"`
+	// HorizontalSpacing 平铺水平间距（像素），仅 Batch=1 时生效
+	HorizontalSpacing int `url:"horizontal-spacing,omitempty"`
+	// VerticalSpacing 平铺垂直间距（像素），仅 Batch=1 时生效
+	VerticalSpacing int `url:"vertical-spacing,omitempty"`
+	// Pos 水印位置（TopLeft/TopCenter/... 等）
+	Pos string `url:"pos,omitempty"`
 }
 
 // DocPreview 同步请求接口 https://cloud.tencent.com/document/product/436/54058
+// 通过 opt.DstType="watermark" + Type/Text/Image/Batch/HorizontalSpacing/VerticalSpacing 等参数可对 PDF 加水印
 func (s *CIService) DocPreview(ctx context.Context, name string, opt *DocPreviewOptions) (*Response, error) {
 	sendOpt := sendOptions{
 		baseURL:          s.client.BaseURL.BucketURL,
