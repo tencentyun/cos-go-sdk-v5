@@ -92,6 +92,7 @@ type Video struct {
 	Crop                       string           `xml:"Crop,omitempty"`
 	Interlaced                 string           `xml:"Interlaced,omitempty"`
 	ColorParam                 *VideoColorParam `xml:"ColorParam,omitempty"`
+	StdExtInfo                 string           `xml:"StdExtInfo,omitempty"` // 转码扩展信息，如 "single-pps=1"
 }
 
 type VideoColorParam struct {
@@ -111,6 +112,7 @@ type TranscodeProVideo struct {
 	Fps        string `xml:"Fps,omitempty"`
 	Bitrate    string `xml:"Bitrate,omitempty"`
 	Rotate     string `xml:"Rotate,omitempty"`
+	StdExtInfo string `xml:"StdExtInfo,omitempty"` // 转码扩展信息，如 "single-pps=1"
 }
 
 // TimeInterval TODO
@@ -1860,7 +1862,8 @@ func (s *CIService) PostCISnapshot(ctx context.Context, opt *PostSnapshotOptions
 
 // GetPrivateM3U8Options TODO
 type GetPrivateM3U8Options struct {
-	Expires int `url:"expires"`
+	Expires  int    `url:"expires"`
+	UserData string `url:"user-data,omitempty"` // 自定义键值对，服务端会将该字段透传到 m3u8 分片 URL 中
 }
 
 // GetPrivateM3U8 TODO
