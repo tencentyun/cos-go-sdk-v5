@@ -66,9 +66,10 @@ type BucketPutOptions struct {
 	CreateBucketConfiguration *CreateBucketConfiguration `header:"-" url:"-" xml:"-"`
 }
 type CreateBucketConfiguration struct {
-	XMLName          xml.Name `xml:"CreateBucketConfiguration"`
-	BucketAZConfig   string   `xml:"BucketAZConfig,omitempty"`
-	BucketArchConfig string   `xml:"BucketArchConfig,omitempty"`
+	XMLName            xml.Name `xml:"CreateBucketConfiguration"`
+	BucketAZConfig     string   `xml:"BucketAZConfig,omitempty"`
+	BucketArchConfig   string   `xml:"BucketArchConfig,omitempty"`
+	BucketStorageClass string   `xml:"BucketStorageClass,omitempty"`
 }
 
 // Put Bucket请求可以在指定账号下创建一个Bucket。
