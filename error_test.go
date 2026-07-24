@@ -169,6 +169,280 @@ func Test_RetryError(t *testing.T) {
 	}
 }
 
+func Test_RetryError_Is(t *testing.T) {
+	sentinel := errors.New("sentinel")
+	other := errors.New("other")
+
+	// 空 RetryError：Is 返回 false
+	var empty RetryError
+	if errors.Is(&empty, sentinel) {
+		t.Error("empty RetryError.Is should return false")
+	}
+
+	// 最后一个错误匹配 → true
+	r1 := &RetryError{}
+	r1.Add(other)
+	r1.Add(sentinel)
+	if !errors.Is(r1, sentinel) {
+		t.Error("RetryError.Is should match last error")
+	}
+
+	// 最后一个错误不匹配，即使前面有匹配的 → false
+	r2 := &RetryError{}
+	r2.Add(sentinel)
+	r2.Add(other)
+	if errors.Is(r2, sentinel) {
+		t.Error("RetryError.Is should only check last error, not earlier ones")
+	}
+
+	// 最后一个错误通过 %w 包装了 sentinel → 能穿透
+	r3 := &RetryError{}
+	r3.Add(other)
+	r3.Add(fmt.Errorf("wrapped: %w", sentinel))
+	if !errors.Is(r3, sentinel) {
+		t.Error("RetryError.Is should unwrap last error's chain")
+	}
+}
+
+func Test_RetryError_As(t *testing.T) {
+	makeResp := func(code string) *ErrorResponse {
+		req, _ := http.NewRequest(http.MethodGet, "http://example.com", nil)
+		return &ErrorResponse{
+			Code:     code,
+			Response: &http.Response{StatusCode: 404, Request: req, Header: http.Header{}},
+		}
+	}
+
+	cosErr1 := makeResp("NoSuchKey")
+	cosErr2 := makeResp("AccessDenied")
+	plainErr := errors.New("plain error")
+
+	// 空 RetryError：As 返回 false
+	var empty RetryError
+	var target *ErrorResponse
+	if errors.As(&empty, &target) {
+		t.Error("empty RetryError.As should return false")
+	}
+
+	// 最后一个错误匹配 *ErrorResponse → true，且拿到的是最后一个
+	r1 := &RetryError{}
+	r1.Add(cosErr1)
+	r1.Add(cosErr2)
+	target = nil
+	if !errors.As(r1, &target) {
+		t.Fatal("RetryError.As should match last error")
+	}
+	if target.Code != "AccessDenied" {
+		t.Errorf("expected last error Code=AccessDenied, got %v", target.Code)
+	}
+
+	// 最后一个错误不是 *ErrorResponse，即使前面有 → false
+	r2 := &RetryError{}
+	r2.Add(cosErr1)
+	r2.Add(plainErr)
+	target = nil
+	if errors.As(r2, &target) {
+		t.Error("RetryError.As should only check last error")
+	}
+
+	// 最后一个错误通过 %w 包装了 *ErrorResponse → 能穿透
+	r3 := &RetryError{}
+	r3.Add(cosErr1)
+	r3.Add(fmt.Errorf("wrapped: %w", cosErr2))
+	target = nil
+	if !errors.As(r3, &target) {
+		t.Fatal("RetryError.As should unwrap last error's chain")
+	}
+	if target.Code != "AccessDenied" {
+		t.Errorf("expected wrapped last error Code=AccessDenied, got %v", target.Code)
+	}
+}
+
+// makeCOSErr 构造一个带 HTTP 响应的 *ErrorResponse，方便复用。
+func makeCOSErr(code string, statusCode int) *ErrorResponse {
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/obj", nil)
+	return &ErrorResponse{
+		Code:    code,
+		Message: code,
+		Response: &http.Response{
+			StatusCode: statusCode,
+			Request:    req,
+			Header:     http.Header{},
+		},
+	}
+}
+
+// makeVectorErr 构造一个带 HTTP 响应的 *VectorErrorResponse，方便复用。
+func makeVectorErr(code string, statusCode int) *VectorErrorResponse {
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com/vector", nil)
+	return &VectorErrorResponse{
+		Code:    code,
+		Message: code,
+		Response: &http.Response{
+			StatusCode: statusCode,
+			Request:    req,
+			Header:     http.Header{},
+		},
+	}
+}
+
+func Test_IsCOSError(t *testing.T) {
+	cosErr := makeCOSErr("NoSuchKey", 404)
+
+	// nil → false
+	if _, ok := IsCOSError(nil); ok {
+		t.Error("IsCOSError(nil) should return false")
+	}
+
+	// 非 COS 错误 → false
+	if _, ok := IsCOSError(errors.New("plain")); ok {
+		t.Error("IsCOSError(plain) should return false")
+	}
+
+	// 直接 *ErrorResponse → true，Code 正确
+	e, ok := IsCOSError(cosErr)
+	if !ok {
+		t.Fatal("IsCOSError(*ErrorResponse) should return true")
+	}
+	if e.Code != "NoSuchKey" {
+		t.Errorf("expected Code=NoSuchKey, got %v", e.Code)
+	}
+
+	// fmt.Errorf %w 包装后 → true（errors.As 穿透）
+	wrapped := fmt.Errorf("outer: %w", cosErr)
+	e, ok = IsCOSError(wrapped)
+	if !ok {
+		t.Fatal("IsCOSError(wrapped *ErrorResponse) should return true")
+	}
+	if e.Code != "NoSuchKey" {
+		t.Errorf("expected Code=NoSuchKey through wrap, got %v", e.Code)
+	}
+
+	// RetryError 最后一个是 *ErrorResponse → true
+	r := &RetryError{}
+	r.Add(errors.New("attempt1"))
+	r.Add(cosErr)
+	e, ok = IsCOSError(r)
+	if !ok {
+		t.Fatal("IsCOSError(RetryError last=*ErrorResponse) should return true")
+	}
+	if e.Code != "NoSuchKey" {
+		t.Errorf("expected Code=NoSuchKey from RetryError, got %v", e.Code)
+	}
+
+	// RetryError 最后一个不是 *ErrorResponse → false
+	r2 := &RetryError{}
+	r2.Add(cosErr)
+	r2.Add(errors.New("last is plain"))
+	if _, ok := IsCOSError(r2); ok {
+		t.Error("IsCOSError(RetryError last=plain) should return false")
+	}
+}
+
+func Test_IsNotFoundError_Extended(t *testing.T) {
+	cosErr404 := makeCOSErr("NoSuchKey", 404)
+	cosErr403 := makeCOSErr("AccessDenied", 403)
+
+	// nil → false
+	if IsNotFoundError(nil) {
+		t.Error("IsNotFoundError(nil) should return false")
+	}
+
+	// 非 COS 错误 → false
+	if IsNotFoundError(errors.New("plain")) {
+		t.Error("IsNotFoundError(plain) should return false")
+	}
+
+	// 404 *ErrorResponse → true
+	if !IsNotFoundError(cosErr404) {
+		t.Error("IsNotFoundError(404 cosErr) should return true")
+	}
+
+	// 非 404 *ErrorResponse → false
+	if IsNotFoundError(cosErr403) {
+		t.Error("IsNotFoundError(403 cosErr) should return false")
+	}
+
+	// fmt.Errorf %w 包装 404 → true（穿透）
+	if !IsNotFoundError(fmt.Errorf("wrap: %w", cosErr404)) {
+		t.Error("IsNotFoundError(wrapped 404) should return true")
+	}
+
+	// RetryError 最后一个是 404 → true
+	r := &RetryError{}
+	r.Add(cosErr403)
+	r.Add(cosErr404)
+	if !IsNotFoundError(r) {
+		t.Error("IsNotFoundError(RetryError last=404) should return true")
+	}
+
+	// RetryError 最后一个是 403 → false（即使前面有 404）
+	r2 := &RetryError{}
+	r2.Add(cosErr404)
+	r2.Add(cosErr403)
+	if IsNotFoundError(r2) {
+		t.Error("IsNotFoundError(RetryError last=403) should return false")
+	}
+}
+
+func Test_IsVectorError(t *testing.T) {
+	vecErr := makeVectorErr("NotFoundException", 404)
+
+	// nil → false
+	if _, ok := IsVectorError(nil); ok {
+		t.Error("IsVectorError(nil) should return false")
+	}
+
+	// 非 Vector 错误 → false
+	if _, ok := IsVectorError(errors.New("plain")); ok {
+		t.Error("IsVectorError(plain) should return false")
+	}
+
+	// *ErrorResponse（COS 错误）→ false
+	if _, ok := IsVectorError(makeCOSErr("NoSuchKey", 404)); ok {
+		t.Error("IsVectorError(*ErrorResponse) should return false")
+	}
+
+	// 直接 *VectorErrorResponse → true，Code 正确
+	e, ok := IsVectorError(vecErr)
+	if !ok {
+		t.Fatal("IsVectorError(*VectorErrorResponse) should return true")
+	}
+	if e.Code != "NotFoundException" {
+		t.Errorf("expected Code=NotFoundException, got %v", e.Code)
+	}
+
+	// fmt.Errorf %w 包装后 → true（errors.As 穿透）
+	wrapped := fmt.Errorf("outer: %w", vecErr)
+	e, ok = IsVectorError(wrapped)
+	if !ok {
+		t.Fatal("IsVectorError(wrapped *VectorErrorResponse) should return true")
+	}
+	if e.Code != "NotFoundException" {
+		t.Errorf("expected Code=NotFoundException through wrap, got %v", e.Code)
+	}
+
+	// RetryError 最后一个是 *VectorErrorResponse → true
+	r := &RetryError{}
+	r.Add(errors.New("attempt1"))
+	r.Add(vecErr)
+	e, ok = IsVectorError(r)
+	if !ok {
+		t.Fatal("IsVectorError(RetryError last=*VectorErrorResponse) should return true")
+	}
+	if e.Code != "NotFoundException" {
+		t.Errorf("expected Code=NotFoundException from RetryError, got %v", e.Code)
+	}
+
+	// RetryError 最后一个不是 *VectorErrorResponse → false
+	r2 := &RetryError{}
+	r2.Add(vecErr)
+	r2.Add(errors.New("last is plain"))
+	if _, ok := IsVectorError(r2); ok {
+		t.Error("IsVectorError(RetryError last=plain) should return false")
+	}
+}
+
 func Test_ErrorResponse(t *testing.T) {
 	setup()
 	defer teardown()
