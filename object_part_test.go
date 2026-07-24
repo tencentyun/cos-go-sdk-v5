@@ -590,6 +590,223 @@ func TestObjectService_CompleteMultipartUpload(t *testing.T) {
 	}
 }
 
+// TestObjectService_CompleteMultipartUpload_EmptyETag_RetrySuccess 模拟服务端 chunk 回包，
+// 前两次返回空 ETag（空 body），第三次返回正常结果，验证重试后成功。
+func TestObjectService_CompleteMultipartUpload_EmptyETag_RetrySuccess(t *testing.T) {
+	setup()
+	defer teardown()
+
+	client.Conf.RetryOpt.Count = 3
+
+	name := "test/hello.txt"
+	uploadID := "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+	callCount := 0
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testFormValues(t, r, values{"uploadId": uploadID})
+		callCount++
+		if callCount < 3 {
+			// 前两次：返回 200 但 body 为空（ETag 空）
+			fmt.Fprint(w, `<CompleteMultipartUploadResult></CompleteMultipartUploadResult>`)
+			return
+		}
+		// 第三次：返回完整正常结果
+		fmt.Fprint(w, `<CompleteMultipartUploadResult>
+	<Location>test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt</Location>
+	<Bucket>test</Bucket>
+	<Key>test/hello.txt</Key>
+	<ETag>&quot;594f98b11c6901c0f0683de1085a6d0e-4&quot;</ETag>
+</CompleteMultipartUploadResult>`)
+	})
+
+	opt := &CompleteMultipartUploadOptions{
+		Parts: []Object{{PartNumber: 1, ETag: `"abc"`}},
+	}
+	ref, _, err := client.Object.CompleteMultipartUpload(context.Background(), name, uploadID, opt)
+	if err != nil {
+		t.Fatalf("CompleteMultipartUpload should succeed on retry, got error: %v", err)
+	}
+	if ref.ETag != `"594f98b11c6901c0f0683de1085a6d0e-4"` {
+		t.Errorf("CompleteMultipartUpload ETag = %v, want %v", ref.ETag, `"594f98b11c6901c0f0683de1085a6d0e-4"`)
+	}
+	if callCount != 3 {
+		t.Errorf("expected 3 calls, got %d", callCount)
+	}
+}
+
+// TestObjectService_CompleteMultipartUpload_EmptyETag_AllRetryFail 模拟所有重试均返回空 ETag，
+// 验证最终返回 RetryError 并包含所有错误信息。
+func TestObjectService_CompleteMultipartUpload_EmptyETag_AllRetryFail(t *testing.T) {
+	setup()
+	defer teardown()
+
+	client.Conf.RetryOpt.Count = 3
+
+	name := "test/hello.txt"
+	uploadID := "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+	callCount := 0
+	errBody := `<CompleteMultipartUploadResult><Location>loc</Location><Bucket>b</Bucket><Key>k</Key></CompleteMultipartUploadResult>`
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		callCount++
+		// 每次都返回缺少 ETag 的 body
+		fmt.Fprint(w, errBody)
+	})
+
+	opt := &CompleteMultipartUploadOptions{
+		Parts: []Object{{PartNumber: 1, ETag: `"abc"`}},
+	}
+	_, _, err := client.Object.CompleteMultipartUpload(context.Background(), name, uploadID, opt)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	// 必须是 RetryError 类型
+	retryErr, ok := err.(*RetryError)
+	if !ok {
+		t.Fatalf("expected *RetryError, got %T: %v", err, err)
+	}
+	// RetryOpt.Count=3，每次都失败，应收集到 3 条错误
+	if len(retryErr.Errs) != 3 {
+		t.Errorf("expected 3 errors in RetryError, got %d: %v", len(retryErr.Errs), retryErr)
+	}
+	// 每条错误信息应包含 body 内容（字符串形式）
+	for i, e := range retryErr.Errs {
+		if !strings.Contains(e.Error(), "body contains an error") {
+			t.Errorf("error[%d] = %v, want contains 'body contains an error'", i, e)
+		}
+		if !strings.Contains(e.Error(), "<CompleteMultipartUploadResult>") {
+			t.Errorf("error[%d] = %v, want contains XML string body", i, e)
+		}
+	}
+	if callCount != 3 {
+		t.Errorf("expected 3 calls, got %d", callCount)
+	}
+}
+
+// TestObjectService_CompleteMultipartUpload_HTTPError 模拟服务端返回非 200 错误。
+func TestObjectService_CompleteMultipartUpload_HTTPError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	name := "test/hello.txt"
+	uploadID := "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `<Error><Code>InternalError</Code><Message>server error</Message></Error>`)
+	})
+
+	opt := &CompleteMultipartUploadOptions{
+		Parts: []Object{{PartNumber: 1, ETag: `"abc"`}},
+	}
+	_, _, err := client.Object.CompleteMultipartUpload(context.Background(), name, uploadID, opt)
+	if err == nil {
+		t.Fatal("expected error for HTTP 500, got nil")
+	}
+}
+
+// TestObjectService_CompleteMultipartUpload_200NonXML 覆盖 status=200 但 body 不是合法 XML 的场景。
+// COS 规范：合并分块时服务端先返回 200，然后在 body 中流式写入结果；
+// 若 body 完全不是 XML（如纯文本、HTML 错误页），需当作错误处理并触发重试。
+func TestObjectService_CompleteMultipartUpload_200NonXML(t *testing.T) {
+	cases := []struct {
+		name        string
+		body        string
+		// 期望 lastErr.Error() 包含的关键字（按实际 xml 解析行为）
+		wantContain string
+		// 是否期望 lastErr 是 xml 解析相关错误（非 COS ErrorResponse）
+		notCOSError bool
+	}{
+		{
+			// 纯文本：xml.Unmarshal 遇到非 XML 内容抛 SyntaxError，
+			// 再经 UnmarshalCompleteMultiUploadResult 仍失败，最终是 EOF
+			name:        "plain text body",
+			body:        "Internal Server Error",
+			wantContain: "",
+			notCOSError: true,
+		},
+		{
+			// HTML 页面：xml 根标签是 <html>，不是 SyntaxError 而是解析错误
+			name:        "html error page",
+			body:        "<html><body>Bad Gateway</body></html>",
+			wantContain: "html",
+			notCOSError: true,
+		},
+		{
+			// 空 body：xml.Unmarshal 返回 SyntaxError/EOF，
+			// UnmarshalCompleteMultiUploadResult 也返回 EOF
+			name:        "empty body",
+			body:        "",
+			wantContain: "",
+			notCOSError: true,
+		},
+		{
+			// 200 body 内嵌 XML Error（COS chunk 流式传输的真实错误格式）：
+			// xml.Unmarshal 能解析但根元素不是 CompleteMultipartUploadResult，返回解析错误
+			name:        "xml error embedded in 200",
+			body:        `<?xml version="1.0" encoding="UTF-8"?><Error><Code>InternalError</Code><Message>We encountered an internal error.</Message></Error>`,
+			wantContain: "Error",
+			notCOSError: true,
+		},
+		{
+			// XML 结构合法但 ETag 为空：触发 "body contains an error" 路径
+			name:        "valid xml but empty ETag",
+			body:        `<CompleteMultipartUploadResult><Location>loc</Location><Bucket>b</Bucket><Key>k</Key></CompleteMultipartUploadResult>`,
+			wantContain: "body contains an error",
+			notCOSError: true,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			setup()
+			defer teardown()
+
+			uploadID := "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+			mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodPost)
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprint(w, tc.body)
+			})
+
+			opt := &CompleteMultipartUploadOptions{
+				Parts: []Object{{PartNumber: 1, ETag: `"abc"`}},
+			}
+			_, _, err := client.Object.CompleteMultipartUpload(
+				context.Background(), "test/hello.txt", uploadID, opt)
+			if err == nil {
+				t.Fatal("expected error for 200 non-XML body, got nil")
+			}
+
+			// 错误应当被包在 RetryError 里
+			retryErr, ok := err.(*RetryError)
+			if !ok {
+				t.Fatalf("expected *RetryError, got %T: %v", err, err)
+			}
+			if len(retryErr.Errs) == 0 {
+				t.Fatal("RetryError.Errs should not be empty")
+			}
+
+			// 以最后一次重试的错误为准
+			lastErr := retryErr.Errs[len(retryErr.Errs)-1]
+			if tc.wantContain != "" && !strings.Contains(lastErr.Error(), tc.wantContain) {
+				t.Errorf("last error = %q, want contains %q", lastErr.Error(), tc.wantContain)
+			}
+
+			// 200 非 XML body 不应被误判为 COS 服务端错误（ErrorResponse）
+			if tc.notCOSError {
+				if _, isCOS := IsCOSError(err); isCOS {
+					t.Error("200 non-XML body should not be identified as COS ErrorResponse")
+				}
+			}
+		})
+	}
+}
+
 func TestObjectService_CopyPart(t *testing.T) {
 	setup()
 	defer teardown()
