@@ -599,7 +599,8 @@ func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath s
 			fd.Close()
 			if s.client.Conf.RetryOpt.AutoSwitchHost {
 				// 收不到报文 或者 不存在RequestId
-				if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+				requestIdHeader := getRequestIdHeader(s.client.BaseURL.BucketURL.Host)
+				if resp == nil || resp.Header.Get(requestIdHeader) == "" {
 					opt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
 				}
 			}
@@ -1144,7 +1145,8 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 				}
 				if s.client.Conf.RetryOpt.AutoSwitchHost {
 					// 收不到报文 或者 不存在RequestId
-					if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+					requestIdHeader := getRequestIdHeader(s.client.BaseURL.BucketURL.Host)
+					if resp == nil || resp.Header.Get(requestIdHeader) == "" {
 						j.UpOpt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
 					}
 				}

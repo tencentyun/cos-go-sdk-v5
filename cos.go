@@ -56,9 +56,11 @@ var (
 	invalidBucketErr    = fmt.Errorf("invalid bucket format, please check your cos.BaseURL")
 
 	switchHost             = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)(cos\.[a-z-1]+)\.(myqcloud\.com)(:[0-9]+){0,1}$`)
+	switchCIHost           = regexp.MustCompile(`([a-z0-9-]+-[0-9]+\.)?ci\.[a-z0-9-]+\.myqcloud\.com(:[0-9]+){0,1}$`)
 	accelerateDomainSuffix = "accelerate.myqcloud.com"
 	oldDomainSuffix        = ".myqcloud.com"
 	newDomainSuffix        = ".tencentcos.cn"
+	ciNewDomainSuffix      = ".tencentci.cn"
 
 	ObjectKeySimplifyCheckErr = fmt.Errorf("The Getobject Key is illegal")
 )
@@ -465,33 +467,55 @@ type sendOptions struct {
 }
 
 func toSwitchHost(oldURL *url.URL) *url.URL {
-	// 判断域名是否能够切换
-	if !switchHost.MatchString(oldURL.Host) {
-		return oldURL
+	// 判断域名是否能够切换（COS 域名）
+	if switchHost.MatchString(oldURL.Host) {
+		newURL, _ := url.Parse(oldURL.String())
+		hostAndPort := strings.SplitN(newURL.Host, ":", 2)
+		newHost := hostAndPort[0]
+		// 加速域名不切换
+		if strings.HasSuffix(newHost, accelerateDomainSuffix) {
+			return oldURL
+		}
+		newHost = newHost[:len(newHost)-len(oldDomainSuffix)] + newDomainSuffix
+		if len(hostAndPort) > 1 {
+			newHost += ":" + hostAndPort[1]
+		}
+		newURL.Host = newHost
+		return newURL
 	}
-	newURL, _ := url.Parse(oldURL.String())
-	hostAndPort := strings.SplitN(newURL.Host, ":", 2)
-	newHost := hostAndPort[0]
-	// 加速域名不切换
-	if strings.HasSuffix(newHost, accelerateDomainSuffix) {
-		return oldURL
+	// CI 域名切换: .myqcloud.com → .tencentci.cn
+	if switchCIHost.MatchString(oldURL.Host) {
+		newURL, _ := url.Parse(oldURL.String())
+		hostAndPort := strings.SplitN(newURL.Host, ":", 2)
+		newHost := hostAndPort[0]
+		newHost = newHost[:len(newHost)-len(oldDomainSuffix)] + ciNewDomainSuffix
+		if len(hostAndPort) > 1 {
+			newHost += ":" + hostAndPort[1]
+		}
+		newURL.Host = newHost
+		return newURL
 	}
-	newHost = newHost[:len(newHost)-len(oldDomainSuffix)] + newDomainSuffix
-	if len(hostAndPort) > 1 {
-		newHost += ":" + hostAndPort[1]
+	return oldURL
+}
+
+// getRequestIdHeader 根据域名类型返回对应的 Request-Id header 名称
+func getRequestIdHeader(host string) string {
+	if switchCIHost.MatchString(host) {
+		return "X-Ci-Request-Id"
 	}
-	newURL.Host = newHost
-	return newURL
+	return "X-Cos-Request-Id"
 }
 
 func (c *Client) CheckRetrieable(u *url.URL, resp *Response, err error, secondLast bool) (*url.URL, bool) {
 	res := u
 	if err != nil && err != invalidBucketErr {
+		requestIdHeader := getRequestIdHeader(u.Host)
 		// 不重试
 		if resp != nil && resp.StatusCode < 500 {
 			if c.Conf.RetryOpt.AutoSwitchHost {
+				// 308 不切换（万象仅支持 https，http 请求返回 308 到 https 地址）
 				if resp.StatusCode == 301 || resp.StatusCode == 302 || resp.StatusCode == 307 {
-					if resp.Header.Get("X-Cos-Request-Id") == "" {
+					if resp.Header.Get(requestIdHeader) == "" {
 						res = toSwitchHost(u)
 						if res != u {
 							return res, true
@@ -503,7 +527,7 @@ func (c *Client) CheckRetrieable(u *url.URL, resp *Response, err error, secondLa
 		}
 		if c.Conf.RetryOpt.AutoSwitchHost && secondLast {
 			// 收不到报文 或者 不存在RequestId
-			if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+			if resp == nil || resp.Header.Get(requestIdHeader) == "" {
 				res = toSwitchHost(u)
 			}
 		}
