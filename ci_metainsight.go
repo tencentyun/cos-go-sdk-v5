@@ -58,17 +58,17 @@ func (s *MetaInsightService) baseSend(ctx context.Context, opt interface{}, opti
 }
 
 type CreateDatasetOptions struct {
-	DatasetName     string      `json:"DatasetName, omitempty" url:"-" `     // 数据集名称，同一个账户下唯一。命名规则如下： 长度为1~32字符。 只能包含小写英文字母，数字，短划线（-）。 必须以英文字母和数字开头。
-	Description     string      `json:"Description, omitempty" url:"-" `     // 数据集描述信息。长度为1~256个英文或中文字符，默认值为空。
-	TemplateId      string      `json:"TemplateId, omitempty" url:"-" `      // 与数据集关联的检索模板，在建立元数据索引时，后端将根据模板来决定采集哪些元数据。每个检索模板都包含若干个算子，不同的算子表示不同的处理能力。更多信息请参见检索模板与算子。默认值为空，即不关联检索模板，不进行任何元数据的采集。
-	DatasetType     int         `json:"DatasetType, omitempty" url:"-" `     // 表示数据集的类型，默认为0，表示普通数据集，值为1时表示该数据集为控制台文件列表专用的数据集。
-	Version         string      `json:"Version, omitempty" url:"-" `         // 数据集版本。basic、standard，默认为basic。
-	Volume          int         `json:"Volume, omitempty" url:"-" `          // Version为basic时为50w。Version为standard时，默认为500w，可设置1-10000，单位w。传0采用默认值。
-	TrainingMode    int         `json:"TrainingMode, omitempty" url:"-" `    // 训练数据的来源模式。默认为0，表示训练数据来源于指定数据集，值为1时表示训练数据来源于cos某个bucket目录下文件。仅在Version为standard时生效。
-	TrainingDataset string      `json:"TrainingDataset, omitempty" url:"-" ` // 训练数据的数据集名称。仅在TrainingMode为0时生效。
-	TrainingURI     string      `json:"TrainingURI, omitempty" url:"-" `     // 训练数据的资源路径。仅在TrainingMode为1时生效。
-	SceneType       string      `json:"SceneType, omitempty" url:"-" `       // 场景类型。支持general、E-commercial、iDrive，默认为general。
-	OptHeaders      *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName     string      `json:"DatasetName,omitempty" url:"-" `     // 数据集名称，同一个账户下唯一。命名规则如下： 长度为1~32字符。 只能包含小写英文字母，数字，短划线（-）。 必须以英文字母和数字开头。
+	Description     string      `json:"Description,omitempty" url:"-" `     // 数据集描述信息。长度为1~256个英文或中文字符，默认值为空。
+	TemplateId      string      `json:"TemplateId,omitempty" url:"-" `      // 与数据集关联的检索模板，在建立元数据索引时，后端将根据模板来决定采集哪些元数据。每个检索模板都包含若干个算子，不同的算子表示不同的处理能力。更多信息请参见检索模板与算子。默认值为空，即不关联检索模板，不进行任何元数据的采集。
+	DatasetType     int         `json:"DatasetType,omitempty" url:"-" `     // 表示数据集的类型，默认为0，表示普通数据集，值为1时表示该数据集为控制台文件列表专用的数据集。
+	Version         string      `json:"Version,omitempty" url:"-" `         // 数据集版本。basic、standard，默认为basic。
+	Volume          int         `json:"Volume,omitempty" url:"-" `          // Version为basic时为50w。Version为standard时，默认为500w，可设置1-10000，单位w。传0采用默认值。
+	TrainingMode    int         `json:"TrainingMode,omitempty" url:"-" `    // 训练数据的来源模式。默认为0，表示训练数据来源于指定数据集，值为1时表示训练数据来源于cos某个bucket目录下文件。仅在Version为standard时生效。
+	TrainingDataset string      `json:"TrainingDataset,omitempty" url:"-" ` // 训练数据的数据集名称。仅在TrainingMode为0时生效。
+	TrainingURI     string      `json:"TrainingURI,omitempty" url:"-" `     // 训练数据的资源路径。仅在TrainingMode为1时生效。
+	SceneType       string      `json:"SceneType,omitempty" url:"-" `       // 场景类型。支持general、E-commercial、iDrive，默认为general。
+	OptHeaders      *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type CreateDatasetResult struct {
@@ -85,6 +85,12 @@ type Dataset struct {
 	FileCount     int    `json:"FileCount"`     //  数据集当前文件数量
 	TotalFileSize int    `json:"TotalFileSize"` //  数据集中当前文件总大小，单位为字节
 	DatasetName   string `json:"DatasetName"`   // 数据集名称
+	DatasetType   int    `json:"DatasetType"`   // 数据集类型，0为普通数据集，1为控制台文件列表专用数据集
+	Region        string `json:"Region"`        // 数据集所在地区
+	SceneType     string `json:"SceneType"`     // 场景类型，支持general、E-commercial、iDrive
+	State         string `json:"State"`         // 训练状态：Unstart（未开始）、Running（训练中）、Success（训练成功）、Failed（训练失败）
+	TaskProgress  int    `json:"TaskProgress"`  // 训练进度百分比，范围[0, 100]
+	Version       string `json:"Version"`       // 数据集版本
 }
 
 // CreateDataset 创建数据集
@@ -102,10 +108,10 @@ func (s *MetaInsightService) CreateDataset(ctx context.Context, opt *CreateDatas
 }
 
 type DescribeDatasetsOptions struct {
-	Maxresults int         `url:"maxresults, omitempty" json:"-"` // 本次返回数据集的最大个数，取值范围为0~200。不设置此参数或者设置为0时，则默认值为100。
-	Nexttoken  string      `url:"nexttoken, omitempty" json:"-"`  // 翻页标记。当文件总数大于设置的MaxResults时，用于翻页的Token。从NextToken开始按字典序返回文件信息列表。填写上次查询返回的值，首次使用时填写为空。
-	Prefix     string      `url:"prefix, omitempty" json:"-"`     // 数据集名称前缀。
-	OptHeaders *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Maxresults int         `url:"maxresults,omitempty" json:"-"` // 本次返回数据集的最大个数，取值范围为0~200。不设置此参数或者设置为0时，则默认值为100。
+	Nexttoken  string      `url:"nexttoken,omitempty" json:"-"`  // 翻页标记。当文件总数大于设置的MaxResults时，用于翻页的Token。从NextToken开始按字典序返回文件信息列表。填写上次查询返回的值，首次使用时填写为空。
+	Prefix     string      `url:"prefix,omitempty" json:"-"`     // 数据集名称前缀。
+	OptHeaders *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DescribeDatasetsResult struct {
@@ -127,10 +133,10 @@ func (s *MetaInsightService) DescribeDatasets(ctx context.Context, opt *Describe
 }
 
 type UpdateDatasetOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	Description string      `json:"Description, omitempty" url:"-" ` // 数据集描述信息。长度为1~256个英文或中文字符，默认值为空。
-	TemplateId  string      `json:"TemplateId, omitempty" url:"-" `  // 该参数表示模板，在建立元数据索引时，后端将根据模板来决定收集哪些元数据。每个模板都包含一个或多个算子，不同的算子表示不同的元数据。目前支持的模板： Official:Empty：默认为空的模板，表示不进行元数据的采集。 Official:COSBasicMeta：基础信息模板，包含COS文件基础元信息算子，表示采集cos文件的名称、类型、acl等基础元信息数据。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	Description string      `json:"Description,omitempty" url:"-" ` // 数据集描述信息。长度为1~256个英文或中文字符，默认值为空。
+	TemplateId  string      `json:"TemplateId,omitempty" url:"-" `  // 该参数表示模板，在建立元数据索引时，后端将根据模板来决定收集哪些元数据。每个模板都包含一个或多个算子，不同的算子表示不同的元数据。目前支持的模板： Official:Empty：默认为空的模板，表示不进行元数据的采集。 Official:COSBasicMeta：基础信息模板，包含COS文件基础元信息算子，表示采集cos文件的名称、类型、acl等基础元信息数据。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type UpdateDatasetResult struct {
@@ -153,8 +159,8 @@ func (s *MetaInsightService) UpdateDataset(ctx context.Context, opt *UpdateDatas
 }
 
 type DeleteDatasetOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DeleteDatasetResult struct {
@@ -177,9 +183,9 @@ func (s *MetaInsightService) DeleteDataset(ctx context.Context, opt *DeleteDatas
 }
 
 type DescribeDatasetOptions struct {
-	Datasetname string      `url:"datasetname, omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
-	Statistics  bool        `url:"statistics, omitempty" json:"-"`  // 是否需要实时统计数据集中文件相关信息。有效值： false：不统计，返回的文件的总大小、数量信息可能不正确也可能都为0。 true：需要统计，返回数据集中当前的文件的总大小、数量信息。 默认值为false。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Datasetname string      `url:"datasetname,omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
+	Statistics  bool        `url:"statistics,omitempty" json:"-"`  // 是否需要实时统计数据集中文件相关信息。有效值： false：不统计，返回的文件的总大小、数量信息可能不正确也可能都为0。 true：需要统计，返回数据集中当前的文件的总大小、数量信息。 默认值为false。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DescribeDatasetResult struct {
@@ -200,27 +206,27 @@ func (s *MetaInsightService) DescribeDataset(ctx context.Context, opt *DescribeD
 }
 
 type CreateFileMetaIndexOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	File        *File       `json:"File, omitempty" url:"-" `        // 用于建立索引的文件信息。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	File        *File       `json:"File,omitempty" url:"-" `        // 用于建立索引的文件信息。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type File struct {
-	CustomId     string             `json:"CustomId, omitempty" url:"-" `     // 自定义ID。该文件索引到数据集后，作为该行元数据的属性存储，用于和您的业务系统进行关联、对应。您可以根据业务需求传入该值，例如将某个URI关联到您系统内的某个ID。推荐传入全局唯一的值。在查询时，该字段支持前缀查询和排序，详情请见字段和操作符的支持列表。
-	CustomLabels *map[string]string `json:"CustomLabels, omitempty" url:"-" ` // 自定义标签。您可以根据业务需要自定义添加标签键值对信息，用于在查询时可以据此为筛选项进行检索，详情请见字段和操作符的支持列表。
-	Key          string             `json:"Key, omitempty" url:"-" `          // 自定义标签键
-	Value        string             `json:"Value, omitempty" url:"-" `        // 自定义标签值
-	MediaType    string             `json:"MediaType, omitempty" url:"-" `    // 可选项，文件媒体类型，枚举值： image：图片。  other：其他。 document：文档。 archive：压缩包。 video：视频。  audio：音频。
-	ContentType  string             `json:"ContentType, omitempty" url:"-" `  // 可选项，文件内容类型（MIME Type），如image/jpeg。
-	URI          string             `json:"URI, omitempty" url:"-" `          // 资源标识字段，表示需要建立索引的文件地址，当前仅支持COS上的文件，字段规则：cos:///，其中BucketName表示COS存储桶名称，ObjectKey表示文件完整路径，例如：cos://examplebucket-1250000000/test1/img.jpg。 注意： 1、仅支持本账号内的COS文件 2、不支持HTTP开头的地址
-	MaxFaceNum   int                `json:"MaxFaceNum, omitempty" url:"-" `   // 输入图片中检索的人脸数量，默认值为20，最大值为20。(仅当数据集模板 ID 为 Official:FaceSearch 有效)。
-	Persons      []*Persons         `json:"Persons, omitempty" url:"-" `      // 自定义人物属性(仅当数据集模板 ID 为 Official:FaceSearch 有效)。
-	OptHeaders   *OptHeaders        `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	CustomId     string             `json:"CustomId,omitempty" url:"-" `     // 自定义ID。该文件索引到数据集后，作为该行元数据的属性存储，用于和您的业务系统进行关联、对应。您可以根据业务需求传入该值，例如将某个URI关联到您系统内的某个ID。推荐传入全局唯一的值。在查询时，该字段支持前缀查询和排序，详情请见字段和操作符的支持列表。
+	CustomLabels *map[string]string `json:"CustomLabels,omitempty" url:"-" ` // 自定义标签。您可以根据业务需要自定义添加标签键值对信息，用于在查询时可以据此为筛选项进行检索，详情请见字段和操作符的支持列表。
+	Key          string             `json:"Key,omitempty" url:"-" `          // 自定义标签键
+	Value        string             `json:"Value,omitempty" url:"-" `        // 自定义标签值
+	MediaType    string             `json:"MediaType,omitempty" url:"-" `    // 可选项，文件媒体类型，枚举值： image：图片。  other：其他。 document：文档。 archive：压缩包。 video：视频。  audio：音频。
+	ContentType  string             `json:"ContentType,omitempty" url:"-" `  // 可选项，文件内容类型（MIME Type），如image/jpeg。
+	URI          string             `json:"URI,omitempty" url:"-" `          // 资源标识字段，表示需要建立索引的文件地址，当前仅支持COS上的文件，字段规则：cos:///，其中BucketName表示COS存储桶名称，ObjectKey表示文件完整路径，例如：cos://examplebucket-1250000000/test1/img.jpg。 注意： 1、仅支持本账号内的COS文件 2、不支持HTTP开头的地址
+	MaxFaceNum   int                `json:"MaxFaceNum,omitempty" url:"-" `   // 输入图片中检索的人脸数量，默认值为20，最大值为20。(仅当数据集模板 ID 为 Official:FaceSearch 有效)。
+	Persons      []*Persons         `json:"Persons,omitempty" url:"-" `      // 自定义人物属性(仅当数据集模板 ID 为 Official:FaceSearch 有效)。
+	OptHeaders   *OptHeaders        `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type Persons struct {
-	PersonId   string      `json:"PersonId, omitempty" url:"-" ` // 自定义人物 ID。
-	OptHeaders *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	PersonId   string      `json:"PersonId,omitempty" url:"-" ` // 自定义人物 ID。
+	OptHeaders *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type CreateFileMetaIndexResult struct {
@@ -243,10 +249,10 @@ func (s *MetaInsightService) CreateFileMetaIndex(ctx context.Context, opt *Creat
 }
 
 type UpdateFileMetaIndexOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	Callback    string      `json:"Callback, omitempty" url:"-" `    // 元数据索引结果（以回调形式发送至您的回调地址，支持以 http:// 或者 https:// 开头的地址，例如： http://www.callback.com
-	File        *File       `json:"File, omitempty" url:"-" `        // 用于建立索引的文件信息。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	Callback    string      `json:"Callback,omitempty" url:"-" `    // 元数据索引结果（以回调形式发送至您的回调地址，支持以 http:// 或者 https:// 开头的地址，例如： http://www.callback.com
+	File        *File       `json:"File,omitempty" url:"-" `        // 用于建立索引的文件信息。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type UpdateFileMetaIndexResult struct {
@@ -269,9 +275,9 @@ func (s *MetaInsightService) UpdateFileMetaIndex(ctx context.Context, opt *Updat
 }
 
 type DescribeFileMetaIndexOptions struct {
-	Datasetname string      `url:"datasetname, omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
-	Uri         string      `url:"uri, omitempty" json:"-"`         // 资源标识字段，表示需要建立索引的文件地址，当前仅支持COS上的文件，字段规则：cos:///，其中BucketName表示COS存储桶名称，ObjectKey表示文件完整路径，例如：cos://examplebucket-1250000000/test1/img.jpg。 注意： 1、仅支持本账号内的COS文件 2、不支持HTTP开头的地址 3、需UrlEncode
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Datasetname string      `url:"datasetname,omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
+	Uri         string      `url:"uri,omitempty" json:"-"`         // 资源标识字段，表示需要建立索引的文件地址，当前仅支持COS上的文件，字段规则：cos:///，其中BucketName表示COS存储桶名称，ObjectKey表示文件完整路径，例如：cos://examplebucket-1250000000/test1/img.jpg。 注意： 1、仅支持本账号内的COS文件 2、不支持HTTP开头的地址 3、需UrlEncode
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DescribeFileMetaIndexResult struct {
@@ -310,9 +316,9 @@ func (s *MetaInsightService) DescribeFileMetaIndex(ctx context.Context, opt *Des
 }
 
 type DeleteFileMetaIndexOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	URI         string      `json:"URI, omitempty" url:"-" `         // 资源标识字段，表示需要建立索引的文件地址。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	URI         string      `json:"URI,omitempty" url:"-" `         // 资源标识字段，表示需要建立索引的文件地址。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DeleteFileMetaIndexResult struct {
@@ -334,10 +340,10 @@ func (s *MetaInsightService) DeleteFileMetaIndex(ctx context.Context, opt *Delet
 }
 
 type CreateDatasetBindingOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	URI         string      `json:"URI, omitempty" url:"-" `         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶的资源，字段规则：cos://<BucketName>/<Path>，其中BucketName表示COS存储桶名称，Path表示资源路径，例如：cos://examplebucket-1250000000/test/。
-	Mode        int         `json:"Mode", omitempty" url:"-" `       // 建立绑定后，以何种方式进行文件索引特征的提取，有效值：0，表示仅对增量文件建立索引；1，表示在对增量文件建立索引的同时，也会对存储桶中存量文件建立索引，存量文件索引建立的时长与存量文件数有关；默认值为0。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	URI         string      `json:"URI,omitempty" url:"-" `         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶的资源，字段规则：cos://<BucketName>/<Path>，其中BucketName表示COS存储桶名称，Path表示资源路径，例如：cos://examplebucket-1250000000/test/。
+	Mode        int         `json:"Mode,omitempty" url:"-" `       // 建立绑定后，以何种方式进行文件索引特征的提取，有效值：0，表示仅对增量文件建立索引；1，表示在对增量文件建立索引的同时，也会对存储桶中存量文件建立索引，存量文件索引建立的时长与存量文件数有关；默认值为0。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type CreateDatasetBindingResult struct {
@@ -370,9 +376,9 @@ func (s *MetaInsightService) CreateDatasetBinding(ctx context.Context, opt *Crea
 }
 
 type DescribeDatasetBindingOptions struct {
-	Datasetname string      `url:"datasetname, omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
-	Uri         string      `url:"uri, omitempty" json:"-"`         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶，字段规则：cos://，其中BucketName表示COS存储桶名称，例如（需要进行urlencode）：cos%3A%2F%2Fexample-125000
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Datasetname string      `url:"datasetname,omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
+	Uri         string      `url:"uri,omitempty" json:"-"`         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶，字段规则：cos://，其中BucketName表示COS存储桶名称，例如（需要进行urlencode）：cos%3A%2F%2Fexample-125000
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DescribeDatasetBindingResult struct {
@@ -393,10 +399,10 @@ func (s *MetaInsightService) DescribeDatasetBinding(ctx context.Context, opt *De
 }
 
 type DescribeDatasetBindingsOptions struct {
-	Datasetname string      `url:"datasetname, omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
-	Maxresults  int         `url:"maxresults, omitempty" json:"-"`  // 返回绑定关系的最大个数，取值范围为0~200。不设置此参数或者设置为0时，则默认值为100。
-	Nexttoken   string      `url:"nexttoken, omitempty" json:"-"`   // 当绑定关系总数大于设置的MaxResults时，用于翻页的token。从NextToken开始按字典序返回绑定关系信息列表。第一次调用此接口时，设置为空。
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Datasetname string      `url:"datasetname,omitempty" json:"-"` // 数据集名称，同一个账户下唯一。
+	Maxresults  int         `url:"maxresults,omitempty" json:"-"`  // 返回绑定关系的最大个数，取值范围为0~200。不设置此参数或者设置为0时，则默认值为100。
+	Nexttoken   string      `url:"nexttoken,omitempty" json:"-"`   // 当绑定关系总数大于设置的MaxResults时，用于翻页的token。从NextToken开始按字典序返回绑定关系信息列表。第一次调用此接口时，设置为空。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DescribeDatasetBindingsResult struct {
@@ -418,9 +424,9 @@ func (s *MetaInsightService) DescribeDatasetBindings(ctx context.Context, opt *D
 }
 
 type DeleteDatasetBindingOptions struct {
-	DatasetName string      `json:"DatasetName, omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
-	URI         string      `json:"URI, omitempty" url:"-" `         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶，字段规则：cos://<BucketName>，其中BucketName表示COS存储桶名称，例如：cos://examplebucket-1250000000
-	OptHeaders  *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。
+	URI         string      `json:"URI,omitempty" url:"-" `         // 资源标识字段，表示需要与数据集绑定的资源，当前仅支持COS存储桶，字段规则：cos://<BucketName>，其中BucketName表示COS存储桶名称，例如：cos://examplebucket-1250000000
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DeleteDatasetBindingResult struct {
@@ -442,36 +448,36 @@ func (s *MetaInsightService) DeleteDatasetBinding(ctx context.Context, opt *Dele
 }
 
 type DatasetSimpleQueryOptions struct {
-	DatasetName  string          `json:"DatasetName, omitempty" url:"-" `  // 数据集名称，同一个账户下唯一。
-	Query        *Query          `json:"Query, omitempty" url:"-" `        // 简单查询参数条件，可自嵌套。
-	MaxResults   int             `json:"MaxResults, omitempty" url:"-" `   // 返回文件元数据的最大个数，取值范围为0200。 使用聚合参数时，该值表示返回分组的最大个数，取值范围为02000。 不设置此参数或者设置为0时，则取默认值100。
-	NextToken    string          `json:"NextToken, omitempty" url:"-" `    // 当绑定关系总数大于设置的MaxResults时，用于翻页的token。从NextToken开始按字典序返回绑定关系信息列表。第一次调用此接口时，设置为空。
-	Sort         string          `json:"Sort, omitempty" url:"-" `         // 排序字段列表。请参考字段和操作符的支持列表。 多个排序字段可使用半角逗号（,）分隔，例如：Size,Filename。 最多可设置5个排序字段。 排序字段顺序即为排序优先级顺序。
-	Order        string          `json:"Order, omitempty" url:"-" `        // 排序字段的排序方式。取值如下： asc：升序； desc（默认）：降序。 多个排序方式可使用半角逗号（,）分隔，例如：asc,desc。 排序方式不可多于排序字段，即参数Order的元素数量需小于等于参数Sort的元素数量。例如Sort取值为Size,Filename时，Order可取值为asc,desc或asc。 排序方式少于排序字段时，未排序的字段默认取值asc。例如Sort取值为Size,Filename，Order取值为asc时，Filename默认排序方式为asc，即升序排列
-	Aggregations []*Aggregations `json:"Aggregations, omitempty" url:"-" ` // 聚合字段信息列表。 当您使用聚合查询时，仅返回聚合结果，不再返回匹配到的元信息列表。
-	WithFields   []string        `json:"WithFields, omitempty" url:"-" `   // 仅返回特定字段的值，而不是全部已有的元信息字段。可用于降低返回的结构体大小。不填或留空则返回所有字段。
-	OptHeaders   *OptHeaders     `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName  string          `json:"DatasetName,omitempty" url:"-" `  // 数据集名称，同一个账户下唯一。
+	Query        *Query          `json:"Query,omitempty" url:"-" `        // 简单查询参数条件，可自嵌套。
+	MaxResults   int             `json:"MaxResults,omitempty" url:"-" `   // 返回文件元数据的最大个数，取值范围为0200。 使用聚合参数时，该值表示返回分组的最大个数，取值范围为02000。 不设置此参数或者设置为0时，则取默认值100。
+	NextToken    string          `json:"NextToken,omitempty" url:"-" `    // 当绑定关系总数大于设置的MaxResults时，用于翻页的token。从NextToken开始按字典序返回绑定关系信息列表。第一次调用此接口时，设置为空。
+	Sort         string          `json:"Sort,omitempty" url:"-" `         // 排序字段列表。请参考字段和操作符的支持列表。 多个排序字段可使用半角逗号（,）分隔，例如：Size,Filename。 最多可设置5个排序字段。 排序字段顺序即为排序优先级顺序。
+	Order        string          `json:"Order,omitempty" url:"-" `        // 排序字段的排序方式。取值如下： asc：升序； desc（默认）：降序。 多个排序方式可使用半角逗号（,）分隔，例如：asc,desc。 排序方式不可多于排序字段，即参数Order的元素数量需小于等于参数Sort的元素数量。例如Sort取值为Size,Filename时，Order可取值为asc,desc或asc。 排序方式少于排序字段时，未排序的字段默认取值asc。例如Sort取值为Size,Filename，Order取值为asc时，Filename默认排序方式为asc，即升序排列
+	Aggregations []*Aggregations `json:"Aggregations,omitempty" url:"-" ` // 聚合字段信息列表。 当您使用聚合查询时，仅返回聚合结果，不再返回匹配到的元信息列表。
+	WithFields   []string        `json:"WithFields,omitempty" url:"-" `   // 仅返回特定字段的值，而不是全部已有的元信息字段。可用于降低返回的结构体大小。不填或留空则返回所有字段。
+	OptHeaders   *OptHeaders     `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type Aggregations struct {
-	Operation  string      `json:"Operation, omitempty" url:"-" ` //  聚合字段的操作符。枚举值：min：最小值。max：最大值。average：平均数sum：求和。count：计数。distinct：去重计数。group：分组计数，按照分组计数结果从高到低排序。
-	Field      string      `json:"Field, omitempty" url:"-" `     // 字段名称。关于支持的字段，请参考字段和操作符的支持列表。
-	OptHeaders *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Operation  string      `json:"Operation,omitempty" url:"-" ` //  聚合字段的操作符。枚举值：min：最小值。max：最大值。average：平均数sum：求和。count：计数。distinct：去重计数。group：分组计数，按照分组计数结果从高到低排序。
+	Field      string      `json:"Field,omitempty" url:"-" `     // 字段名称。关于支持的字段，请参考字段和操作符的支持列表。
+	OptHeaders *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type Query struct {
-	Operation  string        `json:"Operation, omitempty" url:"-" `  // 操作运算符。枚举值： not：逻辑非。 or：逻辑或。 and：逻辑与。 lt：小于。 lte：小于等于。 gt：大于。 gte：大于等于。 eq：等于。 exist：存在性查询。 prefix：前缀查询。 match-phrase：字符串匹配查询。 nested：字段为数组时，其中同一对象内逻辑条件查询。
-	SubQueries []*SubQueries `json:"SubQueries, omitempty" url:"-" ` // 子查询的结构体。 只有当Operations为逻辑运算符（and、or、not或nested）时，才能设置子查询条件。 在逻辑运算符为and/or/not时，其SubQueries内描述的所有条件需符合父级设置的and/or/not逻辑关系。 在逻辑运算符为nested时，其父级的Field必须为一个数组类的字段（如：Labels）。 子查询条件SubQueries组的Operation必须为and/or/not中的一个或多个，其Field必须为父级Field的子属性。
-	Field      string        `json:"Field, omitempty" url:"-" `      // 字段名称。关于支持的字段，请参考字段和操作符的支持列表。
-	Value      string        `json:"Value, omitempty" url:"-" `      // 查询的字段值。当Operations为逻辑运算符（and、or、not或nested）时，该字段无效。
-	OptHeaders *OptHeaders   `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Operation  string        `json:"Operation,omitempty" url:"-" `  // 操作运算符。枚举值： not：逻辑非。 or：逻辑或。 and：逻辑与。 lt：小于。 lte：小于等于。 gt：大于。 gte：大于等于。 eq：等于。 exist：存在性查询。 prefix：前缀查询。 match-phrase：字符串匹配查询。 nested：字段为数组时，其中同一对象内逻辑条件查询。
+	SubQueries []*SubQueries `json:"SubQueries,omitempty" url:"-" ` // 子查询的结构体。 只有当Operations为逻辑运算符（and、or、not或nested）时，才能设置子查询条件。 在逻辑运算符为and/or/not时，其SubQueries内描述的所有条件需符合父级设置的and/or/not逻辑关系。 在逻辑运算符为nested时，其父级的Field必须为一个数组类的字段（如：Labels）。 子查询条件SubQueries组的Operation必须为and/or/not中的一个或多个，其Field必须为父级Field的子属性。
+	Field      string        `json:"Field,omitempty" url:"-" `      // 字段名称。关于支持的字段，请参考字段和操作符的支持列表。
+	Value      string        `json:"Value,omitempty" url:"-" `      // 查询的字段值。当Operations为逻辑运算符（and、or、not或nested）时，该字段无效。
+	OptHeaders *OptHeaders   `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type SubQueries struct {
-	Value      string      `json:"Value, omitempty" url:"-" `     // 查询的字段值。当Operations为逻辑运算符（and、or、not或nested）时，该字段无效。
-	Operation  string      `json:"Operation, omitempty" url:"-" ` //  操作运算符。枚举值：not：逻辑非。or：逻辑或。and：逻辑与。lt：小于。lte：小于等于。gt：大于。gte：大于等于。eq：等于。exist：存在性查询。prefix：前缀查询。match-phrase：字符串匹配查询。nested：字段为数组时，其中同一对象内逻辑条件查询。
-	Field      string      `json:"Field, omitempty" url:"-" `     // 字段名称。关于支持的字段，请参考字段和操作符的支持列表。
-	OptHeaders *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	Value      string      `json:"Value,omitempty" url:"-" `     // 查询的字段值。当Operations为逻辑运算符（and、or、not或nested）时，该字段无效。
+	Operation  string      `json:"Operation,omitempty" url:"-" ` //  操作运算符。枚举值：not：逻辑非。or：逻辑或。and：逻辑与。lt：小于。lte：小于等于。gt：大于。gte：大于等于。eq：等于。exist：存在性查询。prefix：前缀查询。match-phrase：字符串匹配查询。nested：字段为数组时，其中同一对象内逻辑条件查询。
+	Field      string      `json:"Field,omitempty" url:"-" `     // 字段名称。关于支持的字段，请参考字段和操作符的支持列表。
+	OptHeaders *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DatasetSimpleQueryResult struct {
@@ -535,12 +541,12 @@ func (s *MetaInsightService) DatasetSimpleQuery(ctx context.Context, opt *Datase
 }
 
 type DatasetFaceSearchOptions struct {
-	DatasetName    string      `json:"DatasetName, omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
-	URI            string      `json:"URI, omitempty" url:"-" `            // 资源标识字段，表示需要建立索引的文件地址。
-	MaxFaceNum     int         `json:"MaxFaceNum, omitempty" url:"-" `     // 输入图片中检索的人脸数量，默认值为1(传0或不传采用默认值)，最大值为10。
-	Limit          int         `json:"Limit, omitempty" url:"-" `          // 检索的每张人脸返回相关人脸数量，默认值为10，最大值为100。
-	MatchThreshold int         `json:"MatchThreshold, omitempty" url:"-" ` // 出参 Score 中，只有超过 MatchThreshold 值的结果才会返回。范围：1-100，默认值为0，推荐值为80。
-	OptHeaders     *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName    string      `json:"DatasetName,omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
+	URI            string      `json:"URI,omitempty" url:"-" `            // 资源标识字段，表示需要建立索引的文件地址。
+	MaxFaceNum     int         `json:"MaxFaceNum,omitempty" url:"-" `     // 输入图片中检索的人脸数量，默认值为1(传0或不传采用默认值)，最大值为10。
+	Limit          int         `json:"Limit,omitempty" url:"-" `          // 检索的每张人脸返回相关人脸数量，默认值为10，最大值为100。
+	MatchThreshold int         `json:"MatchThreshold,omitempty" url:"-" ` // 出参 Score 中，只有超过 MatchThreshold 值的结果才会返回。范围：1-100，默认值为0，推荐值为80。
+	OptHeaders     *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DatasetFaceSearchResult struct {
@@ -583,13 +589,13 @@ func (s *MetaInsightService) DatasetFaceSearch(ctx context.Context, opt *Dataset
 }
 
 type SearchImageOptions struct {
-	DatasetName    string      `json:"DatasetName, omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
-	Mode           string      `json:"Mode, omitempty" url:"-" `           // 指定检索方式为图片或文本，pic 为图片检索，text 为文本检索，默认为 pic。
-	URI            string      `json:"URI, omitempty" url:"-" `            // 资源标识字段，表示需要建立索引的文件地址(Mode 为 pic 时必选)。
-	Limit          int         `json:"Limit, omitempty" url:"-" `          // 返回相关图片的数量，默认值为10，最大值为100。
-	Text           string      `json:"Text, omitempty" url:"-" `           // 检索语句，检索方式为 text 时必填，最多支持60个字符 (Mode 为 text 时必选)。
-	MatchThreshold int         `json:"MatchThreshold, omitempty" url:"-" ` // 出参 Score（相关图片匹配得分） 中，只有超过 MatchThreshold 值的结果才会返回。默认值为0，推荐值为80。
-	OptHeaders     *OptHeaders `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	DatasetName    string      `json:"DatasetName,omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
+	Mode           string      `json:"Mode,omitempty" url:"-" `           // 指定检索方式为图片或文本，pic 为图片检索，text 为文本检索，默认为 pic。
+	URI            string      `json:"URI,omitempty" url:"-" `            // 资源标识字段，表示需要建立索引的文件地址(Mode 为 pic 时必选)。
+	Limit          int         `json:"Limit,omitempty" url:"-" `          // 返回相关图片的数量，默认值为10，最大值为100。
+	Text           string      `json:"Text,omitempty" url:"-" `           // 检索语句，检索方式为 text 时必填，最多支持60个字符 (Mode 为 text 时必选)。
+	MatchThreshold int         `json:"MatchThreshold,omitempty" url:"-" ` // 出参 Score（相关图片匹配得分） 中，只有超过 MatchThreshold 值的结果才会返回。默认值为0，推荐值为80。
+	OptHeaders     *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type SearchImageResult struct {
@@ -617,15 +623,15 @@ func (s *MetaInsightService) SearchImage(ctx context.Context, opt *SearchImageOp
 }
 
 type HybridSearchOptions struct {
-	DatasetName    string                 `json:"DatasetName, omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
-	Mode           string                 `json:"Mode, omitempty" url:"-" `           // 指定检索的输入类型，默认值为 pic。有效值为：pic：表示输入图片进行以图搜图的检索。text：表示输入文本进行检索，支持输入自然语言，例如"包含一棵大树的图片"。
-	Templates      string                 `json:"Templates, omitempty" url:"-" `      // 指定输出的数据类型，有效值为：ImageSearch：进行图像检索，输出的是图片类型的结果。DocSearch：进行文档检索，输出的是文档类型的结果(Mode 必须为 text)。
-	SearchText     string                 `json:"SearchText, omitempty" url:"-" `     // 检索语句。最多支持60个 UTF-8编码字符。例如"包含一棵大树的图片"。当 Mode 为 text 时必选，当使用的算子模板是图像搜索模板并进行"以文搜图"操作时必选，使用文档类 Template 时必选。
-	SearchURIs     []string               `json:"SearchURIs, omitempty" url:"-" `     // 资源标识字段。当前仅支持 COS 存储桶，字段规则：cos://<BucketName>/<Path>，其中 BucketName 表示 COS 存储桶名称，Path 表示资源路径，例如：cos://examplebucket-1250000000/test.jpg。当 Mode 为 pic 时必选，当使用的算子模板是图像搜索模板并进行"以图搜图"操作时必选。
-	Limit          int                    `json:"Limit, omitempty" url:"-" `          // 返回相关图片的数量，默认值为10，取值范围为(0, 100]。
-	MatchThreshold int                    `json:"MatchThreshold, omitempty" url:"-" ` // 限制返回图片或文档的最低相关度分数，只有超过 MatchThreshold 值的图片才会返回。默认值为0，推荐值为80，取值范围为(0, 100]。例如：设置 MatchThreshold 的值为80，则检索结果中仅会返回相关度分数大于等于80分的图片或文档。
+	DatasetName    string                 `json:"DatasetName,omitempty" url:"-" `    // 数据集名称，同一个账户下唯一。
+	Mode           string                 `json:"Mode,omitempty" url:"-" `           // 指定检索的输入类型，默认值为 pic。有效值为：pic：表示输入图片进行以图搜图的检索。text：表示输入文本进行检索，支持输入自然语言，例如"包含一棵大树的图片"。
+	Templates      string                 `json:"Templates,omitempty" url:"-" `      // 指定输出的数据类型，有效值为：ImageSearch：进行图像检索，输出的是图片类型的结果。DocSearch：进行文档检索，输出的是文档类型的结果(Mode 必须为 text)。
+	SearchText     string                 `json:"SearchText,omitempty" url:"-" `     // 检索语句。最多支持60个 UTF-8编码字符。例如"包含一棵大树的图片"。当 Mode 为 text 时必选，当使用的算子模板是图像搜索模板并进行"以文搜图"操作时必选，使用文档类 Template 时必选。
+	SearchURIs     []string               `json:"SearchURIs,omitempty" url:"-" `     // 资源标识字段。当前仅支持 COS 存储桶，字段规则：cos://<BucketName>/<Path>，其中 BucketName 表示 COS 存储桶名称，Path 表示资源路径，例如：cos://examplebucket-1250000000/test.jpg。当 Mode 为 pic 时必选，当使用的算子模板是图像搜索模板并进行"以图搜图"操作时必选。
+	Limit          int                    `json:"Limit,omitempty" url:"-" `          // 返回相关图片的数量，默认值为10，取值范围为(0, 100]。
+	MatchThreshold int                    `json:"MatchThreshold,omitempty" url:"-" ` // 限制返回图片或文档的最低相关度分数，只有超过 MatchThreshold 值的图片才会返回。默认值为0，推荐值为80，取值范围为(0, 100]。例如：设置 MatchThreshold 的值为80，则检索结果中仅会返回相关度分数大于等于80分的图片或文档。
 	Filter         map[string]interface{} `json:"Filter,omitempty" url:"-" `          // 简单查询参数条件，可选参数，可以包含三个条件。支持 MongoDB 风格的查询语法，如 $and、$or、$in、$gt 等。
-	OptHeaders     *OptHeaders            `header:"-, omitempty" url:"-" json:"-" xml:"-"`
+	OptHeaders     *OptHeaders            `header:"-,omitempty" url:"-" json:"-" xml:"-"`
 }
 
 type DocResult struct {
@@ -636,9 +642,17 @@ type DocResult struct {
 	ImageUrls map[string]string `json:"ImageUrls"` // 图片占位符到实际图片标识符（或 URL）的映射集。
 }
 
+type VideoResult struct {
+	URI   string  `json:"URI"`   // 匹配视频在COS中的URI。
+	From  float64 `json:"From"`  // 匹配片段起始时间（秒）。
+	To    float64 `json:"To"`    // 匹配片段结束时间（秒）。
+	Score int     `json:"Score"` // 相关度评分，数值越高相关性越强。
+}
+
 type HybridSearchResult struct {
 	ImageResult []*ImageResult `json:"ImageResult"` // 图像检索识别结果信息列表。
 	DocResult   []*DocResult   `json:"DocResult"`   // 文档检索识别结果信息列表。
+	VideoResult []*VideoResult `json:"VideoResult"` // 视频检索结果信息列表。
 	RequestId   string         `json:"RequestId"`   // 请求ID。
 }
 
@@ -649,6 +663,190 @@ func (s *MetaInsightService) HybridSearch(ctx context.Context, opt *HybridSearch
 		return nil, nil, fmt.Errorf("opt param nil")
 	}
 	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/"+"datasetquery"+"/"+"hybridsearch", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type GetAIMediaInfoOptions struct {
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。长度1-32字符，只能包含小写英文字母、数字、短划线（-），必须以英文字母或数字开头。
+	URI         string      `json:"URI,omitempty" url:"-" `         // 对象文件名，格式为cos://<BucketName>/<Path>，例如cos://examplebucket-1250000000/test.mp4。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type GetAIMediaInfoResult struct {
+	RequestId string       `json:"RequestId"` // 请求ID
+	MediaInfo *AIMediaInfo `json:"MediaInfo"` // 媒资信息
+}
+
+type AIMediaInfo struct {
+	URI          string             `json:"URI"`          // 媒资地址
+	CosTagging   *map[string]string `json:"CosTagging"`   // COS自定义标签键值对
+	CustomLabels *map[string]string `json:"CustomLabels"` // 文件自定义标签列表
+	CosUserMeta  *map[string]string `json:"CosUserMeta"`  // COS自定义头部
+	ModifiedTime string             `json:"ModifiedTime"` // 媒资修改时间
+	FileInfo     *FileInfo          `json:"FileInfo"`     // 文件信息
+}
+
+type FileInfo struct {
+	FileBasicInfo *FileBasicInfo `json:"FileBasicInfo"` // 文件基础信息
+	AiData        *AiData        `json:"AiData"`        // AI分析详细信息
+}
+
+type FileBasicInfo struct {
+	FileName     string  `json:"FileName"`     // 文件名
+	FileSize     interface{} `json:"FileSize"` // 文件大小（字节），API可能返回数字或字符串
+	FileUrl      string  `json:"FileUrl"`      // 文件COS地址
+	Region       string  `json:"Region"`       // 文件存储区域
+	ModifiedTime string  `json:"ModifiedTime"` // 文件修改时间
+	FormatName   string  `json:"FormatName"`   // 视频封装格式名称（仅视频）
+	Duration     float64 `json:"Duration"`     // 视频时长（秒）（仅视频）
+	Bitrate      float64 `json:"Bitrate"`      // 视频码率（kbps）（仅视频）
+	Width        int     `json:"Width"`        // 视频宽度（像素）（仅视频）
+	Height       int     `json:"Height"`       // 视频高度（像素）（仅视频）
+}
+
+type AiData struct {
+	AiLabelInfo []*AiLabelInfo `json:"AiLabelInfo"` // AI标签信息列表
+	AsrInfo     []*AsrInfo     `json:"AsrInfo"`     // 语音识别信息列表（仅视频）
+	OcrInfo     []*OcrInfo     `json:"OcrInfo"`     // 文字识别信息列表
+	AiRoughData *AiRoughData   `json:"AiRoughData"` // AI粗分类信息（仅视频）
+	FaceInfo    []*FaceInfo    `json:"FaceInfo"`    // 人脸识别信息列表
+}
+
+type AiLabelInfo struct {
+	From        float64        `json:"From"`        // 片段起始时间（秒）（仅视频）
+	To          float64        `json:"To"`          // 片段结束时间（秒）（仅视频）
+	Timestamp   float64        `json:"Timestamp"`   // 片段时间戳（秒）（仅视频）
+	LabelDetail []*LabelDetail `json:"LabelDetail"` // 标签详情列表
+}
+
+type LabelDetail struct {
+	LabelInfos map[string]string `json:"LabelInfos"` // 标签信息，如{"Type":"物体","Category":"交通工具","Name":"车"}
+	Confidence string            `json:"Confidence"` // 置信度，如high、medium
+}
+
+type AsrInfo struct {
+	From      float64 `json:"From"`      // 片段起始时间（秒）
+	To        float64 `json:"To"`        // 片段结束时间（秒）
+	ClipId    string  `json:"ClipId"`    // 片段ID
+	Content   string  `json:"Content"`   // 语音识别文本内容
+	Timestamp float64 `json:"Timestamp"` // 片段时间戳（秒）
+}
+
+type OcrInfo struct {
+	From        float64      `json:"From"`        // 片段起始时间（秒）（仅视频）
+	To          float64      `json:"To"`          // 片段结束时间（秒）（仅视频）
+	ClipId      string       `json:"ClipId"`      // 片段ID（仅视频）
+	Content     string       `json:"Content"`     // 文字识别文本内容
+	BoxPosition *BoxPosition `json:"BoxPosition"` // 识别文本坐标位置
+	Score       float64      `json:"Score"`       // 相似分数
+	Timestamp   float64      `json:"Timestamp"`   // 片段时间戳（秒）（仅视频）
+}
+
+type BoxPosition struct {
+	Left   int `json:"Left"`   // 坐标框左上角横坐标（像素）
+	Top    int `json:"Top"`    // 坐标框左上角纵坐标（像素）
+	Width  int `json:"Width"`  // 坐标框宽度（像素）
+	Height int `json:"Height"` // 坐标框高度（像素）
+}
+
+type AiRoughData struct {
+	AiCategory  string `json:"AiCategory"`  // AI粗分类类别
+	Description string `json:"Description"` // 视频整体描述
+}
+
+type FaceInfo struct {
+	Score            float64            `json:"Score"`            // 人脸匹配得分[0,100]
+	LabelName        string             `json:"LabelName"`        // 人物名称
+	Category         string             `json:"Category"`         // 人物类型：celebrity/sensitive/politician/custom/unknown
+	OccurrencesInfos []*OccurrencesInfo `json:"OccurrencesInfos"` // 人物片段聚类信息（仅视频）
+	TrackData        []*TrackData       `json:"TrackData"`        // 人脸详细信息（仅图片）
+}
+
+type OccurrencesInfo struct {
+	From      float64      `json:"From"`      // 片段起始时间（秒）
+	To        float64      `json:"To"`        // 片段结束时间（秒）
+	TrackData []*TrackData `json:"TrackData"` // 人脸单帧详细信息
+}
+
+type TrackData struct {
+	Timestamp   float64      `json:"Timestamp"`   // 人脸出现时间戳（秒）
+	BoxPosition *BoxPosition `json:"BoxPosition"` // 人脸坐标框
+}
+
+// GetAIMediaInfo 获取媒资AI分析信息
+// https://cloud.tencent.com/document/product/460/135100
+func (s *MetaInsightService) GetAIMediaInfo(ctx context.Context, opt *GetAIMediaInfoOptions) (*GetAIMediaInfoResult, *Response, error) {
+	var res GetAIMediaInfoResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/"+"datasetquery"+"/"+"getaimediainfo", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type MediaFaceSearchOptions struct {
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，同一个账户下唯一。命名规则：长度1-32字符，只能包含小写英文字母、数字、短划线（-），必须以英文字母或数字开头。
+	URI         string      `json:"URI,omitempty" url:"-" `         // 需要进行人脸查找的外部人脸图片地址，需包含完整的 COS 路径。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type MediaFaceSearchResult struct {
+	RequestId     string           `json:"RequestId"`     // 请求ID
+	MediaInfoList []*MediaFaceInfo `json:"MediaInfoList"` // 人脸匹配信息列表，最多返回20个人脸ID（FaceId）
+}
+
+type MediaFaceInfo struct {
+	FaceId  string   `json:"FaceId"`  // 人脸ID，系统为每张匹配到的人脸分配的唯一标识
+	UriList []string `json:"UriList"` // 包含该人脸的媒资文件URI列表，每个FaceId对应的UriList最多包含500个URI
+}
+
+// MediaFaceSearch 人脸查找媒资
+// https://cloud.tencent.com/document/product/460/135087
+func (s *MetaInsightService) MediaFaceSearch(ctx context.Context, opt *MediaFaceSearchOptions) (*MediaFaceSearchResult, *Response, error) {
+	var res MediaFaceSearchResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/"+"datasetquery"+"/"+"mediafacesearch", http.MethodPost)
+	if buf.Len() > 0 {
+		err = json.Unmarshal(buf.Bytes(), &res)
+	}
+	return &res, resp, err
+}
+
+type MediaFaceClipSearchOptions struct {
+	DatasetName string      `json:"DatasetName,omitempty" url:"-" ` // 数据集名称，长度1-32字符，只能包含小写英文字母、数字、短划线（-）。
+	URI         string      `json:"URI,omitempty" url:"-" `         // 需要进行人脸精确定位的媒资文件地址，取值为MediaFaceSearch返回的UriList中的某一内部URI。
+	FaceId      string      `json:"FaceId,omitempty" url:"-" `      // 人脸ID，取值为MediaFaceSearch返回的人脸ID。
+	OptHeaders  *OptHeaders `header:"-,omitempty" url:"-" json:"-" xml:"-"`
+}
+
+type MediaFaceClipSearchResult struct {
+	RequestId     string           `json:"RequestId"`     // 请求ID
+	MediaClipList []*MediaClipInfo `json:"MediaClipList"` // 匹配到的媒资片段集合，按人物聚合
+}
+
+type MediaClipInfo struct {
+	Score            float64            `json:"Score"`            // 匹配得分 [0, 100]
+	LabelName        string             `json:"LabelName"`        // 实体/人物名称
+	Category         string             `json:"Category"`         // 人物类型：celebrity（名人）、sensitive（敏感人物）、politician（政治人物）、custom（自定义人物）、unknown（未知）
+	OccurrencesInfos []*OccurrencesInfo `json:"OccurrencesInfos"` // 人物片段聚类信息（仅视频媒资返回）
+}
+
+// MediaFaceClipSearch 人脸定位媒资片段
+// https://cloud.tencent.com/document/product/460/135102
+func (s *MetaInsightService) MediaFaceClipSearch(ctx context.Context, opt *MediaFaceClipSearchOptions) (*MediaFaceClipSearchResult, *Response, error) {
+	var res MediaFaceClipSearchResult
+	if opt == nil {
+		return nil, nil, fmt.Errorf("opt param nil")
+	}
+	buf, resp, err := s.baseSend(ctx, opt, opt.OptHeaders, "/"+"datasetquery"+"/"+"mediafaceclipsearch", http.MethodPost)
 	if buf.Len() > 0 {
 		err = json.Unmarshal(buf.Bytes(), &res)
 	}

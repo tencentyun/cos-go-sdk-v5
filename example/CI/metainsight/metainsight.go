@@ -288,6 +288,44 @@ func SearchImage() {
 	fmt.Printf("%+v\n", res)
 }
 
+// MediaFaceSearch 人脸查找媒资
+func MediaFaceSearch() {
+	c := getClient()
+	opt := &cos.MediaFaceSearchOptions{
+		DatasetName: "your-dataset-name-001",
+		URI:         "cos://examplebucket-1250000000/face_query.jpg",
+	}
+	res, _, err := c.MetaInsight.MediaFaceSearch(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+}
+
+// MediaFaceClipSearch 人脸定位媒资片段
+func MediaFaceClipSearch() {
+	c := getClient()
+	opt := &cos.MediaFaceClipSearchOptions{
+		DatasetName: "your-dataset-name-001",
+		URI:         "cos://examplebucket-1250000000/videos/interview_001.mp4",
+		FaceId:      "face_20260206_0001",
+	}
+	res, _, err := c.MetaInsight.MediaFaceClipSearch(context.Background(), opt)
+	log_status(err)
+	fmt.Printf("%+v\n", res)
+	if res != nil {
+		for _, clip := range res.MediaClipList {
+			fmt.Printf("  LabelName: %s, Category: %s, Score: %.2f\n", clip.LabelName, clip.Category, clip.Score)
+			for _, occ := range clip.OccurrencesInfos {
+				fmt.Printf("    From: %.2fs, To: %.2fs\n", occ.From, occ.To)
+				for _, track := range occ.TrackData {
+					fmt.Printf("      Timestamp: %.2fs, Box: (%d, %d, %d, %d)\n",
+						track.Timestamp, track.BoxPosition.Left, track.BoxPosition.Top,
+						track.BoxPosition.Width, track.BoxPosition.Height)
+				}
+			}
+		}
+	}
+}
+
 func main() {
 	// CreateDataSet()
 	// DescribeDatasets()
@@ -306,4 +344,6 @@ func main() {
 	// DeleteDatasetBinding()
 	// DatasetFaceSearch()
 	// SearchImage()
+	// MediaFaceSearch()
+	// MediaFaceClipSearch()
 }
