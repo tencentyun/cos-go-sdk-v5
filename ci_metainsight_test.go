@@ -10,7 +10,7 @@ import (
 func TestCIService_CreateDataset(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"DatasetType\":0,\"Version\":\"\",\"Volume\":0,\"TrainingMode\":0,\"TrainingDataset\":\"\",\"TrainingURI\":\"\",\"SceneType\":\"general\"}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Description\":\"dataset test\",\"TemplateId\":\"Official:COSBasicMeta\",\"SceneType\":\"general\"}"
 
 	mux.HandleFunc("/dataset", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -123,7 +123,7 @@ func TestCIService_DescribeDataset(t *testing.T) {
 func TestCIService_CreateFileMetaIndex(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"File\":{\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"Key\":\"\",\"Value\":\"\",\"MediaType\":\"image\",\"ContentType\":\"image/gif\",\"URI\":\"cos://test-125000000/12.gif\",\"MaxFaceNum\":0,\"Persons\":null}}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"File\":{\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"MediaType\":\"image\",\"ContentType\":\"image/gif\",\"URI\":\"cos://test-125000000/12.gif\"}}"
 
 	mux.HandleFunc("/filemeta", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -156,7 +156,7 @@ func TestCIService_CreateFileMetaIndex(t *testing.T) {
 func TestCIService_UpdateFileMetaIndex(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Callback\":\"\",\"File\":{\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"Key\":\"\",\"Value\":\"\",\"MediaType\":\"video\",\"ContentType\":\"video/gif\",\"URI\":\"cos://test-125000000/1.gif\",\"MaxFaceNum\":0,\"Persons\":null}}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"File\":{\"CustomId\":\"123\",\"CustomLabels\":{\"age\":\"18\",\"level\":\"18\"},\"MediaType\":\"video\",\"ContentType\":\"video/gif\",\"URI\":\"cos://test-125000000/1.gif\"}}"
 
 	mux.HandleFunc("/filemeta", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
@@ -231,7 +231,7 @@ func TestCIService_DeleteFileMetaIndex(t *testing.T) {
 func TestCIService_DatasetSimpleQuery(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Query\":{\"Operation\":\"eq\",\"SubQueries\":null,\"Field\":\"ContentType\",\"Value\":\"image/gif\"},\"MaxResults\":0,\"NextToken\":\"\",\"Sort\":\"\",\"Order\":\"\",\"Aggregations\":null,\"WithFields\":null}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Query\":{\"Operation\":\"eq\",\"Field\":\"ContentType\",\"Value\":\"image/gif\"}}"
 
 	mux.HandleFunc("/datasetquery/simple", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -259,7 +259,7 @@ func TestCIService_DatasetSimpleQuery(t *testing.T) {
 func TestCIService_DatasetSimpleQueryAggregations(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Query\":null,\"MaxResults\":0,\"NextToken\":\"\",\"Sort\":\"\",\"Order\":\"\",\"Aggregations\":[{\"Operation\":\"group\",\"Field\":\"ContentType\"}],\"WithFields\":null}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Aggregations\":[{\"Operation\":\"group\",\"Field\":\"ContentType\"}]}"
 
 	mux.HandleFunc("/datasetquery/simple", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -287,7 +287,7 @@ func TestCIService_DatasetSimpleQueryAggregations(t *testing.T) {
 func TestCIService_CreateDatasetBinding(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"URI\":\"cos://test1-1250000000\",\"Mode\":0}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"URI\":\"cos://test1-1250000000\"}"
 
 	mux.HandleFunc("/datasetbinding", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -428,7 +428,7 @@ func TestCIService_SearchImage(t *testing.T) {
 func TestCIService_HybridSearch(t *testing.T) {
 	setup()
 	defer teardown()
-	wantBody := "{\"DatasetName\":\"adataset\",\"Mode\":\"pic\",\"Templates\":\"ImageSearch\",\"SearchText\":\"\",\"SearchURIs\":[\"cos://examplebucket-1250000000/test.jpg\"],\"Limit\":10,\"MatchThreshold\":80,\"Filter\":{\"$and\":[{\"MediaType\":{\"$in\":[\"image\",\"document\"]}},{\"Size\":{\"$gt\":123}}]}}"
+	wantBody := "{\"DatasetName\":\"adataset\",\"Mode\":\"pic\",\"Templates\":\"ImageSearch\",\"SearchURIs\":[\"cos://examplebucket-1250000000/test.jpg\"],\"Limit\":10,\"MatchThreshold\":80,\"Filter\":{\"$and\":[{\"MediaType\":{\"$in\":[\"image\",\"document\"]}},{\"Size\":{\"$gt\":123}}]}}"
 
 	mux.HandleFunc("/"+"datasetquery"+"/"+"hybridsearch", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
@@ -464,5 +464,142 @@ func TestCIService_HybridSearch(t *testing.T) {
 	_, _, err := client.MetaInsight.HybridSearch(context.Background(), opt)
 	if err != nil {
 		t.Fatalf("CI.HybridSearch returned error: %v", err)
+	}
+}
+
+func TestCIService_HybridSearch_VideoSearch(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "{\"DatasetName\":\"videosearch\",\"Mode\":\"text\",\"Templates\":\"VideoSearch\",\"SearchText\":\"熊猫在草地上玩耍的片段\",\"Limit\":10}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"hybridsearch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"VideoResult\":[{\"URI\":\"cos://examplebucket-1250000000/panda_play_001.mp4\",\"From\":8.333333,\"To\":14.916667,\"Score\":43},{\"URI\":\"cos://examplebucket-1250000000/panda_play_002.mp4\",\"From\":0,\"To\":8.333333,\"Score\":42}],\"RequestId\":\"NjYwYzEwYjhfNGQ2ODk0MGJfMjcxxxx\"}")
+	})
+
+	client.MetaInsight.HybridSearch(context.Background(), nil)
+
+	opt := &HybridSearchOptions{
+		DatasetName:    "videosearch",
+		Mode:           "text",
+		Templates:      "VideoSearch",
+		SearchText:     "熊猫在草地上玩耍的片段",
+		Limit:          10,
+		MatchThreshold: 0,
+	}
+	res, _, err := client.MetaInsight.HybridSearch(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.HybridSearch VideoSearch returned error: %v", err)
+	}
+	if len(res.VideoResult) != 2 {
+		t.Fatalf("CI.HybridSearch VideoSearch expected 2 results, got %d", len(res.VideoResult))
+	}
+	if res.VideoResult[0].Score != 43 {
+		t.Fatalf("CI.HybridSearch VideoSearch expected score 43, got %d", res.VideoResult[0].Score)
+	}
+}
+
+func TestCIService_GetAIMediaInfo(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "{\"DatasetName\":\"your-dataset-name-001\",\"URI\":\"cos://examplebucket-1250000000/test.mp4\"}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"getaimediainfo", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"RequestId\":\"2FDE2411-DB8D-4A9A-875B-275798F14A5E\",\"MediaInfo\":{\"URI\":\"cos://examplebucket-1250000000/test.mp4\",\"ModifiedTime\":\"2020-12-26T04:11:10Z\",\"FileInfo\":{\"FileBasicInfo\":{\"FileName\":\"example.mp4\",\"FileSize\":30611502,\"FileUrl\":\"cos://examplebucket-1250000000/test.mp4\",\"Region\":\"ap-shanghai\",\"ModifiedTime\":\"2020-12-26T04:11:10Z\",\"FormatName\":\"mov,mp4,m4a,3gp,3g2,mj2\",\"Duration\":216.206667,\"Bitrate\":1132.68,\"Width\":960,\"Height\":540},\"AiData\":{\"AiLabelInfo\":[{\"From\":1.4,\"To\":2.5,\"Timestamp\":1.4,\"LabelDetail\":[{\"Confidence\":\"high\",\"LabelInfos\":{\"Type\":\"物体\",\"Category\":\"交通工具\",\"Name\":\"车\"}}]}],\"AsrInfo\":[{\"From\":1.4,\"To\":2.5,\"ClipId\":\"5FE19530C7A422197535FE74F5DB\",\"Content\":\"欢迎观看本期节目\",\"Timestamp\":1.4}],\"OcrInfo\":[{\"From\":1.4,\"To\":2.5,\"ClipId\":\"5FE19530C7A422197535FE74F5DB\",\"Content\":\"城市交通\",\"BoxPosition\":{\"Left\":517,\"Top\":409,\"Width\":128,\"Height\":168},\"Score\":0.86,\"Timestamp\":1.4}],\"AiRoughData\":{\"AiCategory\":\"生活\",\"Description\":\"这是一段关于城市道路交通场景的视频\"},\"FaceInfo\":[{\"Score\":99.04,\"LabelName\":\"张三\",\"Category\":\"custom\",\"OccurrencesInfos\":[{\"From\":61.066353,\"To\":69.06635,\"TrackData\":[{\"Timestamp\":62.03302,\"BoxPosition\":{\"Left\":517,\"Top\":409,\"Width\":128,\"Height\":168}}]}]}]}}}}")
+	})
+
+	client.MetaInsight.GetAIMediaInfo(context.Background(), nil)
+
+	opt := &GetAIMediaInfoOptions{
+		DatasetName: "your-dataset-name-001",
+		URI:         "cos://examplebucket-1250000000/test.mp4",
+	}
+	_, _, err := client.MetaInsight.GetAIMediaInfo(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.GetAIMediaInfo returned error: %v", err)
+	}
+}
+
+func TestCIService_MediaFaceSearch(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "{\"DatasetName\":\"your-dataset-name-001\",\"URI\":\"cos://examplebucket-1250000000/face_query.jpg\"}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"mediafacesearch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"RequestId\":\"7CA7D615-CFB1-5437-9A12-2D185C3EE6CB\",\"MediaInfoList\":[{\"FaceId\":\"face_20260206_0001\",\"UriList\":[\"cos://examplebucket-1250000000/photo_001.jpg\",\"cos://examplebucket-1250000000/photo_002.jpg\"]},{\"FaceId\":\"face_20260206_0002\",\"UriList\":[\"cos://examplebucket-1250000000/photo_003.jpg\",\"cos://examplebucket-1250000000/photo_004.jpg\"]}]}")
+	})
+
+	client.MetaInsight.MediaFaceSearch(context.Background(), nil)
+
+	opt := &MediaFaceSearchOptions{
+		DatasetName: "your-dataset-name-001",
+		URI:         "cos://examplebucket-1250000000/face_query.jpg",
+	}
+	res, _, err := client.MetaInsight.MediaFaceSearch(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.MediaFaceSearch returned error: %v", err)
+	}
+	if len(res.MediaInfoList) != 2 {
+		t.Fatalf("CI.MediaFaceSearch expected 2 face results, got %d", len(res.MediaInfoList))
+	}
+	if res.MediaInfoList[0].FaceId != "face_20260206_0001" {
+		t.Fatalf("CI.MediaFaceSearch expected FaceId face_20260206_0001, got %s", res.MediaInfoList[0].FaceId)
+	}
+	if len(res.MediaInfoList[0].UriList) != 2 {
+		t.Fatalf("CI.MediaFaceSearch expected 2 URIs for first face, got %d", len(res.MediaInfoList[0].UriList))
+	}
+}
+
+func TestCIService_MediaFaceClipSearch(t *testing.T) {
+	setup()
+	defer teardown()
+	wantBody := "{\"DatasetName\":\"your-dataset-name-001\",\"URI\":\"cos://examplebucket-1250000000/videos/interview_001.mp4\",\"FaceId\":\"face_20260206_0001\"}"
+
+	mux.HandleFunc("/"+"datasetquery"+"/"+"mediafaceclipsearch", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/json")
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, "{\"RequestId\":\"E44FFACD-9E90-555A-A09A-6FD3B7335E39\",\"MediaClipList\":[{\"Score\":99.04,\"LabelName\":\"张三\",\"Category\":\"celebrity\",\"OccurrencesInfos\":[{\"From\":61.066353,\"To\":69.06635,\"TrackData\":[{\"Timestamp\":62.03302,\"BoxPosition\":{\"Left\":517,\"Top\":409,\"Width\":128,\"Height\":168}}]}]}]}")
+	})
+
+	client.MetaInsight.MediaFaceClipSearch(context.Background(), nil)
+
+	opt := &MediaFaceClipSearchOptions{
+		DatasetName: "your-dataset-name-001",
+		URI:         "cos://examplebucket-1250000000/videos/interview_001.mp4",
+		FaceId:      "face_20260206_0001",
+	}
+	res, _, err := client.MetaInsight.MediaFaceClipSearch(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.MediaFaceClipSearch returned error: %v", err)
+	}
+	if len(res.MediaClipList) != 1 {
+		t.Fatalf("CI.MediaFaceClipSearch expected 1 clip result, got %d", len(res.MediaClipList))
+	}
+	if res.MediaClipList[0].Score != 99.04 {
+		t.Fatalf("CI.MediaFaceClipSearch expected Score 99.04, got %f", res.MediaClipList[0].Score)
+	}
+	if res.MediaClipList[0].Category != "celebrity" {
+		t.Fatalf("CI.MediaFaceClipSearch expected Category celebrity, got %s", res.MediaClipList[0].Category)
+	}
+	if len(res.MediaClipList[0].OccurrencesInfos) != 1 {
+		t.Fatalf("CI.MediaFaceClipSearch expected 1 occurrence, got %d", len(res.MediaClipList[0].OccurrencesInfos))
+	}
+	if res.MediaClipList[0].OccurrencesInfos[0].From != 61.066353 {
+		t.Fatalf("CI.MediaFaceClipSearch expected From 61.066353, got %f", res.MediaClipList[0].OccurrencesInfos[0].From)
+	}
+	if len(res.MediaClipList[0].OccurrencesInfos[0].TrackData) != 1 {
+		t.Fatalf("CI.MediaFaceClipSearch expected 1 track data, got %d", len(res.MediaClipList[0].OccurrencesInfos[0].TrackData))
+	}
+	if res.MediaClipList[0].OccurrencesInfos[0].TrackData[0].BoxPosition.Left != 517 {
+		t.Fatalf("CI.MediaFaceClipSearch expected BoxPosition.Left 517, got %d", res.MediaClipList[0].OccurrencesInfos[0].TrackData[0].BoxPosition.Left)
 	}
 }
