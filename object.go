@@ -12,6 +12,7 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -1385,7 +1386,7 @@ func (s *ObjectService) checkUploadedParts(ctx context.Context, name, UploadID, 
 		}
 		partNumber = partNumber - 1
 		fd.Seek(chunks[partNumber].OffSet, io.SeekStart)
-		bs, err := io.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
+		bs, err := ioutil.ReadAll(io.LimitReader(fd, chunks[partNumber].Size))
 		if err != nil {
 			return ret(err)
 		}
