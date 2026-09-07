@@ -462,6 +462,8 @@ type sendOptions struct {
 	disableCloseBody bool
 	// 是否重试
 	isRetry bool
+	// useSessionAuth 表示本次请求是否使用 CreateSession 签发的 session 凭证签名。
+	useSessionAuth bool
 }
 
 func toSwitchHost(oldURL *url.URL) *url.URL {
@@ -552,6 +554,9 @@ func (c *Client) doRetry(ctx context.Context, opt *sendOptions) (resp *Response,
 }
 
 func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, err error) {
+	if opt.useSessionAuth {
+		ctx = withSessionAuth(ctx)
+	}
 	req, err := c.newRequest(ctx, opt.baseURL, opt.uri, opt.method, opt.body, opt.optQuery, opt.optHeader, opt.isRetry)
 	if err != nil {
 		return

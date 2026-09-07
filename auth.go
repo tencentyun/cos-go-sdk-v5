@@ -338,6 +338,7 @@ type AuthorizationTransport struct {
 	SecretKey    string
 	SessionToken string
 	rwLocker     sync.RWMutex
+
 	// 签名多久过期
 	Expire    time.Duration
 	Transport http.RoundTripper
@@ -377,6 +378,12 @@ func (t *AuthorizationTransport) RoundTrip(req *http.Request) (*http.Response, e
 
 	resp, err := t.transport(req).RoundTrip(req)
 	return resp, err
+}
+
+// RoundTripSigned 实现 BaseTransport：发送已由上层签名的请求，仅经网络层发送，不再签名。
+func (t *AuthorizationTransport) RoundTripSigned(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req) // per RoundTrip contract
+	return t.transport(req).RoundTrip(req)
 }
 
 func (t *AuthorizationTransport) transport(req *http.Request) http.RoundTripper {
@@ -487,11 +494,11 @@ func (t *CVMCredentialTransport) GetCredential() (string, string, string, error)
 }
 
 func (t *CVMCredentialTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req)
 	ak, sk, token, err := t.GetCredential()
 	if err != nil {
 		return nil, err
 	}
-	req = cloneRequest(req)
 	// 增加 Authorization header
 	authTime := NewAuthTime(defaultAuthExpire)
 	AddAuthorizationHeader(ak, sk, token, req, authTime)
@@ -507,6 +514,12 @@ func (t *CVMCredentialTransport) transport() http.RoundTripper {
 	return http.DefaultTransport
 }
 
+// RoundTripSigned 实现 BaseTransport：发送已由上层签名的请求，仅经网络层发送，不再签名。
+func (t *CVMCredentialTransport) RoundTripSigned(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req)
+	return t.transport().RoundTrip(req)
+}
+
 type CredentialTransport struct {
 	Transport  http.RoundTripper
 	Credential CredentialIface
@@ -517,9 +530,9 @@ func (t *CredentialTransport) GetCredential() (string, string, string, error) {
 }
 
 func (t *CredentialTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req)
 	ak, sk, token := t.Credential.GetSecretId(), t.Credential.GetSecretKey(), t.Credential.GetToken()
 
-	req = cloneRequest(req)
 	// 增加 Authorization header
 	authTime := NewAuthTime(defaultAuthExpire)
 	AddAuthorizationHeader(ak, sk, token, req, authTime)
@@ -533,6 +546,12 @@ func (t *CredentialTransport) transport() http.RoundTripper {
 		return t.Transport
 	}
 	return http.DefaultTransport
+}
+
+// RoundTripSigned 实现 BaseTransport：发送已由上层签名的请求，仅经网络层发送，不再签名。
+func (t *CredentialTransport) RoundTripSigned(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req)
+	return t.transport().RoundTrip(req)
 }
 
 type CredentialIface interface {
@@ -683,11 +702,11 @@ func (t *StsCredentialTransport) GetCredential() (string, string, string, error)
 }
 
 func (t *StsCredentialTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req)
 	ak, sk, token, err := t.GetCredential()
 	if err != nil {
 		return nil, err
 	}
-	req = cloneRequest(req)
 	// 增加 Authorization header
 	authTime := NewAuthTime(defaultAuthExpire)
 	AddAuthorizationHeader(ak, sk, token, req, authTime)
@@ -701,6 +720,12 @@ func (t *StsCredentialTransport) transport() http.RoundTripper {
 		return t.Transport
 	}
 	return http.DefaultTransport
+}
+
+// RoundTripSigned 实现 BaseTransport：发送已由上层签名的请求，仅经网络层发送，不再签名。
+func (t *StsCredentialTransport) RoundTripSigned(req *http.Request) (*http.Response, error) {
+	req = cloneRequest(req)
+	return t.transport().RoundTrip(req)
 }
 
 func (t *StsCredentialTransport) sendRequest(params map[string]interface{}) (*http.Response, error) {

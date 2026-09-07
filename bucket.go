@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -42,12 +43,13 @@ type BucketGetOptions struct {
 func (s *BucketService) Get(ctx context.Context, opt *BucketGetOptions) (*BucketGetResult, *Response, error) {
 	var res BucketGetResult
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/",
-		method:    http.MethodGet,
-		optQuery:  opt,
-		optHeader: opt,
-		result:    &res,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            "/",
+		method:         http.MethodGet,
+		optQuery:       opt,
+		optHeader:      opt,
+		result:         &res,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
@@ -145,6 +147,28 @@ func (s *BucketService) IsExist(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// CreateSession 为rapid bucket签发 session 凭证，返回 AK/SK/SessionToken 及过期时间，用于对该桶发起 session 鉴权请求。
+func (s *BucketService) CreateSession(ctx context.Context) (*CreateSessionResult, *Response, error) {
+	var res CreateSessionResult
+	sendOpt := sendOptions{
+		baseURL: s.client.BaseURL.BucketURL,
+		uri:     "/?session",
+		method:  http.MethodGet,
+		result:  &res,
+	}
+	resp, err := s.client.doRetry(ctx, &sendOpt)
+	if err != nil {
+		return nil, resp, err
+	}
+	if res.Credentials.SecretID == "" || res.Credentials.SecretKey == "" || res.Credentials.SessionToken == "" {
+		return nil, resp, fmt.Errorf("CreateSession response credentials are incomplete")
+	}
+	if res.Credentials.Expiration.IsZero() {
+		return nil, resp, fmt.Errorf("session credential expiration is missing")
+	}
+	return &res, resp, nil
 }
 
 // Bucket is the meta info of Bucket

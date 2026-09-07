@@ -47,12 +47,13 @@ type ListMultipartUploadsOptions struct {
 func (s *BucketService) ListMultipartUploads(ctx context.Context, opt *ListMultipartUploadsOptions) (*ListMultipartUploadsResult, *Response, error) {
 	var res ListMultipartUploadsResult
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/?uploads",
-		method:    http.MethodGet,
-		result:    &res,
-		optQuery:  opt,
-		optHeader: opt,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            "/?uploads",
+		method:         http.MethodGet,
+		result:         &res,
+		optQuery:       opt,
+		optHeader:      opt,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
