@@ -392,6 +392,65 @@ func TestObjectService_GetPresignedURL2(t *testing.T) {
 
 }
 
+// TestObjectService_GetPresignedURL2_QueryTokenOrder 钉死 presignURL 的 query 段拼接顺序：
+// 当同时存在非空 PresignedURLOptions.Query 与 SessionToken 时，最终 RawQuery 须依次为
+// opt.Query、x-cos-security-token、签名串，且 token 段以 & 分隔紧随 Query 之后。
+func TestObjectService_GetPresignedURL2_QueryTokenOrder(t *testing.T) {
+	setup()
+	defer teardown()
+
+	u, _ := url.Parse(server.URL)
+	client := NewClient(&BaseURL{u, u, u, u, u, u, u}, &http.Client{
+		Transport: &AuthorizationTransport{
+			SecretID:     "QmFzZTY0IGlzIGEgZ*******",
+			SecretKey:    "ZfbOA78asKUYBcXFrJD0a1I*******",
+			SessionToken: "tmp-session-token",
+		},
+	})
+
+	c := context.Background()
+	startTime := time.Unix(int64(1622702557), 0)
+	endTime := time.Unix(int64(1622706157), 0)
+	opt := &PresignedURLOptions{
+		Query: &url.Values{},
+		AuthTime: &AuthTime{
+			SignStartTime: startTime,
+			SignEndTime:   endTime,
+			KeyStartTime:  startTime,
+			KeyEndTime:    endTime,
+		},
+	}
+	opt.Query.Add("test", "params")
+
+	presignedURL, err := client.Object.GetPresignedURL2(c, http.MethodPut, "test.jpg", time.Hour, opt, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	raw := presignedURL.RawQuery
+	queryIdx := strings.Index(raw, "test=params")
+	tokenIdx := strings.Index(raw, "x-cos-security-token=tmp-session-token")
+	signIdx := strings.Index(raw, "q-signature=")
+	if queryIdx != 0 {
+		t.Fatalf("expected RawQuery to start with opt.Query, got %q", raw)
+	}
+	if tokenIdx < 0 {
+		t.Fatalf("expected x-cos-security-token present, got %q", raw)
+	}
+	if signIdx < 0 {
+		t.Fatalf("expected signature present, got %q", raw)
+	}
+	if !(queryIdx < tokenIdx && tokenIdx < signIdx) {
+		t.Fatalf("expected order query < token < signature, got query=%d token=%d sign=%d in %q", queryIdx, tokenIdx, signIdx, raw)
+	}
+	if sep := raw[tokenIdx-1]; sep != '&' {
+		t.Fatalf("expected token segment separated by '&', got %q in %q", sep, raw)
+	}
+	if got := presignedURL.Query().Get("x-cos-security-token"); got != "tmp-session-token" {
+		t.Fatalf("x-cos-security-token = %q, want %q", got, "tmp-session-token")
+	}
+}
+
 func TestObjectService_GetPresignedURL3(t *testing.T) {
 	setup()
 	defer teardown()

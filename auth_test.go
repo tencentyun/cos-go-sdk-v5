@@ -70,6 +70,56 @@ func TestAuthorizationTransport(t *testing.T) {
 	}
 }
 
+// TestAuthorizationTransport_TransportPrefersHostHeaderOverURL 覆盖 transport(req) 判断是否
+// 包装 Gateway LB 时的口径：必须优先看 Host 头（签名/逻辑 Host），而不是 req.URL.Hostname()。
+// 否则 BaseURL 为自定义/普通域名、Host 头为 rapid bucket（或反过来）时会误判。
+func TestAuthorizationTransport_TransportPrefersHostHeaderOverURL(t *testing.T) {
+	rapidHost := "bucket-x--1259654469.cosrapid.ap-guangzhou.myqcloud.com"
+	ordinaryHost := "ordinary-1250000000.cos.ap-guangzhou.myqcloud.com"
+
+	tests := []struct {
+		name       string
+		urlHost    string
+		hostHeader string
+		wantLB     bool
+	}{
+		{
+			name:       "Host 头为 rapid bucket，URL 是普通域名：仍应包装 LB",
+			urlHost:    ordinaryHost,
+			hostHeader: rapidHost,
+			wantLB:     true,
+		},
+		{
+			name:       "Host 头为普通桶，URL 恰好是 rapid 命名：不应误包装",
+			urlHost:    rapidHost,
+			hostHeader: ordinaryHost,
+			wantLB:     false,
+		},
+		{
+			name:    "Host 头为空，回退 URL 的 rapid 判断",
+			urlHost: rapidHost,
+			wantLB:  true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			network := &stubRoundTripper{}
+			base := &AuthorizationTransport{SecretID: "AKID", SecretKey: "secret", Transport: network}
+
+			req, err := http.NewRequest(http.MethodGet, "http://"+tc.urlHost+"/key", nil)
+			if err != nil {
+				t.Fatalf("http.NewRequest() failed: %v", err)
+			}
+			req.Host = tc.hostHeader
+
+			_, isLB := base.transport(req).(*rapidGatewayLBTransport)
+			if isLB != tc.wantLB {
+				t.Errorf("transport() wrapped with Gateway LB = %v, want %v", isLB, tc.wantLB)
+			}
+		})
+	}
+}
+
 func TestAuthorizationTransportErr(t *testing.T) {
 	setup()
 	defer teardown()
