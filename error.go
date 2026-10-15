@@ -3,6 +3,7 @@ package cos
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -24,6 +25,22 @@ func (r *RetryError) Error() string {
 
 func (r *RetryError) Add(err error) {
 	r.Errs = append(r.Errs, err)
+}
+
+// Is 让 errors.Is 能穿透 RetryError，以最后一次重试的错误为准进行匹配。
+func (r *RetryError) Is(target error) bool {
+	if len(r.Errs) == 0 {
+		return false
+	}
+	return errors.Is(r.Errs[len(r.Errs)-1], target)
+}
+
+// As 让 errors.As 能穿透 RetryError，以最后一次重试的错误为准进行类型提取。
+func (r *RetryError) As(target interface{}) bool {
+	if len(r.Errs) == 0 {
+		return false
+	}
+	return errors.As(r.Errs[len(r.Errs)-1], target)
 }
 
 // ErrorResponse 包含 API 返回的错误信息
@@ -93,21 +110,19 @@ func IsNotFoundError(e error) bool {
 	if e == nil {
 		return false
 	}
-	err, ok := e.(*ErrorResponse)
-	if !ok {
+	var err *ErrorResponse
+	if !errors.As(e, &err) {
 		return false
 	}
-	if err.Response != nil && err.Response.StatusCode == 404 {
-		return true
-	}
-	return false
+	return err.Response != nil && err.Response.StatusCode == 404
 }
 
 func IsCOSError(e error) (*ErrorResponse, bool) {
 	if e == nil {
 		return nil, false
 	}
-	err, ok := e.(*ErrorResponse)
+	var err *ErrorResponse
+	ok := errors.As(e, &err)
 	return err, ok
 }
 
@@ -213,6 +228,7 @@ func IsVectorError(e error) (*VectorErrorResponse, bool) {
 	if e == nil {
 		return nil, false
 	}
-	err, ok := e.(*VectorErrorResponse)
+	var err *VectorErrorResponse
+	ok := errors.As(e, &err)
 	return err, ok
 }
