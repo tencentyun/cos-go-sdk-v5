@@ -1008,6 +1008,13 @@ type MultiUploadOptions struct {
 	DisableChecksum bool
 	WorkerChannel   chan<- *Jobs
 	ResultChannel   <-chan *Results
+	// EnableCompleteWithHead 为 true 时，Upload / MultiUpload 的最后一步会调用
+	// CompleteMultipartUploadWithHead 代替 CompleteMultipartUpload；若 Complete 失败并在
+	// 重试过程中返回 404 NoSuchUpload，则通过 HEAD Object 二次确认上传是否已完成。
+	// 当 Conf.EnableCRC 为 true 且 DisableChecksum 为 false 时，Upload 内部已计算的
+	// localcrc 会自动传入 Crc64CheckInHead，确保兜底时严格比对 CRC64；否则兜底仅凭对象存在判定。
+	// 默认 false，保持原有行为不变。
+	EnableCompleteWithHead bool
 }
 
 type MultiDownloadOptions struct {
@@ -1601,11 +1608,22 @@ func (s *ObjectService) Upload(ctx context.Context, name string, filepath string
 	event = newProgressEvent(ProgressCompletedEvent, 0, consumedBytes, totalBytes)
 	progressCallback(listener, event)
 
-	v, resp, err := s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
+	var v *CompleteMultipartUploadResult
+	var resp *Response
+	if opt.EnableCompleteWithHead {
+		// 开启 Complete 兜底：若 Complete 失败并在重试过程中返回 404 NoSuchUpload，
+		// 由 CompleteMultipartUploadWithHead 内部 HEAD 对象以确认是否已合并完成。
+		// 若本次上传已计算 localcrc（EnableCRC && !DisableChecksum），自动传入做严格比对。
+		if s.client.Conf.EnableCRC && !opt.DisableChecksum {
+			optcom.Crc64CheckInHead = &localcrc
+		}
+		v, resp, err = s.CompleteMultipartUploadWithHead(context.Background(), name, uploadID, optcom)
+	} else {
+		v, resp, err = s.CompleteMultipartUpload(context.Background(), name, uploadID, optcom)
+	}
 	if err != nil {
 		return v, resp, err
 	}
-
 	if resp != nil && s.client.Conf.EnableCRC && !opt.DisableChecksum {
 		scoscrc := resp.Header.Get("x-cos-hash-crc64ecma")
 		icoscrc, err := strconv.ParseUint(scoscrc, 10, 64)

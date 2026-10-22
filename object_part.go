@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -217,6 +218,13 @@ type CompleteMultipartUploadOptions struct {
 	XMLName       xml.Name     `xml:"CompleteMultipartUpload" header:"-" url:"-"`
 	Parts         []Object     `xml:"Part" header:"-" url:"-"`
 	XOptionHeader *http.Header `header:"-,omitempty" xml:"-" url:"-"`
+
+	// Crc64CheckInHead 仅对 CompleteMultipartUploadWithHead 生效，不参与 HTTP 请求序列化。
+	// 用法：
+	//   - 为 nil：命中 NoSuchUpload 兜底时，HEAD 到对象即判定上传完成，不比对 CRC64
+	//   - 非 nil：命中 NoSuchUpload 兜底时，比较本地 CRC64 与服务端 x-cos-hash-crc64ecma，一致才判定成功
+	// 对原 CompleteMultipartUpload 该字段完全不生效。
+	Crc64CheckInHead *uint64 `header:"-" xml:"-" url:"-"`
 }
 
 // CompleteMultipartUploadResult is the result CompleteMultipartUpload
@@ -259,6 +267,20 @@ func (o ObjectList) Less(i, j int) bool { // rewrite the Less method from small 
 //
 // https://www.qcloud.com/document/product/436/7742
 func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploadID string, opt *CompleteMultipartUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	return s.completeMultipartUpload(ctx, name, uploadID, opt, nil)
+}
+
+// onCompleteRetryError 在 CompleteMultipartUpload 重试循环中每次收到错误时被调用。
+// nr 为本次请求的轮次（0 = 首次请求，> 0 = 第 nr 次重试）。
+//
+// 返回值语义：
+//   - handled == true：重试循环立即中断，直接把 (result, resp, err) 返回给上层调用方
+//   - handled == false：按原重试策略继续处理（可能继续重试或走到循环结束）
+type onCompleteRetryError func(nr int, cause error, resp *Response) (result *CompleteMultipartUploadResult, hookResp *Response, hookErr error, handled bool)
+
+// completeMultipartUpload 是 CompleteMultipartUpload 的内部实现。
+// onRetryError 为 nil 时行为与 CompleteMultipartUpload 完全一致。
+func (s *ObjectService) completeMultipartUpload(ctx context.Context, name, uploadID string, opt *CompleteMultipartUploadOptions, onRetryError onCompleteRetryError) (*CompleteMultipartUploadResult, *Response, error) {
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	var res CompleteMultipartUploadResult
 
@@ -299,11 +321,97 @@ func (s *ObjectService) CompleteMultipartUpload(ctx context.Context, name, uploa
 			return &res, resp, nil
 		}
 		retryErr.Add(err)
+		if onRetryError != nil {
+			if r, hr, he, handled := onRetryError(nr, err, resp); handled {
+				return r, hr, he
+			}
+		}
 		if s.client.Conf.RetryOpt.Interval > 0 && nr+1 < count {
 			time.Sleep(s.client.Conf.RetryOpt.Interval)
 		}
 	}
 	return &res, resp, retryErr
+}
+
+// isNoSuchUploadError 判断错误是否为 404 NoSuchUpload。
+// CompleteMultipartUpload 在服务端不是幂等的：服务端合并成功后 uploadId 即失效，
+// 客户端重试时会返回 404 NoSuchUpload，但对象可能已实际生成。
+func isNoSuchUploadError(err error) bool {
+	if er, ok := IsCOSError(err); ok {
+		return er.Response != nil && er.Response.StatusCode == http.StatusNotFound && er.Code == "NoSuchUpload"
+	}
+	return false
+}
+
+// CompleteMultipartUploadWithHead 在 CompleteMultipartUpload 的基础上增加幂等兜底：
+// 当 Complete 失败并在重试过程中（非首次请求）返回 404 NoSuchUpload 时，立即 HEAD 对象以确认
+// 服务端是否已合并完成，从而纠正「服务端已合并成功、客户端未收到成功响应」造成的误判。
+//
+// 本方法的入参、出参与 CompleteMultipartUpload 完全一致，调用端可以无缝切换 ——
+// 仅把方法名替换过来即可，参数、返回值、错误类型均无需任何改动。
+// 兜底的 CRC64 比对开关通过 opt.Crc64CheckInHead 配置：
+//   - 为 nil：HEAD 到对象即判定上传完成，不比对 CRC64
+//   - 非 nil：比较本地 CRC64 与服务端 x-cos-hash-crc64ecma，一致才判定成功
+//
+// 处理流程：
+//  1. Complete 成功 → 直接返回，行为与 CompleteMultipartUpload 一致；
+//  2. Complete 首次（nr == 0）返回 404 NoSuchUpload → 不触发 HEAD，先进入重试流程；
+//  3. 重试过程中（nr > 0）某次返回 404 NoSuchUpload → 立即中断重试，执行 HEAD + 判定：
+//     - HEAD 返回 404（对象不存在） → 返回 Complete 的 NoSuchUpload 错误；
+//     - HEAD 自身失败（非 404 错误） → 返回 Complete 的 NoSuchUpload 错误，附带 HEAD 错误信息；
+//     - HEAD 成功 + Crc64CheckInHead == nil → 判定上传完成，返回成功；
+//     - HEAD 成功 + Crc64CheckInHead != nil + 服务端未返回 crc64 → 返回 Complete 错误；
+//     - HEAD 成功 + CRC64 一致 → 判定上传完成，返回成功；
+//     - HEAD 成功 + CRC64 不一致 → 返回 Complete 错误。
+//  4. 重试返回非 NoSuchUpload 错误 → 按原重试规则继续重试；
+//  5. 重试次数耗尽仍失败 → 返回 RetryError，不触发 HEAD。
+//
+// https://www.qcloud.com/document/product/436/7742
+func (s *ObjectService) CompleteMultipartUploadWithHead(ctx context.Context, name, uploadID string, opt *CompleteMultipartUploadOptions) (*CompleteMultipartUploadResult, *Response, error) {
+	hook := func(nr int, cause error, _ *Response) (*CompleteMultipartUploadResult, *Response, error, bool) {
+		// 需求约束：仅在重试过程中（nr > 0）命中 NoSuchUpload 才触发 HEAD
+		if nr == 0 || !isNoSuchUploadError(cause) {
+			return nil, nil, nil, false
+		}
+		var verifyCRC *uint64
+		if opt != nil {
+			verifyCRC = opt.Crc64CheckInHead
+		}
+		return s.completeWithHeadFallback(ctx, name, verifyCRC, cause)
+	}
+	return s.completeMultipartUpload(ctx, name, uploadID, opt, hook)
+}
+
+// completeWithHeadFallback 通过 HEAD Object + 可选 CRC64 比对确认服务端是否已合并完成。
+// handled 恒为 true：一旦进入兜底即中断 Complete 的重试循环（uploadId 已失效，继续重试无意义）。
+func (s *ObjectService) completeWithHeadFallback(ctx context.Context, name string, verifyCRC *uint64, cause error) (*CompleteMultipartUploadResult, *Response, error, bool) {
+	headResp, err := s.Head(ctx, name, nil)
+	if err != nil {
+		if IsNotFoundError(err) {
+			// 对象确实不存在，本次上传未成功，返回 Complete 的 NoSuchUpload 错误
+			return &CompleteMultipartUploadResult{}, nil, cause, true
+		}
+		// HEAD 自身失败（5xx / 超时 / 网络错误），无法确认，返回 Complete 错误并附带 HEAD 错误信息。
+		// 使用 %w 包装 cause，保留 *ErrorResponse 类型，便于上层 IsCOSError / errors.As 识别。
+		return &CompleteMultipartUploadResult{}, nil, fmt.Errorf("%w, and head object failed: %v", cause, err), true
+	}
+	if verifyCRC != nil {
+		scoscrc := headResp.Header.Get("x-cos-hash-crc64ecma")
+		icoscrc, cerr := strconv.ParseUint(scoscrc, 10, 64)
+		if cerr != nil {
+			// 服务端未返回 CRC64，无法比对，返回 Complete 错误（保留 cause 类型）
+			return &CompleteMultipartUploadResult{}, headResp, fmt.Errorf("%w, and can not get x-cos-hash-crc64ecma from head response, header:%+v", cause, headResp.Header), true
+		}
+		if icoscrc != *verifyCRC {
+			return &CompleteMultipartUploadResult{}, headResp, fmt.Errorf("%w, object exists but crc64 mismatch, want:%v, got:%v", cause, *verifyCRC, icoscrc), true
+		}
+	}
+	result := &CompleteMultipartUploadResult{
+		Location: fmt.Sprintf("%s/%s", s.client.BaseURL.BucketURL, name),
+		Key:      name,
+		ETag:     headResp.Header.Get("ETag"),
+	}
+	return result, headResp, nil, true
 }
 
 type AbortMultipartUploadOptions struct {
