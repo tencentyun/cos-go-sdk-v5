@@ -93,6 +93,9 @@ Object API:
 * [x] Complete Multipart Upload（使用示例：[object/completeMultipartUpload.go](./example/object/completeMultipartUpload.go)）
 * [x] Abort Multipart Upload（使用示例：[object/abortMultipartUpload.go](./example/object/abortMultipartUpload.go)）
 * [x] Mutipart Upload（使用示例：[object/MutiUpload.go](./example/object/MutiUpload.go)）
+* [x] Rename Object（高性能桶专用，`Object.RenameObject`，同桶内原子重命名对象，使用示例：[rapid/rapid.go](./example/rapid/rapid.go)）
+* [x] Session 预签名 URL（高性能桶专用，`Object.GetSessionPresignedURL`，签出带 session 凭证的预签名 URL，使用示例：[rapid/rapid.go](./example/rapid/rapid.go)）
+* [x] 高性能桶 session 自动鉴权（高性能桶专用，`cos.NewRapidCredentialTransport` 包裹底层凭证 transport 后传入 `NewClient`，自动完成 CreateSession 与 session 凭证缓存/重签，使用示例：[rapid/rapid.go](./example/rapid/rapid.go)）
 
 
 数据处理 API:
@@ -104,3 +107,25 @@ Object API:
 内容审核 API:
 
 * [x] 视频审核（使用示例：[ci_video_auditing_job.go](./example/CI/content_auditing/ci_video_auditing_job.go)）
+
+## 高性能桶（COS Rapid Bucket）支持API汇总
+
+使用 `cos.NewRapidCredentialTransport` 包裹凭证后，即可用下列 API 操作高性能桶。
+
+| 类别 | API（SDK 方法） | 说明 |
+|---|---|---|
+| 对象 | `Object.Put` / `PutFromFile` | 上传对象 |
+| 对象 | `Object.Get` / `GetToFile` | 下载对象 |
+| 对象 | `Object.Head` / `IsExist` | 查询对象元信息 / 是否存在 |
+| 对象 | `Object.Delete` / `DeleteMulti` | 删除单个 / 批量对象 |
+| 对象 | `Object.Copy` / `MultiCopy` | 复制对象（高性能桶仅支持同桶复制，即源与目标为同一个桶） |
+| 对象 | `Object.RenameObject` | 同桶内原子重命名对象（高性能桶专用） |
+| 对象 | `Object.GetSessionPresignedURL` | 获取预签名 URL（高性能桶专用） |
+| 分块上传 | `Object.InitiateMultipartUpload` / `UploadPart` / `CompleteMultipartUpload` / `AbortMultipartUpload` / `ListParts` | 分块上传全流程 |
+| 分块上传 | `Object.CopyPart` | 分块复制（高性能桶仅支持同桶复制） |
+| 分块上传 | `Object.ListUploads` | 列出进行中的分块上传 |
+| 存储桶 | `Bucket.Get` | 列举对象 |
+| 存储桶 | `Bucket.Put` | 创建存储桶 |
+| 存储桶 | `Bucket.Delete` / `Head` / `IsExist` | 删除 / 查询存储桶 |
+| 存储桶 | `Bucket.CreateSession` | 换取 session 临时凭证（高性能桶专用） |
+| 存储桶 | `Bucket Policy（Put / Get / Delete）` | 存储桶权限策略 |

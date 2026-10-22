@@ -78,6 +78,7 @@ func (s *ObjectService) Get(ctx context.Context, name string, opt *ObjectGetOpti
 		optQuery:         opt,
 		optHeader:        opt,
 		disableCloseBody: true,
+		useSessionAuth:   s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 
@@ -160,52 +161,62 @@ type PresignedURLOptions struct {
 	EnablePathMerge bool         `xml:"-" url:"-" header:"-"`
 }
 
-// GetPresignedURL get the object presigned to down or upload file by url
-// 预签名函数，signHost: 默认签入Header Host, 您也可以选择不签入Header Host，但可能导致请求失败或安全漏洞
-func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
-	if name == "" {
-		return nil, fmt.Errorf("object key is empty.")
+// presignOptions 解析预签名 opt 中的通用字段。
+type presignOptions struct {
+	query           string
+	authTime        *AuthTime
+	enablePathMerge bool
+	signMerged      bool
+}
+
+func parsePresignOptions(opt interface{}) presignOptions {
+	var p presignOptions
+	switch popt := opt.(type) {
+	case *presignedURLTestingOptions:
+		p.authTime = popt.authTime
+	case *PresignedURLOptions:
+		if popt.Query != nil {
+			p.query = popt.Query.Encode()
+		}
+		p.authTime = popt.AuthTime
+		p.enablePathMerge = popt.EnablePathMerge
+		p.signMerged = popt.SignMerged
 	}
-	// 兼容 name 以 / 开头的情况
-	if strings.HasPrefix(name, "/") {
-		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
-	} else {
-		name = encodeURIComponent(name, []byte{'/'})
+	return p
+}
+
+// presignURL 是所有预签名入口的公共实现。name 须已编码，host 非空时覆盖 ObjectURL 的 Host，token 非空时把 x-cos-security-token 加入 query 参与签名。
+func (s *ObjectService) presignURL(ctx context.Context, httpMethod, encodedName, ak, sk, token, host string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
+	baseURL := s.client.BaseURL.BucketURL
+	if host != "" && baseURL != nil {
+		bucketURL := *baseURL
+		bucketURL.Host = host
+		baseURL = &bucketURL
 	}
 
+	po := parsePresignOptions(opt)
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + name,
+		baseURL:   baseURL,
+		uri:       "/" + encodedName,
 		method:    httpMethod,
 		optQuery:  opt,
 		optHeader: opt,
 	}
-	var authTime *AuthTime
-	var enablePathMerge bool
-	if opt != nil {
-		if popt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = popt.authTime
-		}
-		if popt, ok := opt.(*PresignedURLOptions); ok {
-			if popt.Query != nil {
-				qs := popt.Query.Encode()
-				if qs != "" {
-					sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
-				}
-			}
-			if popt.AuthTime != nil {
-				authTime = popt.AuthTime
-			}
-			if popt.EnablePathMerge {
-				enablePathMerge = true
-			}
-		}
+	mark := "?"
+	if po.query != "" {
+		sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, po.query)
+		mark = "&"
 	}
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt, enablePathMerge)
+	if token != "" {
+		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{token}}.Encode())
+	}
+
+	req, err := s.client.newPresignedRequest(ctx, &sendOpt, po.enablePathMerge)
 	if err != nil {
 		return nil, err
 	}
 
+	authTime := po.authTime
 	if authTime == nil {
 		authTime = NewAuthTime(expired)
 	}
@@ -214,112 +225,50 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 		signedHost = signHost[0]
 	}
 	authorization := newAuthorization(ak, sk, req, authTime, signedHost)
-	if opt != nil {
-		if opt, ok := opt.(*PresignedURLOptions); ok {
-			if opt.SignMerged {
-				sign := encodeURIComponent(authorization)
-				if req.URL.RawQuery == "" {
-					req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
-				} else {
-					req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
-				}
-				return req.URL, nil
-			}
+	if po.signMerged {
+		sign := encodeURIComponent(authorization)
+		if req.URL.RawQuery == "" {
+			req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
+		} else {
+			req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
 		}
+		return req.URL, nil
 	}
 	sign := encodeURIComponent(authorization, []byte{'&', '='})
-
 	if req.URL.RawQuery == "" {
-		req.URL.RawQuery = fmt.Sprintf("%s", sign)
+		req.URL.RawQuery = sign
 	} else {
 		req.URL.RawQuery = fmt.Sprintf("%s&%s", req.URL.RawQuery, sign)
 	}
 	return req.URL, nil
 }
 
+// encodePresignName 按 GetPresignedURL/GetPresignedURL2 的规则编码 object key。
+func encodePresignName(name string) string {
+	if strings.HasPrefix(name, "/") {
+		return encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
+	}
+	return encodeURIComponent(name, []byte{'/'})
+}
+
+// GetPresignedURL get the object presigned to down or upload file by url
+// 预签名函数，signHost: 默认签入Header Host, 您也可以选择不签入Header Host，但可能导致请求失败或安全漏洞
+func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
+	if name == "" {
+		return nil, fmt.Errorf("object key is empty.")
+	}
+	return s.presignURL(ctx, httpMethod, encodePresignName(name), ak, sk, "", "", expired, opt, signHost...)
+}
+
 func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
 	if name == "" {
 		return nil, fmt.Errorf("object key is empty.")
 	}
-	// 兼容 name 以 / 开头的情况
-	if strings.HasPrefix(name, "/") {
-		name = encodeURIComponent("/") + encodeURIComponent(name[1:], []byte{'/'})
-	} else {
-		name = encodeURIComponent(name, []byte{'/'})
-	}
-
 	cred := s.client.GetCredential()
 	if cred == nil {
 		return nil, fmt.Errorf("GetCredential failed")
 	}
-	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + name,
-		method:    httpMethod,
-		optQuery:  opt,
-		optHeader: opt,
-	}
-	var enablePathMerge bool
-	var authTime *AuthTime
-	mark := "?"
-	if opt != nil {
-		if popt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = popt.authTime
-		}
-		if popt, ok := opt.(*PresignedURLOptions); ok {
-			if popt.Query != nil {
-				qs := popt.Query.Encode()
-				if qs != "" {
-					sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
-					mark = "&"
-				}
-			}
-			if popt.AuthTime != nil {
-				authTime = popt.AuthTime
-			}
-			if popt.EnablePathMerge {
-				enablePathMerge = true
-			}
-		}
-	}
-	if cred.SessionToken != "" {
-		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
-	}
-
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt, enablePathMerge)
-	if err != nil {
-		return nil, err
-	}
-
-	if authTime == nil {
-		authTime = NewAuthTime(expired)
-	}
-	signedHost := true
-	if len(signHost) > 0 {
-		signedHost = signHost[0]
-	}
-	authorization := newAuthorization(cred.SecretID, cred.SecretKey, req, authTime, signedHost)
-	if opt != nil {
-		if opt, ok := opt.(*PresignedURLOptions); ok {
-			if opt.SignMerged {
-				sign := encodeURIComponent(authorization)
-				if req.URL.RawQuery == "" {
-					req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
-				} else {
-					req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
-				}
-				return req.URL, nil
-			}
-		}
-	}
-	sign := encodeURIComponent(authorization, []byte{'&', '='})
-
-	if req.URL.RawQuery == "" {
-		req.URL.RawQuery = fmt.Sprintf("%s", sign)
-	} else {
-		req.URL.RawQuery = fmt.Sprintf("%s&%s", req.URL.RawQuery, sign)
-	}
-	return req.URL, nil
+	return s.presignURL(ctx, httpMethod, encodePresignName(name), cred.SecretID, cred.SecretKey, cred.SessionToken, "", expired, opt, signHost...)
 }
 
 func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
@@ -342,74 +291,54 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 	if cred == nil {
 		return nil, fmt.Errorf("GetCredential failed")
 	}
-	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + name,
-		method:    httpMethod,
-		optQuery:  opt,
-		optHeader: opt,
-	}
-	var enablePathMerge bool
-	var authTime *AuthTime
-	mark := "?"
-	if opt != nil {
-		if popt, ok := opt.(*presignedURLTestingOptions); ok {
-			authTime = popt.authTime
-		}
-		if popt, ok := opt.(*PresignedURLOptions); ok {
-			if popt.Query != nil {
-				qs := popt.Query.Encode()
-				if qs != "" {
-					sendOpt.uri = fmt.Sprintf("%s?%s", sendOpt.uri, qs)
-					mark = "&"
-				}
-			}
-			if popt.AuthTime != nil {
-				authTime = popt.AuthTime
-			}
-			if popt.EnablePathMerge {
-				enablePathMerge = true
-			}
-		}
-	}
-	if cred.SessionToken != "" {
-		sendOpt.uri = fmt.Sprintf("%s%s%s", sendOpt.uri, mark, url.Values{"x-cos-security-token": []string{cred.SessionToken}}.Encode())
-	}
+	return s.presignURL(ctx, httpMethod, name, cred.SecretID, cred.SecretKey, cred.SessionToken, "", expired, opt, signHost...)
+}
 
-	req, err := s.client.newPresignedRequest(ctx, &sendOpt, enablePathMerge)
+// presignRequiredLifetime 计算本次预签名 URL 所需 token 覆盖的最短剩余寿命，显式指定 AuthTime 时以其签名结束时间为准，否则取 expired。
+func presignRequiredLifetime(expired time.Duration, opt interface{}) time.Duration {
+	authTime := parsePresignOptions(opt).authTime
+	if authTime == nil {
+		return expired
+	}
+	end := authTime.SignEndTime
+	if authTime.KeyEndTime.After(end) {
+		end = authTime.KeyEndTime
+	}
+	return time.Until(end)
+}
+
+// GetSessionPresignedURL 为rapid bucket生成以 session 凭证签名的预签名 URL，仅支持rapid bucket且底层 Transport 需支持 session 凭证获取。要求 session 凭证剩余寿命覆盖 expired，不足时强制刷新。expired 为 URL 有效期，opt 为请求的 header/query 选项。
+func (s *ObjectService) GetSessionPresignedURL(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
+	if name == "" {
+		return nil, fmt.Errorf("object key is empty")
+	}
+	if parsePresignOptions(opt).signMerged {
+		return nil, fmt.Errorf("GetSessionPresignedURL does not support SignMerged")
+	}
+	authTransport, ok := s.client.client.Transport.(*RapidCredentialTransport)
+	if !ok {
+		return nil, fmt.Errorf("transport does not support session credentials")
+	}
+	provider := authTransport.getSessionProvider()
+	if provider == nil {
+		return nil, fmt.Errorf("session provider is not configured")
+	}
+	host := s.client.Host
+	if host == "" && s.client.BaseURL.BucketURL != nil {
+		host = s.client.BaseURL.BucketURL.Host
+	}
+	if bucketName := parseBucketNameFromHost(host); bucketName == "" || !isRapidBucket(bucketName) {
+		return nil, fmt.Errorf("GetSessionPresignedURL only supports high-performance bucket, got host %q", host)
+	}
+	// 要求 token 剩余寿命覆盖本次预签名有效期，不足时由 provider 强制刷新。
+	cred, ok, err := provider.freshCredential(ctx, s.client.BaseURL.BucketURL, host, presignRequiredLifetime(expired, opt), s.client.UserAgent)
 	if err != nil {
 		return nil, err
 	}
-
-	if authTime == nil {
-		authTime = NewAuthTime(expired)
+	if !ok {
+		return nil, fmt.Errorf("session credentials are not available")
 	}
-	signedHost := true
-	if len(signHost) > 0 {
-		signedHost = signHost[0]
-	}
-	authorization := newAuthorization(cred.SecretID, cred.SecretKey, req, authTime, signedHost)
-	if opt != nil {
-		if opt, ok := opt.(*PresignedURLOptions); ok {
-			if opt.SignMerged {
-				sign := encodeURIComponent(authorization)
-				if req.URL.RawQuery == "" {
-					req.URL.RawQuery = fmt.Sprintf("sign=%s", sign)
-				} else {
-					req.URL.RawQuery = fmt.Sprintf("%s&sign=%s", req.URL.RawQuery, sign)
-				}
-				return req.URL, nil
-			}
-		}
-	}
-	sign := encodeURIComponent(authorization, []byte{'&', '='})
-
-	if req.URL.RawQuery == "" {
-		req.URL.RawQuery = fmt.Sprintf("%s", sign)
-	} else {
-		req.URL.RawQuery = fmt.Sprintf("%s&%s", req.URL.RawQuery, sign)
-	}
-	return req.URL, nil
+	return s.presignURL(ctx, httpMethod, encodePresignName(name), cred.SecretID, cred.SecretKey, cred.SessionToken, s.client.Host, expired, opt, signHost...)
 }
 
 func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt *PresignedURLOptions, signHost ...bool) string {
@@ -537,12 +466,13 @@ func (s *ObjectService) Put(ctx context.Context, name string, r io.Reader, uopt 
 			reader.listener = opt.Listener
 		}
 		sendOpt := sendOptions{
-			baseURL:   sUrl,
-			uri:       "/" + encodeURIComponent(name),
-			method:    http.MethodPut,
-			body:      reader,
-			optHeader: opt,
-			isRetry:   nr > 0,
+			baseURL:        sUrl,
+			uri:            "/" + encodeURIComponent(name),
+			method:         http.MethodPut,
+			body:           reader,
+			optHeader:      opt,
+			isRetry:        nr > 0,
+			useSessionAuth: s.client.useSessionAuth(),
 		}
 		// 如果长度为0，则配置为NoBody，避免使用chunk上传
 		if isNoBody {
@@ -599,7 +529,8 @@ func (s *ObjectService) PutFromFile(ctx context.Context, name string, filePath s
 			fd.Close()
 			if s.client.Conf.RetryOpt.AutoSwitchHost {
 				// 收不到报文 或者 不存在RequestId
-				if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+				requestIdHeader := getRequestIdHeader(s.client.BaseURL.BucketURL.Host)
+				if resp == nil || resp.Header.Get(requestIdHeader) == "" {
 					opt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
 				}
 			}
@@ -705,12 +636,13 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 
 	var bs bytes.Buffer
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + encodeURIComponent(name),
-		method:    http.MethodPut,
-		body:      nil,
-		optHeader: copyOpt,
-		result:    &bs,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            "/" + encodeURIComponent(name),
+		method:         http.MethodPut,
+		body:           nil,
+		optHeader:      copyOpt,
+		result:         &bs,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 
@@ -727,6 +659,56 @@ func (s *ObjectService) Copy(ctx context.Context, name, sourceURL string, opt *O
 	}
 
 	return &res, resp, err
+}
+
+// ObjectRenameOptions is the option of RenameObject
+type ObjectRenameOptions struct {
+	// XCosRenameSource 指向源对象 key（带前导 '/'），由 RenameObject 内部填充。
+	XCosRenameSource string `header:"x-cos-rename-source" url:"-" xml:"-"`
+	// XCosForbidOverwrite 防覆盖头。置为 "true" 时，若目标对象已存在则拒绝重命名。
+	XCosForbidOverwrite string `header:"x-cos-forbid-overwrite,omitempty" url:"-" xml:"-"`
+	// 兼容其他自定义头部
+	XOptionHeader *http.Header `header:"-,omitempty" url:"-" xml:"-"`
+	XOptionQuery  *url.Values  `header:"-" url:"-" xml:"-"`
+}
+
+// RenameObject 在同一 rapid bucket 内原子重命名对象。name 为目标 key，renameSource 为同桶内源 key，底层对目标 key 发起带 x-cos-rename-source 头的 PUT，不搬移数据。仅 rapid bucket 支持，普通桶请改用 Copy + Delete。
+func (s *ObjectService) RenameObject(ctx context.Context, name, renameSource string, opt *ObjectRenameOptions) (*Response, error) {
+	// 仅rapid bucket支持，此处复用 useSessionAuth() 的桶类型判定本地 fail-fast，避免向普通桶发无效请求。
+	if !s.client.useSessionAuth() {
+		return nil, errors.New("RenameObject is only supported on rapid bucket (COS Rapid Bucket); use Copy + Delete for ordinary bucket")
+	}
+	if len(name) == 0 || name == "/" {
+		return nil, errors.New("empty object name")
+	}
+	if len(renameSource) == 0 || renameSource == "/" {
+		return nil, errors.New("empty rename source")
+	}
+
+	renameOpt := &ObjectRenameOptions{}
+	if opt != nil {
+		*renameOpt = *opt
+	}
+	// 源 key 补前导 '/' 并做 URL 编码，对齐网关侧 PathUnescape + TrimLeft("/") 的解析。
+	src := strings.TrimLeft(renameSource, "/")
+	renameOpt.XCosRenameSource = "/" + encodeURIComponent(src, []byte{'/'})
+
+	uri := "/" + encodeURIComponent(name)
+	if renameOpt.XOptionQuery != nil {
+		uri = uri + "?" + renameOpt.XOptionQuery.Encode()
+	}
+
+	sendOpt := sendOptions{
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            uri,
+		method:         http.MethodPut,
+		body:           nil,
+		optHeader:      renameOpt,
+		optQuery:       renameOpt,
+		useSessionAuth: s.client.useSessionAuth(),
+	}
+	resp, err := s.client.doRetry(ctx, &sendOpt)
+	return resp, err
 }
 
 type ObjectDeleteOptions struct {
@@ -762,11 +744,12 @@ func (s *ObjectService) Delete(ctx context.Context, name string, opt ...*ObjectD
 	}
 
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       uri,
-		method:    http.MethodDelete,
-		optHeader: optHeader,
-		optQuery:  optHeader,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            uri,
+		method:         http.MethodDelete,
+		optHeader:      optHeader,
+		optQuery:       optHeader,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
@@ -796,10 +779,11 @@ func (s *ObjectService) Head(ctx context.Context, name string, opt *ObjectHeadOp
 	}
 
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       u,
-		method:    http.MethodHead,
-		optHeader: opt,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            u,
+		method:         http.MethodHead,
+		optHeader:      opt,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	if resp != nil && resp.Header["X-Cos-Object-Type"] != nil && resp.Header["X-Cos-Object-Type"][0] == "appendable" {
@@ -974,11 +958,12 @@ type ObjectDeleteMultiResult struct {
 func (s *ObjectService) DeleteMulti(ctx context.Context, opt *ObjectDeleteMultiOptions) (*ObjectDeleteMultiResult, *Response, error) {
 	var res ObjectDeleteMultiResult
 	sendOpt := sendOptions{
-		baseURL: s.client.BaseURL.BucketURL,
-		uri:     "/?delete",
-		method:  http.MethodPost,
-		body:    opt,
-		result:  &res,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            "/?delete",
+		method:         http.MethodPost,
+		body:           opt,
+		result:         &res,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
@@ -1151,7 +1136,8 @@ func worker(ctx context.Context, s *ObjectService, jobs <-chan *Jobs, results ch
 				}
 				if s.client.Conf.RetryOpt.AutoSwitchHost {
 					// 收不到报文 或者 不存在RequestId
-					if resp == nil || resp.Header.Get("X-Cos-Request-Id") == "" {
+					requestIdHeader := getRequestIdHeader(s.client.BaseURL.BucketURL.Host)
+					if resp == nil || resp.Header.Get(requestIdHeader) == "" {
 						j.UpOpt.innerSwitchURL = toSwitchHost(s.client.BaseURL.BucketURL)
 					}
 				}

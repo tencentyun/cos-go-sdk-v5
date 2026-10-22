@@ -633,3 +633,138 @@ func Test_BaseURL_InnerCheck(t *testing.T) {
 		t.Errorf("BaseURL with trailing slash should pass Check: %v", withSlash)
 	}
 }
+
+// ============================================================================
+// 测试用例：CI 域名切换
+// ============================================================================
+
+func Test_SwitchHost_CI(t *testing.T) {
+	// CI 域名带 bucket 前缀: bucket-appid.ci.region.myqcloud.com → bucket-appid.ci.region.tencentci.cn
+	u, _ := url.Parse("https://bucket-1250000000.ci.ap-beijing.myqcloud.com/jobs")
+	res := toSwitchHost(u)
+	want := "https://bucket-1250000000.ci.ap-beijing.tencentci.cn/jobs"
+	if res.String() != want {
+		t.Errorf("toSwitchHost CI failed, expect: %v, res: %v", want, res.String())
+	}
+
+	// CI 域名不带 bucket 前缀: ci.region.myqcloud.com → ci.region.tencentci.cn
+	u, _ = url.Parse("https://ci.ap-beijing.myqcloud.com/jobs")
+	res = toSwitchHost(u)
+	want = "https://ci.ap-beijing.tencentci.cn/jobs"
+	if res.String() != want {
+		t.Errorf("toSwitchHost CI no-bucket failed, expect: %v, res: %v", want, res.String())
+	}
+
+	// CI 域名带端口
+	u, _ = url.Parse("http://bucket-1250000000.ci.ap-chengdu.myqcloud.com:8080/doc_jobs")
+	res = toSwitchHost(u)
+	want = "http://bucket-1250000000.ci.ap-chengdu.tencentci.cn:8080/doc_jobs"
+	if res.String() != want {
+		t.Errorf("toSwitchHost CI with port failed, expect: %v, res: %v", want, res.String())
+	}
+
+	// 已经是 tencentci.cn 的域名不切换
+	u, _ = url.Parse("https://bucket-1250000000.ci.ap-beijing.tencentci.cn/jobs")
+	res = toSwitchHost(u)
+	want = "https://bucket-1250000000.ci.ap-beijing.tencentci.cn/jobs"
+	if res.String() != want {
+		t.Errorf("toSwitchHost CI already switched failed, expect: %v, res: %v", want, res.String())
+	}
+
+	// 非 COS 和 CI 域名不切换
+	u, _ = url.Parse("https://custom-domain.example.com/test")
+	res = toSwitchHost(u)
+	want = "https://custom-domain.example.com/test"
+	if res.String() != want {
+		t.Errorf("toSwitchHost custom domain should not switch, expect: %v, res: %v", want, res.String())
+	}
+}
+
+func Test_GetRequestIdHeader(t *testing.T) {
+	// COS 域名
+	header := getRequestIdHeader("bucket-125000000.cos.ap-beijing.myqcloud.com")
+	if header != "X-Cos-Request-Id" {
+		t.Errorf("getRequestIdHeader COS failed, expect: X-Cos-Request-Id, got: %v", header)
+	}
+
+	// CI 域名带 bucket 前缀
+	header = getRequestIdHeader("bucket-125000000.ci.ap-beijing.myqcloud.com")
+	if header != "X-Ci-Request-Id" {
+		t.Errorf("getRequestIdHeader CI failed, expect: X-Ci-Request-Id, got: %v", header)
+	}
+
+	// CI 域名不带 bucket 前缀
+	header = getRequestIdHeader("ci.ap-beijing.myqcloud.com")
+	if header != "X-Ci-Request-Id" {
+		t.Errorf("getRequestIdHeader CI no-bucket failed, expect: X-Ci-Request-Id, got: %v", header)
+	}
+
+	// 非标准域名默认用 COS header
+	header = getRequestIdHeader("custom-domain.example.com")
+	if header != "X-Cos-Request-Id" {
+		t.Errorf("getRequestIdHeader custom domain failed, expect: X-Cos-Request-Id, got: %v", header)
+	}
+}
+
+func Test_CheckRetrieable_CI(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// CI 域名切换：resp 为 nil 时切换到 tencentci.cn
+	u, _ := url.Parse("https://bucket-125000000.ci.ap-chengdu.myqcloud.com/jobs")
+	wanted := "https://bucket-125000000.ci.ap-chengdu.tencentci.cn/jobs"
+	client.Conf.RetryOpt.AutoSwitchHost = true
+	res, retry := client.CheckRetrieable(u, nil, errors.New("err"), true)
+	if retry != true || res.String() != wanted {
+		t.Errorf("CheckRetrieable CI failed, switch: %v, retry: %v", res.String(), retry)
+	}
+
+	// CI 域名：有 X-Ci-Request-Id 时不切换
+	resp := &Response{
+		Response: &http.Response{
+			StatusCode: 500,
+			Header:     http.Header{"X-Ci-Request-Id": []string{"NjM5ZjQ3ZjlfOTBmYTUwNjRfMTJhMg=="}},
+		},
+	}
+	res, retry = client.CheckRetrieable(u, resp, errors.New("err"), true)
+	if res.String() != u.String() {
+		t.Errorf("CheckRetrieable CI with request-id should not switch, got: %v", res.String())
+	}
+	if retry != true {
+		t.Errorf("CheckRetrieable CI with 5xx should still retry")
+	}
+
+	// CI 域名：3xx 无 X-Ci-Request-Id 时立即切换
+	resp = &Response{
+		Response: &http.Response{
+			StatusCode: 302,
+			Header:     http.Header{},
+		},
+	}
+	res, retry = client.CheckRetrieable(u, resp, errors.New("err"), false)
+	if res.String() != wanted {
+		t.Errorf("CheckRetrieable CI 302 no request-id should switch, got: %v", res.String())
+	}
+	if retry != true {
+		t.Errorf("CheckRetrieable CI 302 should retry")
+	}
+
+	// CI 域名：308 不切换（万象 http→https 重定向）
+	resp = &Response{
+		Response: &http.Response{
+			StatusCode: 308,
+			Header:     http.Header{},
+		},
+	}
+	res, retry = client.CheckRetrieable(u, resp, errors.New("err"), false)
+	if res.String() != u.String() {
+		t.Errorf("CheckRetrieable CI 308 should NOT switch, got: %v", res.String())
+	}
+
+	// AutoSwitchHost 关闭时不切换
+	client.Conf.RetryOpt.AutoSwitchHost = false
+	res, retry = client.CheckRetrieable(u, nil, errors.New("err"), true)
+	if res.String() != u.String() {
+		t.Errorf("CheckRetrieable CI with switch disabled should not switch, got: %v", res.String())
+	}
+}

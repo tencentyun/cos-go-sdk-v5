@@ -37,11 +37,12 @@ func (s *ObjectService) InitiateMultipartUpload(ctx context.Context, name string
 	var buff bytes.Buffer
 	var res InitiateMultipartUploadResult
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       "/" + encodeURIComponent(name) + "?uploads",
-		method:    http.MethodPost,
-		optHeader: opt,
-		result:    &buff,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            "/" + encodeURIComponent(name) + "?uploads",
+		method:         http.MethodPost,
+		optHeader:      opt,
+		result:         &buff,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	if err == nil {
@@ -139,11 +140,12 @@ func (s *ObjectService) UploadPart(ctx context.Context, name, uploadID string, p
 		}
 		u := fmt.Sprintf("/%s?partNumber=%d&uploadId=%s", encodeURIComponent(name), partNumber, uploadID)
 		sendOpt := sendOptions{
-			baseURL:   sUrl,
-			uri:       u,
-			method:    http.MethodPut,
-			optHeader: opt,
-			body:      reader,
+			baseURL:        sUrl,
+			uri:            u,
+			method:         http.MethodPut,
+			optHeader:      opt,
+			body:           reader,
+			useSessionAuth: s.client.useSessionAuth(),
 		}
 		// 把上一次错误记录下来
 		if err != nil {
@@ -203,11 +205,12 @@ func (s *ObjectService) ListParts(ctx context.Context, name, uploadID string, op
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	var res ObjectListPartsResult
 	sendOpt := sendOptions{
-		baseURL:  s.client.BaseURL.BucketURL,
-		uri:      u,
-		method:   http.MethodGet,
-		result:   &res,
-		optQuery: opt,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            u,
+		method:         http.MethodGet,
+		result:         &res,
+		optQuery:       opt,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return &res, resp, err
@@ -283,11 +286,11 @@ type onCompleteRetryError func(nr int, cause error, resp *Response) (result *Com
 func (s *ObjectService) completeMultipartUpload(ctx context.Context, name, uploadID string, opt *CompleteMultipartUploadOptions, onRetryError onCompleteRetryError) (*CompleteMultipartUploadResult, *Response, error) {
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	var res CompleteMultipartUploadResult
-
 	count := 1
 	if s.client.Conf.RetryOpt.Count > 0 {
 		count = s.client.Conf.RetryOpt.Count
 	}
+	useSessionAuth := s.client.useSessionAuth()
 	retryErr := &RetryError{}
 	var resp *Response
 	var err error
@@ -295,13 +298,14 @@ func (s *ObjectService) completeMultipartUpload(ctx context.Context, name, uploa
 		var buff bytes.Buffer
 		res = CompleteMultipartUploadResult{}
 		sendOpt := sendOptions{
-			baseURL:   s.client.BaseURL.BucketURL,
-			uri:       u,
-			method:    http.MethodPost,
-			optHeader: opt,
-			body:      opt,
-			result:    &buff,
-			isRetry:   nr > 0,
+			baseURL:        s.client.BaseURL.BucketURL,
+			uri:            u,
+			method:         http.MethodPost,
+			optHeader:      opt,
+			body:           opt,
+			result:         &buff,
+			isRetry:        nr > 0,
+			useSessionAuth: useSessionAuth,
 		}
 		resp, err = s.client.send(ctx, &sendOpt)
 		// If the error occurs during the copy operation, the error response is embedded in the 200 OK response. This means that a 200 OK response can contain either a success or an error.
@@ -439,10 +443,11 @@ func (s *ObjectService) AbortMultipartUpload(ctx context.Context, name, uploadID
 	}
 	u := fmt.Sprintf("/%s?uploadId=%s", encodeURIComponent(name), uploadID)
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       u,
-		method:    http.MethodDelete,
-		optHeader: optHeader,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            u,
+		method:         http.MethodDelete,
+		optHeader:      optHeader,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 	return resp, err
@@ -508,11 +513,12 @@ func (s *ObjectService) CopyPart(ctx context.Context, name, uploadID string, par
 	var res CopyPartResult
 	var bs bytes.Buffer
 	sendOpt := sendOptions{
-		baseURL:   s.client.BaseURL.BucketURL,
-		uri:       u,
-		method:    http.MethodPut,
-		optHeader: opt,
-		result:    &bs,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            u,
+		method:         http.MethodPut,
+		optHeader:      opt,
+		result:         &bs,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, &sendOpt)
 
@@ -568,11 +574,12 @@ type ListUploadsResultUpload struct {
 func (s *ObjectService) ListUploads(ctx context.Context, opt *ObjectListUploadsOptions) (*ObjectListUploadsResult, *Response, error) {
 	var res ObjectListUploadsResult
 	sendOpt := &sendOptions{
-		baseURL:  s.client.BaseURL.BucketURL,
-		uri:      "/?uploads",
-		method:   http.MethodGet,
-		optQuery: opt,
-		result:   &res,
+		baseURL:        s.client.BaseURL.BucketURL,
+		uri:            "/?uploads",
+		method:         http.MethodGet,
+		optQuery:       opt,
+		result:         &res,
+		useSessionAuth: s.client.useSessionAuth(),
 	}
 	resp, err := s.client.doRetry(ctx, sendOpt)
 	return &res, resp, err
