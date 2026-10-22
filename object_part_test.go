@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"hash/crc64"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -713,8 +714,8 @@ func TestObjectService_CompleteMultipartUpload_HTTPError(t *testing.T) {
 // 若 body 完全不是 XML（如纯文本、HTML 错误页），需当作错误处理并触发重试。
 func TestObjectService_CompleteMultipartUpload_200NonXML(t *testing.T) {
 	cases := []struct {
-		name        string
-		body        string
+		name string
+		body string
 		// 期望 lastErr.Error() 包含的关键字（按实际 xml 解析行为）
 		wantContain string
 		// 是否期望 lastErr 是 xml 解析相关错误（非 COS ErrorResponse）
@@ -1078,5 +1079,948 @@ func TestObjectService_MultiCopyPartFailed(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "failed to get resp content") {
 		t.Fatalf("MultiCopy error should contain 'failed to get resp content', got: %v", err)
+	}
+}
+
+// =============================================================================
+// CompleteMultipartUploadWithHead
+// =============================================================================
+
+const (
+	cwhTestName     = "test/hello.txt"
+	cwhTestUploadID = "149795194893578fd83aceef3a88f708f81f00e879fda5ea8a80bf15aba52746d42d512387"
+	cwhTestETag     = `"594f98b11c6901c0f0683de1085a6d0e-4"`
+	cwhTestCRC      = uint64(1234567890123)
+)
+
+// --- helpers ---
+
+// logServerReq 在 mock handler 入口打印收到的请求信息
+func logServerReq(t *testing.T, r *http.Request) {
+	t.Helper()
+	t.Logf("[mock-server] recv: method=%s path=%s query=%q", r.Method, r.URL.Path, r.URL.RawQuery)
+}
+
+// logServerResp 在 mock handler 响应分支打印将要返回的响应信息
+func logServerResp(t *testing.T, status int, note string) {
+	t.Helper()
+	t.Logf("[mock-server] send: status=%d %s", status, note)
+}
+
+// logClientResp 在客户端调用后打印收到的响应与错误
+func logClientResp(t *testing.T, label string, result interface{}, err error) {
+	t.Helper()
+	if err != nil {
+		t.Logf("[client] %s: err=%v", label, err)
+		return
+	}
+	t.Logf("[client] %s: ok, result=%+v", label, result)
+}
+
+// writeNoSuchUpload 模拟服务端在 uploadId 已失效时返回 404 NoSuchUpload
+func writeNoSuchUpload(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprint(w, `<Error><Code>NoSuchUpload</Code><Message>The specified upload does not exist.</Message></Error>`)
+	logServerResp(t, http.StatusNotFound, "NoSuchUpload")
+}
+
+// writeCompleteSuccess 模拟 CompleteMultipartUpload 成功响应
+func writeCompleteSuccess(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+	fmt.Fprint(w, `<CompleteMultipartUploadResult>
+	<Location>test-1253846586.cos.ap-guangzhou.myqcloud.com/test/hello.txt</Location>
+	<Bucket>test</Bucket>
+	<Key>test/hello.txt</Key>
+	<ETag>&quot;594f98b11c6901c0f0683de1085a6d0e-4&quot;</ETag>
+</CompleteMultipartUploadResult>`)
+	logServerResp(t, http.StatusOK, "CompleteMultipartUploadResult")
+}
+
+func cwhOptions() *CompleteMultipartUploadOptions {
+	return &CompleteMultipartUploadOptions{
+		Parts: []Object{{PartNumber: 1, ETag: `"abc"`}},
+	}
+}
+
+func cwhOptionsVerifyCRC(crc uint64) *CompleteMultipartUploadOptions {
+	opt := cwhOptions()
+	opt.Crc64CheckInHead = &crc
+	return opt
+}
+
+// --- T1: Complete 首次成功 → 不发起 HEAD ---
+
+func TestCompleteMultipartUploadWithHead_FirstSuccess(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok (no crc header)")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		writeCompleteSuccess(t, w)
+	})
+
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("CompleteMultipartUploadWithHead failed: %v", err)
+	}
+	if ref.ETag != cwhTestETag {
+		t.Errorf("ETag = %v, want %v", ref.ETag, cwhTestETag)
+	}
+	if postCount != 1 {
+		t.Errorf("post count = %d, want 1", postCount)
+	}
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0 when complete succeeds", headCount)
+	}
+}
+
+// --- T2: 首次失败超时 → 重试成功 → 不发起 HEAD ---
+
+func TestCompleteMultipartUploadWithHead_RetryToSuccess(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code><Message>server error</Message></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeCompleteSuccess(t, w)
+	})
+
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("should succeed on retry: %v", err)
+	}
+	if ref.ETag != cwhTestETag {
+		t.Errorf("ETag = %v, want %v", ref.ETag, cwhTestETag)
+	}
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0 when retry succeeds", headCount)
+	}
+}
+
+// --- T3: 重试中命中 NoSuchUpload + HEAD 成功 + Crc64CheckInHead=nil → 判定成功 ---
+
+func TestCompleteMultipartUploadWithHead_HeadMatchNoCRCCheck(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.Header().Set("ETag", `"head-etag"`)
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code><Message>server error</Message></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeNoSuchUpload(t, w)
+	})
+
+	// Crc64CheckInHead 为 nil
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptions())
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("should treat as upload completed: %v", err)
+	}
+	if ref.ETag != `"head-etag"` {
+		t.Errorf("ETag = %v, want %v", ref.ETag, `"head-etag"`)
+	}
+	if ref.Key != cwhTestName {
+		t.Errorf("Key = %v, want %v", ref.Key, cwhTestName)
+	}
+	// 首次 500 + 第 1 次重试 404 → 中断，不再进行第 2 次重试
+	if postCount != 2 {
+		t.Errorf("post count = %d, want 2 (stop retry after NoSuchUpload)", postCount)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T4: 重试中命中 NoSuchUpload + HEAD 成功 + CRC64 一致 → 判定成功 ---
+
+func TestCompleteMultipartUploadWithHead_HeadMatchCRCEqual(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(cwhTestCRC, 10))
+			w.Header().Set("ETag", `"head-etag"`)
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code><Message>server error</Message></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeNoSuchUpload(t, w)
+	})
+
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("should treat as upload completed: %v", err)
+	}
+	if ref.ETag != `"head-etag"` {
+		t.Errorf("ETag = %v, want %v", ref.ETag, `"head-etag"`)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T5: 重试中命中 NoSuchUpload + HEAD 成功 + CRC64 不一致 → 返回 Complete 错误 ---
+
+func TestCompleteMultipartUploadWithHead_CRCMismatch(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.Header().Set("x-cos-hash-crc64ecma", "999")
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeNoSuchUpload(t, w)
+	})
+
+	_, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+	if err == nil {
+		t.Fatal("expected error when crc64 mismatch, got nil")
+	}
+	if !strings.Contains(err.Error(), "crc64 mismatch") {
+		t.Errorf("error = %v, want contains 'crc64 mismatch'", err)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T6: 重试中命中 NoSuchUpload + HEAD 404 → 返回 Complete 错误 ---
+
+func TestCompleteMultipartUploadWithHead_HeadNotFound(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusNotFound)
+			logServerResp(t, http.StatusNotFound, "HEAD 404 NotFound")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeNoSuchUpload(t, w)
+	})
+
+	_, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptions())
+	logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+	if err == nil {
+		t.Fatal("expected error when head returns 404, got nil")
+	}
+	if !strings.Contains(err.Error(), "NoSuchUpload") {
+		t.Errorf("error = %v, want contains NoSuchUpload", err)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T7: 重试中命中 NoSuchUpload + HEAD 其他错误 → 返回 Complete 错误并附带 HEAD 错误 ---
+
+func TestCompleteMultipartUploadWithHead_HeadInternalError(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount := 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code><Message>head failed</Message></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeNoSuchUpload(t, w)
+	})
+
+	_, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptions())
+	logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "NoSuchUpload") {
+		t.Errorf("error = %v, want contains NoSuchUpload", err)
+	}
+	if !strings.Contains(err.Error(), "head object failed") {
+		t.Errorf("error = %v, want contains 'head object failed'", err)
+	}
+}
+
+// --- T8: Crc64CheckInHead != nil + 服务端未返回 crc64 → 返回 Complete 错误 ---
+
+func TestCompleteMultipartUploadWithHead_NoCRCHeader(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK) // 不设置 x-cos-hash-crc64ecma
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		if postCount == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+			return
+		}
+		writeNoSuchUpload(t, w)
+	})
+
+	_, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+	if err == nil {
+		t.Fatal("expected error when crc64 header missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "x-cos-hash-crc64ecma") {
+		t.Errorf("error = %v, want contains 'x-cos-hash-crc64ecma'", err)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T9: Complete 首次返回 NoSuchUpload（nr==0）→ 不发起 HEAD，继续重试 ---
+
+func TestCompleteMultipartUploadWithHead_FirstNoSuchUploadNotHead(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 2
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(cwhTestCRC, 10))
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		writeNoSuchUpload(t, w)
+	})
+
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("should succeed on retry fallback: %v", err)
+	}
+	if ref.Key != cwhTestName {
+		t.Errorf("Key = %v, want %v", ref.Key, cwhTestName)
+	}
+	// 首次 404（nr=0）不 HEAD，第 2 次（即重试）命中才触发
+	if postCount != 2 {
+		t.Errorf("post count = %d, want 2 (first failure must not trigger head)", postCount)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T10: 重试返回非 NoSuchUpload（5xx）→ 按原规则继续重试，次数耗尽不触发 HEAD ---
+
+func TestCompleteMultipartUploadWithHead_NonNoSuchUploadRetryExhausted(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+		logServerResp(t, http.StatusInternalServerError, "InternalError")
+	})
+
+	_, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0 for non-NoSuchUpload errors", headCount)
+	}
+	if postCount != 3 {
+		t.Errorf("post count = %d, want 3 (retry exhausted)", postCount)
+	}
+	if _, ok := err.(*RetryError); !ok {
+		t.Errorf("expected *RetryError, got %T", err)
+	}
+}
+
+// --- T11: 重试返回 403（不可重试错误）→ 原样返回，不发起 HEAD ---
+// 说明：Complete 内部的循环对任何 err != nil 都 retry.Add 并继续循环，403 也会走完 count 次。
+// 这里主要验证「不触发 HEAD」。
+
+func TestCompleteMultipartUploadWithHead_Returns403NoHead(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 2
+
+	headCount := 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, `<Error><Code>AccessDenied</Code><Message>denied</Message></Error>`)
+		logServerResp(t, http.StatusForbidden, "AccessDenied")
+	})
+
+	_, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0", headCount)
+	}
+}
+
+// --- T12: 重试次数为 3，第 2 次重试命中 NoSuchUpload → 中断重试，不执行第 3 次 ---
+
+func TestCompleteMultipartUploadWithHead_BreakRemainingRetries(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(cwhTestCRC, 10))
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		// 请求 1（首次）: 500；请求 2（第 1 次重试）: 500；请求 3（第 2 次重试）: 404
+		switch postCount {
+		case 1, 2:
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+			logServerResp(t, http.StatusInternalServerError, "InternalError")
+		default:
+			writeNoSuchUpload(t, w)
+		}
+	})
+
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID,
+		cwhOptionsVerifyCRC(cwhTestCRC))
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("should succeed via head fallback: %v", err)
+	}
+	if ref.Key != cwhTestName {
+		t.Errorf("Key = %v, want %v", ref.Key, cwhTestName)
+	}
+	// 必须恰好 3 次 POST（首次 + 2 次重试），兜底后不再进行"第 3 次重试"
+	if postCount != 3 {
+		t.Errorf("post count = %d, want exactly 3 (break remaining retries)", postCount)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// --- T13: 原 CompleteMultipartUpload 调用时设置 Crc64CheckInHead → 字段被忽略，不发 HEAD、不进请求体 ---
+
+func TestCompleteMultipartUpload_IgnoresCrc64CheckInHead(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	postCount, headCount := 0, 0
+	bodyBytes := []byte{}
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		postCount++
+		b, _ := io.ReadAll(r.Body)
+		bodyBytes = append(bodyBytes, b...)
+		writeNoSuchUpload(t, w)
+	})
+
+	opt := cwhOptionsVerifyCRC(cwhTestCRC)
+	_, _, err := client.Object.CompleteMultipartUpload(context.Background(), cwhTestName, cwhTestUploadID, opt)
+	logClientResp(t, "CompleteMultipartUpload", nil, err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	// 字段必须被忽略：不发起 HEAD、按原重试策略跑完 3 次
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0 (CompleteMultipartUpload must ignore Crc64CheckInHead)", headCount)
+	}
+	if postCount != 3 {
+		t.Errorf("post count = %d, want 3 (retry exhausted)", postCount)
+	}
+	// 字段必须不进入 HTTP body
+	if strings.Contains(string(bodyBytes), "Crc64CheckInHead") {
+		t.Errorf("request body must not contain Crc64CheckInHead, got: %s", bodyBytes)
+	}
+}
+
+// --- T14: Drop-in 替换：不设 Crc64CheckInHead 调用新方法 → 行为与原方法一致 ---
+
+func TestCompleteMultipartUploadWithHead_DropInReplacement(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 2
+
+	headCount := 0
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		if r.Method == http.MethodHead {
+			headCount++
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+			return
+		}
+		testMethod(t, r, http.MethodPost)
+		writeCompleteSuccess(t, w)
+	})
+
+	// 完全使用与 CompleteMultipartUpload 相同的调用形式
+	ref, _, err := client.Object.CompleteMultipartUploadWithHead(context.Background(), cwhTestName, cwhTestUploadID, cwhOptions())
+	logClientResp(t, "CompleteMultipartUploadWithHead", ref, err)
+	if err != nil {
+		t.Fatalf("drop-in call failed: %v", err)
+	}
+	if ref.ETag != cwhTestETag {
+		t.Errorf("ETag = %v, want %v", ref.ETag, cwhTestETag)
+	}
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0 for drop-in (no Crc64CheckInHead)", headCount)
+	}
+}
+
+// --- 辅助：isNoSuchUploadError 单测 ---
+
+func TestIsNoSuchUploadError(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 1
+
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		testMethod(t, r, http.MethodPost)
+		writeNoSuchUpload(t, w)
+	})
+
+	_, _, err := client.Object.CompleteMultipartUpload(context.Background(), cwhTestName, cwhTestUploadID, cwhOptions())
+	logClientResp(t, "CompleteMultipartUpload", nil, err)
+	if !isNoSuchUploadError(err) {
+		t.Errorf("isNoSuchUploadError = false, want true for 404 NoSuchUpload, err: %v", err)
+	}
+	if isNoSuchUploadError(nil) {
+		t.Error("isNoSuchUploadError(nil) should be false")
+	}
+}
+
+// TestCompleteMultipartUploadWithHead_FallbackErrIsCOSError 验证兜底失败时返回的
+// error 仍保留原始 Complete 的 *ErrorResponse 类型信息，调用方可用 IsCOSError 识别。
+// 覆盖三条用 %w 包装的失败分支：HEAD 自身失败 / CRC header 缺失 / CRC 不匹配。
+func TestCompleteMultipartUploadWithHead_FallbackErrIsCOSError(t *testing.T) {
+	cases := []struct {
+		name     string
+		headResp func(w http.ResponseWriter)
+		opt      func() *CompleteMultipartUploadOptions
+	}{
+		{
+			name: "head_internal_error",
+			headResp: func(w http.ResponseWriter) {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+			},
+			opt: cwhOptions,
+		},
+		{
+			name: "head_missing_crc_header",
+			headResp: func(w http.ResponseWriter) {
+				w.WriteHeader(http.StatusOK)
+			},
+			opt: func() *CompleteMultipartUploadOptions { return cwhOptionsVerifyCRC(cwhTestCRC) },
+		},
+		{
+			name: "crc_mismatch",
+			headResp: func(w http.ResponseWriter) {
+				w.Header().Set("x-cos-hash-crc64ecma", "999")
+				w.WriteHeader(http.StatusOK)
+			},
+			opt: func() *CompleteMultipartUploadOptions { return cwhOptionsVerifyCRC(cwhTestCRC) },
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setup()
+			defer teardown()
+			client.Conf.RetryOpt.Count = 3
+
+			postCount := 0
+			mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+				logServerReq(t, r)
+				if r.Method == http.MethodHead {
+					tc.headResp(w)
+					logServerResp(t, 0, "HEAD (per case)")
+					return
+				}
+				postCount++
+				if postCount == 1 {
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprint(w, `<Error><Code>InternalError</Code></Error>`)
+					logServerResp(t, http.StatusInternalServerError, "InternalError")
+					return
+				}
+				writeNoSuchUpload(t, w)
+			})
+
+			_, _, err := client.Object.CompleteMultipartUploadWithHead(
+				context.Background(), cwhTestName, cwhTestUploadID, tc.opt())
+			logClientResp(t, "CompleteMultipartUploadWithHead", nil, err)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			// 关键断言：%w 包装后仍能被 IsCOSError 识别为原始 Complete 的 NoSuchUpload
+			cosErr, ok := IsCOSError(err)
+			if !ok {
+				t.Fatalf("IsCOSError = false, want true; err type=%T, err=%v", err, err)
+			}
+			if cosErr.Code != "NoSuchUpload" {
+				t.Errorf("cosErr.Code = %q, want NoSuchUpload", cosErr.Code)
+			}
+			if cosErr.Response == nil || cosErr.Response.StatusCode != http.StatusNotFound {
+				t.Errorf("cosErr.Response.StatusCode = %v, want 404", cosErr.Response)
+			}
+			// isNoSuchUploadError 也应穿透
+			if !isNoSuchUploadError(err) {
+				t.Errorf("isNoSuchUploadError = false, want true, err=%v", err)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// Upload / MultiUploadOptions.EnableCompleteWithHead
+// =============================================================================
+
+// uploadTestFile 构造一份随机内容的本地文件（≥ 1MB，分块路径），返回路径与 CRC64。
+func uploadTestFile(t *testing.T) (string, uint64) {
+	t.Helper()
+	f, err := ioutil.TempFile("", "cos-upload-complete-with-head")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	defer f.Close()
+	// 2.5MB 内容，确保 partSize=1MB 时分块数 >= 2
+	block := bytes.Repeat([]byte("a"), 1024*1024)
+	for i := 0; i < 2; i++ {
+		if _, err := f.Write(block); err != nil {
+			t.Fatalf("write temp file: %v", err)
+		}
+	}
+	if _, err := f.Write(bytes.Repeat([]byte("b"), 512*1024)); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	name := f.Name()
+	fd, err := os.Open(name)
+	if err != nil {
+		t.Fatalf("open temp file: %v", err)
+	}
+	defer fd.Close()
+	crc, err := calCRC64(fd)
+	if err != nil {
+		t.Fatalf("calCRC64: %v", err)
+	}
+	return name, crc
+}
+
+// uploadNoSuchUploadHandler 模拟整条 Upload 链路：Init 成功、UploadPart 回传匹配 CRC 的 ETag、
+// Complete 固定返回 404 NoSuchUpload；HEAD 回传指定 CRC64。
+func uploadNoSuchUploadHandler(t *testing.T, headCRC uint64, headETag string, completeCount, headCount *int) {
+	t.Helper()
+	mux.HandleFunc("/test/hello.txt", func(w http.ResponseWriter, r *http.Request) {
+		logServerReq(t, r)
+		switch r.Method {
+		case http.MethodPut:
+			// UploadPart：计算分块 body 的 CRC64 回传，避免 SDK 的 part CRC 校验失败
+			crc, err := calCRC64(r.Body)
+			if err != nil {
+				t.Errorf("calCRC64 of part body: %v", err)
+			}
+			w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(crc, 10))
+			w.Header().Set("ETag", `"part-etag"`)
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "UploadPart ok")
+		case http.MethodPost:
+			if r.URL.Query().Get("uploadId") == "" {
+				fmt.Fprintf(w, `<InitiateMultipartUploadResult><Bucket>test</Bucket><Key>test/hello.txt</Key><UploadId>%s</UploadId></InitiateMultipartUploadResult>`, cwhTestUploadID)
+				logServerResp(t, http.StatusOK, "InitiateMultipartUploadResult")
+				return
+			}
+			*completeCount++
+			writeNoSuchUpload(t, w)
+		case http.MethodHead:
+			*headCount++
+			if headCRC != 0 {
+				w.Header().Set("x-cos-hash-crc64ecma", strconv.FormatUint(headCRC, 10))
+			}
+			w.Header().Set("ETag", headETag)
+			w.WriteHeader(http.StatusOK)
+			logServerResp(t, http.StatusOK, "HEAD ok")
+		}
+	})
+}
+
+// TestObjectService_Upload_EnableCompleteWithHead_SuccessViaHead 开启开关，
+// Complete 重试过程中命中 NoSuchUpload，HEAD + CRC64 一致，Upload 应判定成功。
+func TestObjectService_Upload_EnableCompleteWithHead_SuccessViaHead(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	filepath, localcrc := uploadTestFile(t)
+	defer os.Remove(filepath)
+
+	completeCount, headCount := 0, 0
+	uploadNoSuchUploadHandler(t, localcrc, `"head-etag"`, &completeCount, &headCount)
+
+	v, _, err := client.Object.Upload(context.Background(), "test/hello.txt", filepath, &MultiUploadOptions{
+		PartSize:               1,
+		ThreadPoolSize:         1,
+		EnableCompleteWithHead: true,
+	})
+	logClientResp(t, "Upload", v, err)
+	if err != nil {
+		t.Fatalf("Upload should succeed via head fallback: %v", err)
+	}
+	if v.ETag != `"head-etag"` {
+		t.Errorf("ETag = %v, want %v", v.ETag, `"head-etag"`)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+	if completeCount != 2 {
+		// 首次 404（nr=0）不触发 HEAD，第 1 次重试命中后中断
+		t.Errorf("complete count = %d, want 2 (first + one retry)", completeCount)
+	}
+}
+
+// TestObjectService_Upload_EnableCompleteWithHead_Disabled 开关关闭（默认），
+// Complete 全部命中 NoSuchUpload 但 Upload 不发起 HEAD、按原策略跑完重试返回错误。
+func TestObjectService_Upload_EnableCompleteWithHead_Disabled(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	filepath, localcrc := uploadTestFile(t)
+	defer os.Remove(filepath)
+
+	completeCount, headCount := 0, 0
+	uploadNoSuchUploadHandler(t, localcrc, `"head-etag"`, &completeCount, &headCount)
+
+	_, _, err := client.Object.Upload(context.Background(), "test/hello.txt", filepath, &MultiUploadOptions{
+		PartSize:       1,
+		ThreadPoolSize: 1,
+		// EnableCompleteWithHead 默认 false
+	})
+	logClientResp(t, "Upload", nil, err)
+	if err == nil {
+		t.Fatal("expected error when switch off, got nil")
+	}
+	if headCount != 0 {
+		t.Errorf("head count = %d, want 0 when switch off", headCount)
+	}
+	if completeCount != 3 {
+		t.Errorf("complete count = %d, want 3 (retry exhausted)", completeCount)
+	}
+}
+
+// TestObjectService_Upload_EnableCompleteWithHead_CRCMismatch 开启开关，
+// HEAD 到对象但 CRC64 与本地不一致 → Upload 返回错误（符合安全预期：宁可失败不可误判）。
+func TestObjectService_Upload_EnableCompleteWithHead_CRCMismatch(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	filepath, _ := uploadTestFile(t)
+	defer os.Remove(filepath)
+
+	completeCount, headCount := 0, 0
+	// HEAD 回传一个不等于 localcrc 的 CRC
+	uploadNoSuchUploadHandler(t, 1, `"head-etag"`, &completeCount, &headCount)
+
+	_, _, err := client.Object.Upload(context.Background(), "test/hello.txt", filepath, &MultiUploadOptions{
+		PartSize:               1,
+		ThreadPoolSize:         1,
+		EnableCompleteWithHead: true,
+	})
+	logClientResp(t, "Upload", nil, err)
+	if err == nil {
+		t.Fatal("expected error when crc64 mismatch, got nil")
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
+	}
+}
+
+// TestObjectService_Upload_EnableCompleteWithHead_DisableChecksum 开启开关且 DisableChecksum=true，
+// Upload 内部不会计算 localcrc，兜底应传 Crc64CheckInHead=nil（仅凭对象存在判定），HEAD 到对象即成功。
+func TestObjectService_Upload_EnableCompleteWithHead_DisableChecksum(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Conf.RetryOpt.Count = 3
+
+	filepath, _ := uploadTestFile(t)
+	defer os.Remove(filepath)
+
+	completeCount, headCount := 0, 0
+	// HEAD 不返回 CRC header（headCRC=0 表示不设置），同时也不需要
+	uploadNoSuchUploadHandler(t, 0, `"head-etag"`, &completeCount, &headCount)
+
+	v, _, err := client.Object.Upload(context.Background(), "test/hello.txt", filepath, &MultiUploadOptions{
+		PartSize:               1,
+		ThreadPoolSize:         1,
+		DisableChecksum:        true,
+		EnableCompleteWithHead: true,
+	})
+	logClientResp(t, "Upload", v, err)
+	if err != nil {
+		t.Fatalf("Upload should succeed via head fallback (no crc check): %v", err)
+	}
+	if v.ETag != `"head-etag"` {
+		t.Errorf("ETag = %v, want %v", v.ETag, `"head-etag"`)
+	}
+	if headCount != 1 {
+		t.Errorf("head count = %d, want 1", headCount)
 	}
 }
