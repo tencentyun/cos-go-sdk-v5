@@ -82,6 +82,7 @@ func seedGatewayLBEntry(host string, ips ...net.IP) *gatewayLBEntry {
 }
 
 func TestCanonicalHost(t *testing.T) {
+	// 端口和尾点仅用于 SDK 规范化边界测试，不代表网关支持。
 	tests := []struct {
 		name string
 		host string
@@ -217,7 +218,7 @@ func TestUseGatewayLB(t *testing.T) {
 			want:       false,
 		},
 		{
-			name:       "Host 头带端口，剥掉端口后仍判定为 rapid bucket",
+			name:       "SDK 边界：Host 带端口时仍识别桶名，不验证网关接受性",
 			rawURL:     "http://" + ordinaryHost + "/key",
 			hostHeader: rapidHost + ":8443",
 			want:       true,
@@ -311,7 +312,7 @@ func TestGatewayLBTransportEligible(t *testing.T) {
 			want:      false,
 		},
 		{
-			name:      "显式端口不介入",
+			name:      "带端口 URL 用于验证负载均衡不介入，不代表网关支持该 Host",
 			rawURL:    "http://" + rapidGatewayTestHost + ":8080/key",
 			transport: &http.Transport{},
 			want:      false,
@@ -632,6 +633,7 @@ func TestGatewayLBEntryMarkFailedResetsStreakAfterResetWindow(t *testing.T) {
 }
 
 func TestEntryForNormalizedHostSharesEntry(t *testing.T) {
+	// 仅验证 SDK 内部索引归一化，不向网关发送端口或尾点 Host。
 	host := "entry-share-x--1259654469.cosrapid.ap-guangzhou.myqcloud.com"
 	resetGatewayLBEntry(host)
 	defer resetGatewayLBEntry(host)
@@ -846,6 +848,7 @@ func TestGatewayLBTransportPreservesHostCase(t *testing.T) {
 }
 
 func TestGatewayLBTransportPassthrough(t *testing.T) {
+	// 带端口 Host 仅验证 SDK 原样透传，不代表网关支持。
 	tests := []struct {
 		name   string
 		rawURL string
