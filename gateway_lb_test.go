@@ -251,11 +251,55 @@ func TestGatewayLBTransportEligible(t *testing.T) {
 	tests := []struct {
 		name      string
 		rawURL    string
+		host      string
 		transport http.RoundTripper
 		want      bool
 	}{
 		{
-			name:      "标准 HTTP 短域名满足门禁",
+			name:      "URL 与 Host 相同允许 LB",
+			rawURL:    "http://" + rapidGatewayTestHost + "/key",
+			host:      rapidGatewayTestHost,
+			transport: &http.Transport{},
+			want:      true,
+		},
+		{
+			name:      "service 连接地址与桶 Host 分离",
+			rawURL:    "http://service.cosrapid.ap-guangzhou.myqcloud.com/key",
+			host:      rapidGatewayTestHost,
+			transport: &http.Transport{},
+		},
+		{
+			name:      "自定义连接地址与桶 Host 分离",
+			rawURL:    "http://endpoint.example.com/key",
+			host:      rapidGatewayTestHost,
+			transport: &http.Transport{},
+		},
+		{
+			name:      "URL 与 Host 指向不同桶",
+			rawURL:    "http://other-x--1259654469.cosrapid.ap-guangzhou.myqcloud.com/key",
+			host:      rapidGatewayTestHost,
+			transport: &http.Transport{},
+		},
+		{
+			name:      "仅 Host 大小写不同也不介入",
+			rawURL:    "http://" + rapidGatewayTestHost + "/key",
+			host:      "Bucket-x--1259654469.cosrapid.ap-guangzhou.myqcloud.com",
+			transport: &http.Transport{},
+		},
+		{
+			name:      "仅 Host 带根点也不介入",
+			rawURL:    "http://" + rapidGatewayTestHost + "/key",
+			host:      rapidGatewayTestHost + ".",
+			transport: &http.Transport{},
+		},
+		{
+			name:      "仅 Host 带默认端口也不介入",
+			rawURL:    "http://" + rapidGatewayTestHost + "/key",
+			host:      rapidGatewayTestHost + ":80",
+			transport: &http.Transport{},
+		},
+		{
+			name:      "Host 为空回退 URL，允许 LB",
 			rawURL:    "http://" + rapidGatewayTestHost + "/key",
 			transport: &http.Transport{},
 			want:      true,
@@ -308,7 +352,7 @@ func TestGatewayLBTransportEligible(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			lb := newRapidGatewayLBTransport(tc.transport)
-			req := newGatewayLBTestRequest(t, tc.rawURL, "")
+			req := newGatewayLBTestRequest(t, tc.rawURL, tc.host)
 			if got := lb.eligible(req); got != tc.want {
 				t.Errorf("eligible(%q) = %v, want %v", tc.rawURL, got, tc.want)
 			}
@@ -808,6 +852,16 @@ func TestGatewayLBTransportPassthrough(t *testing.T) {
 		host   string
 	}{
 		{
+			name:   "service 连接地址与桶 Host 分离",
+			rawURL: "http://service.cosrapid.ap-guangzhou.myqcloud.com/key",
+			host:   rapidGatewayTestHost,
+		},
+		{
+			name:   "自定义连接地址与桶 Host 分离",
+			rawURL: "http://endpoint.example.com/key",
+			host:   rapidGatewayTestHost,
+		},
+		{
 			name:   "普通桶不介入",
 			rawURL: "http://ordinary-1250000000.cos.ap-guangzhou.myqcloud.com/key",
 			host:   "ordinary-1250000000.cos.ap-guangzhou.myqcloud.com",
@@ -848,6 +902,63 @@ func TestGatewayLBTransportPassthrough(t *testing.T) {
 			}
 			if gotHost != tc.host {
 				t.Errorf("req.Host = %q, want %q", gotHost, tc.host)
+			}
+		})
+	}
+}
+
+func TestGatewayLBTransportHostMismatchPreservesNodeState(t *testing.T) {
+	for _, name := range []string{"http_proxy", "HTTP_PROXY", "all_proxy", "ALL_PROXY"} {
+		t.Setenv(name, "")
+	}
+	transportErr := errors.New("connection failed")
+	for _, tc := range []struct {
+		name   string
+		status int
+		err    error
+	}{
+		{name: "success", status: http.StatusOK},
+		{name: "unavailable", status: http.StatusServiceUnavailable},
+		{name: "network-error", err: transportErr},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			host := "mismatch-state-x--1259654469.cosrapid.ap-guangzhou.myqcloud.com"
+			resetGatewayLBEntry(host)
+			defer resetGatewayLBEntry(host)
+			node := net.ParseIP("192.0.2.1")
+			e := seedGatewayLBEntry(host, node)
+			past := time.Now().Add(-time.Second)
+			e.mu.Lock()
+			e.cooldown = map[string]time.Time{node.String(): past}
+			e.failStreak = map[string]int{node.String(): 2}
+			e.lastFailAt = map[string]time.Time{node.String(): past}
+			expireAt := e.expireAt
+			e.mu.Unlock()
+
+			stub := &stubRoundTripper{err: tc.err}
+			if tc.err == nil {
+				stub.resp = &http.Response{StatusCode: tc.status, Header: make(http.Header), Body: http.NoBody}
+			}
+			lb := newRapidGatewayLBTransport(stub)
+			req := newGatewayLBTestRequest(t, "http://endpoint.example.com/key", host)
+			resp, err := lb.RoundTrip(req)
+			if resp != stub.resp || err != tc.err {
+				t.Fatalf("RoundTrip() = (%v, %v), want (%v, %v)", resp, err, stub.resp, tc.err)
+			}
+			calls, urlHost, logicalHost := stub.snapshot()
+			if calls != 1 || urlHost != "endpoint.example.com" || logicalHost != host {
+				t.Errorf("passthrough = (%d, %q, %q)", calls, urlHost, logicalHost)
+			}
+
+			e.mu.Lock()
+			defer e.mu.Unlock()
+			if len(e.cooldown) != 1 || !e.cooldown[node.String()].Equal(past) ||
+				len(e.failStreak) != 1 || e.failStreak[node.String()] != 2 ||
+				len(e.lastFailAt) != 1 || !e.lastFailAt[node.String()].Equal(past) {
+				t.Error("passthrough changed Gateway node health state")
+			}
+			if e.resolving || !e.expireAt.Equal(expireAt) {
+				t.Error("passthrough changed Gateway DNS state")
 			}
 		})
 	}
