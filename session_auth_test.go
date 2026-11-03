@@ -89,9 +89,9 @@ func TestAuthorizationTransport_SharedAcrossRapidBucketClients(t *testing.T) {
 	uB, _ := url.Parse(serverB.URL)
 	transport := NewRapidCredentialTransport(&AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"})
 	clientA := NewClient(&BaseURL{BucketURL: uA}, &http.Client{Transport: transport})
-	clientA.Host = "bucket-a-x--1250000000.cos-rapid.ap-guangzhou.tencentcos.com"
+	clientA.Host = "bucket-a-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 	clientB := NewClient(&BaseURL{BucketURL: uB}, &http.Client{Transport: transport})
-	clientB.Host = "bucket-b-x--1250000000.cos-rapid.ap-guangzhou.tencentcos.com"
+	clientB.Host = "bucket-b-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 
 	tests := []struct {
 		client *Client
@@ -146,7 +146,7 @@ func TestCreateSessionProvider_CreateSessionUsesCallerUserAgent(t *testing.T) {
 	u, _ := url.Parse(server.URL)
 	transport := NewRapidCredentialTransport(&AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"})
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: transport})
-	c.Host = "bucket-x--1250000000.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "bucket-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 	c.UserAgent = "my-caller-agent/1.0"
 
 	resp, err := c.Object.Get(context.Background(), "a.txt", nil)
@@ -178,7 +178,7 @@ func TestCreateSessionProvider_CreateSessionDoesNotRetryInternally(t *testing.T)
 	u, _ := url.Parse(server.URL)
 	transport := NewRapidCredentialTransport(&AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"})
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: transport})
-	c.Host = "bucket-x--1250000000.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "bucket-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 	c.Conf.RetryOpt.Count = 0
 
 	if _, err := c.Object.Get(context.Background(), "a.txt", nil); err == nil {
@@ -209,6 +209,7 @@ func TestBucketService_CreateSession(t *testing.T) {
 	})
 
 	client = NewClient(client.BaseURL, &http.Client{Transport: &AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"}})
+	client.Host = "bucket-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 	res, resp, err := client.Bucket.CreateSession(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -231,6 +232,7 @@ func TestBucketService_CreateSessionRejectsEmptyResponse(t *testing.T) {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {})
 	client = NewClient(client.BaseURL, &http.Client{Transport: &AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"}})
+	client.Host = "bucket-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 
 	res, resp, err := client.Bucket.CreateSession(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "credentials are incomplete") {
@@ -249,6 +251,7 @@ func TestBucketService_CreateSessionRejectsMissingExpiration(t *testing.T) {
 		w.Write([]byte(sessionResponseXML("SKIDSESSION", "session-secret", "session-token", time.Time{})))
 	})
 	client = NewClient(client.BaseURL, &http.Client{Transport: &AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"}})
+	client.Host = "bucket-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 
 	res, resp, err := client.Bucket.CreateSession(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "expiration is missing") {
@@ -267,6 +270,7 @@ func TestBucketService_CreateSessionRejectsLegacyJSON(t *testing.T) {
 		w.Write([]byte(`{"Credentials":{"TmpSecretId":"SKIDSESSION","TmpSecretKey":"session-secret","Token":"session-token"},"ExpiredTime":4070912645}`))
 	})
 	client = NewClient(client.BaseURL, &http.Client{Transport: &AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret"}})
+	client.Host = "bucket-x--1250000000.cosrapid.ap-guangzhou.myqcloud.com"
 
 	if _, _, err := client.Bucket.CreateSession(context.Background()); err == nil {
 		t.Fatal("CreateSession accepted legacy JSON response, want XML-only decoding error")
@@ -282,7 +286,7 @@ func TestAuthorizationTransport_UsesCachedSessionForRapidBucket(t *testing.T) {
 			if got := r.Header.Get("Authorization"); !strings.Contains(got, "q-ak=AKIDBASE") {
 				t.Errorf("CreateSession Authorization = %q, want base credential", got)
 			}
-			if r.Host != "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com" {
+			if r.Host != "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com" {
 				t.Errorf("CreateSession Host = %q", r.Host)
 			}
 			w.Write([]byte(sessionResponseXML("SKIDSESSION", "session-secret", "session-token", time.Unix(4070912645, 0))))
@@ -301,7 +305,7 @@ func TestAuthorizationTransport_UsesCachedSessionForRapidBucket(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	for i := 0; i < 2; i++ {
 		resp, err := c.Object.Get(context.Background(), "test.txt", nil)
@@ -335,7 +339,7 @@ func TestBucketService_ListMultipartUploadsUsesSession(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	_, resp, err := c.Bucket.ListMultipartUploads(context.Background(), nil)
 	if err != nil {
@@ -363,7 +367,7 @@ func TestObjectService_CopyUsesSession(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	_, resp, err := c.Object.Copy(context.Background(), "dest.txt", c.Host+"/src.txt", nil)
 	if err != nil {
@@ -391,7 +395,7 @@ func TestObjectService_CopyPartUsesSession(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	_, resp, err := c.Object.CopyPart(context.Background(), "dest.txt", "uploadid", 1, c.Host+"/src.txt", nil)
 	if err != nil {
@@ -401,8 +405,21 @@ func TestObjectService_CopyPartUsesSession(t *testing.T) {
 }
 
 func TestObjectService_GetSessionPresignedURL(t *testing.T) {
+	checkSessionPresignedURLHost(t, "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com")
+}
+
+func TestObjectService_GetSessionPresignedURL_HostPortSDKBoundaryOnly(t *testing.T) {
+	// 仅验证 SDK 透传与签名，不代表网关支持带端口的 Host。
+	checkSessionPresignedURLHost(t, "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com:9990")
+}
+
+func checkSessionPresignedURLHost(t *testing.T, host string) {
+	t.Helper()
 	var sessionCalls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host != host {
+			t.Errorf("CreateSession Host = %q, want %q", r.Host, host)
+		}
 		if r.URL.Path != "/" || r.URL.RawQuery != "session" {
 			t.Errorf("unexpected request %s?%s", r.URL.Path, r.URL.RawQuery)
 			w.WriteHeader(http.StatusNotFound)
@@ -415,20 +432,47 @@ func TestObjectService_GetSessionPresignedURL(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
-
-	presignedURL, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "test.txt", 10, nil, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if presignedURL.Host != c.Host {
-		t.Fatalf("presigned URL host = %q, want %q", presignedURL.Host, c.Host)
-	}
-	if got := presignedURL.Query().Get("x-cos-security-token"); got != "session-token" {
-		t.Fatalf("x-cos-security-token = %q, want session-token", got)
-	}
-	if got := presignedURL.RawQuery; !strings.Contains(got, "q-ak=SKIDSESSION") {
-		t.Fatalf("RawQuery = %q, want session credential", got)
+	c.Host = host
+	for _, signHost := range []bool{true, false} {
+		opt := &PresignedURLOptions{AuthTime: NewAuthTime(time.Minute)}
+		presignedURL, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "test.txt", time.Minute, opt, signHost)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if presignedURL.Host != u.Host || presignedURL.Scheme != u.Scheme || presignedURL.Path != "/test.txt" {
+			t.Fatalf("presigned URL must preserve BucketURL address: %s://%s%s", presignedURL.Scheme, presignedURL.Host, presignedURL.Path)
+		}
+		query := presignedURL.Query()
+		if query.Get("x-cos-security-token") != "session-token" || query.Get("q-ak") != "SKIDSESSION" {
+			t.Fatal("presigned URL must use session credentials")
+		}
+		wantHeaders := ""
+		if signHost {
+			wantHeaders = "host"
+		}
+		if query.Get("q-header-list") != wantHeaders {
+			t.Fatalf("signed headers = %q, want %q", query.Get("q-header-list"), wantHeaders)
+		}
+		ordinary := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: &AuthorizationTransport{
+			SecretID: "SKIDSESSION", SecretKey: "session-secret", SessionToken: "session-token",
+		}})
+		ordinary.Host = host
+		ordinaryURL, err := ordinary.Object.GetPresignedURL2(context.Background(), http.MethodGet, "test.txt", time.Minute, opt, signHost)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if presignedURL.String() != ordinaryURL.String() {
+			t.Fatal("session and ordinary presigning must have identical URL and Host semantics")
+		}
+		verifyReq, err := http.NewRequest(http.MethodGet, u.String()+"/test.txt?x-cos-security-token=session-token", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		verifyReq.Host = host
+		auth := newAuthorization("SKIDSESSION", "session-secret", verifyReq, opt.AuthTime, signHost)
+		if !strings.HasSuffix(auth, "q-signature="+query.Get("q-signature")) {
+			t.Fatal("signature must use the explicit request Host")
+		}
 	}
 	if got := atomic.LoadInt32(&sessionCalls); got != 1 {
 		t.Fatalf("CreateSession calls = %d, want 1", got)
@@ -445,7 +489,7 @@ func TestObjectService_GetSessionPresignedURLRejectsSignMerged(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	presignedURL, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "test.txt", 10*time.Minute, &PresignedURLOptions{SignMerged: true})
 	if err == nil || !strings.Contains(err.Error(), "SignMerged") {
@@ -482,7 +526,7 @@ func TestObjectService_GetSessionPresignedURLRefreshesWhenTokenLifetimeTooShort(
 
 	u, _ := url.Parse(server.URL)
 	c, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	// 缓存里先放一个只剩 30s 的 token。
 	if _, _, err := provider.credential(context.Background(), u, c.Host, ""); err != nil {
@@ -525,7 +569,7 @@ func TestObjectService_GetSessionPresignedURLRejectsWhenExpiredExceedsMaxTokenLi
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	// 请求 1 小时有效期, 但全新 token 也只有 5 分钟 -> 刷新后仍不够 -> 报错, 不签 URL。
 	_, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "test.txt", time.Hour, nil, false)
@@ -542,7 +586,7 @@ func TestObjectService_GetSessionPresignedURLRejectsWhenExpiredExceedsMaxTokenLi
 }
 
 func TestObjectService_GetSessionPresignedURLRejectsUnsupportedTransport(t *testing.T) {
-	u, _ := url.Parse("https://zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com")
+	u, _ := url.Parse("https://zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com")
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: sessionAuthContextCheckTransport{t: t}})
 
 	_, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "test.txt", time.Minute, nil)
@@ -578,7 +622,7 @@ func TestObjectService_GetSessionPresignedURLRejectsAuthTimeAfterSessionExpirati
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	_, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "test.txt", 10, &PresignedURLOptions{
 		AuthTime: &AuthTime{
@@ -646,19 +690,17 @@ func TestAuthorizationTransport_OrdinaryBucketUsesBaseCredential(t *testing.T) {
 	resp.Body.Close()
 }
 
-func TestParseBucketNameFromHost(t *testing.T) {
+func TestParseBucketNameFromHostSDKBoundaryOnly(t *testing.T) {
+	// 仅验证 SDK 字符串解析，端口、尾点及自定义后缀不代表网关支持。
 	cases := []struct {
 		host string
 		want string
 	}{
-		{"zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com", "zlb-normal-x--251433186"},
-		{"ZLB-NORMAL-X--251433186.COS-RAPID.ap-guangzhou.tencentcos.com", "zlb-normal-x--251433186"},
-		{"zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com:443", "zlb-normal-x--251433186"},
-		{"zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com.", "zlb-normal-x--251433186"},
-		// No domain anchor required: any hostname's first label is extracted,
-		// regardless of whether it's a ".cos-rapid." domain. isRapidBucket is
-		// solely responsible for judging whether the extracted name is a rapid
-		// bucket name (see TestIsHighPerformanceBucket).
+		{"zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com", "zlb-normal-x--251433186"},
+		{"ZLB-NORMAL-X--251433186.COSRAPID.ap-guangzhou.myqcloud.com", "zlb-normal-x--251433186"},
+		{"zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com:443", "zlb-normal-x--251433186"},
+		{"zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com.", "zlb-normal-x--251433186"},
+		// 自定义后缀仅验证首标签提取，不作为正常业务域名。
 		{"testuser-dev-x--1374209587.gz.tencentos.com", "testuser-dev-x--1374209587"},
 		{"TESTUSER-DEV-X--1374209587.GZ.TENCENTOS.COM", "testuser-dev-x--1374209587"},
 		{"testuser-dev-x--1374209587.gz.tencentos.com:443", "testuser-dev-x--1374209587"},
@@ -666,7 +708,7 @@ func TestParseBucketNameFromHost(t *testing.T) {
 		{"normal-1250000000.cos.ap-guangzhou.myqcloud.com", "normal-1250000000"},
 		{"justbucket", "justbucket"},
 		{"", ""},
-		{".cos-rapid.ap-guangzhou.tencentcos.com", ""},
+		{".cosrapid.ap-guangzhou.myqcloud.com", ""},
 	}
 	for _, c := range cases {
 		if got := parseBucketNameFromHost(c.host); got != c.want {
@@ -705,10 +747,10 @@ func TestCreateSessionProvider_CachesDifferentBuckets(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	if _, _, err := provider.credential(context.Background(), u, "aaa-x--111.cos-rapid.ap-guangzhou.tencentcos.com", ""); err != nil {
+	if _, _, err := provider.credential(context.Background(), u, "aaa-x--111.cosrapid.ap-guangzhou.myqcloud.com", ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := provider.credential(context.Background(), u, "bbb-x--222.cos-rapid.ap-guangzhou.tencentcos.com", ""); err != nil {
+	if _, _, err := provider.credential(context.Background(), u, "bbb-x--222.cosrapid.ap-guangzhou.myqcloud.com", ""); err != nil {
 		t.Fatal(err)
 	}
 	provider.mu.Lock()
@@ -730,7 +772,7 @@ func TestCreateSessionProvider_UsesBaseSessionToken(t *testing.T) {
 	u, _ := url.Parse(server.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "base-sts-token")
 
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	if _, _, err := provider.credential(context.Background(), u, host, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -753,7 +795,7 @@ func TestCreateSessionProvider_ReadsUpdatedTransportCredential(t *testing.T) {
 	u, _ := url.Parse(server.URL)
 	_, transport, provider := newSessionTestClient(u, "AKIDOLD", "sk-old", "")
 
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	if _, _, err := provider.credential(context.Background(), u, host, ""); err != nil {
 		t.Fatalf("first GetSessionCredential: %v", err)
 	}
@@ -778,7 +820,7 @@ func TestCreateSessionProvider_UsesBucketCreateSessionErrorResponse(t *testing.T
 
 	u, _ := url.Parse(server.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	_, _, err := provider.credential(context.Background(), u, "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com", "")
+	_, _, err := provider.credential(context.Background(), u, "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com", "")
 	cosErr, ok := err.(*ErrorResponse)
 	if !ok {
 		t.Fatalf("error = %T %v, want *ErrorResponse", err, err)
@@ -802,7 +844,7 @@ func TestCreateSessionProvider_DoesNotFollowRedirect(t *testing.T) {
 
 	u, _ := url.Parse(redirector.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	_, _, err := provider.credential(context.Background(), u, host, "")
 	// 不跟随重定向 -> 拿到 302, 非 2xx -> 报错; 且不会打到 backend。
 	if err == nil {
@@ -821,7 +863,7 @@ func TestCreateSessionProvider_FreshCredentialRejectsMissingExpiration(t *testin
 
 	u, _ := url.Parse(server.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	_, _, err := provider.freshCredential(context.Background(), u, "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com", 10*time.Minute, "")
+	_, _, err := provider.freshCredential(context.Background(), u, "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com", 10*time.Minute, "")
 	if err == nil {
 		t.Fatal("expected error for missing session credential expiration")
 	}
@@ -846,7 +888,7 @@ func TestCreateSessionProvider_RefreshesSessionWhenBaseCredentialChangesEvenIfNo
 
 	u, _ := url.Parse(server.URL)
 	_, base, provider := newSessionTestClient(u, "AKIDOLD", "sk-old", "")
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	if _, _, err := provider.credential(context.Background(), u, host, ""); err != nil {
 		t.Fatalf("first credential: %v", err)
@@ -898,7 +940,7 @@ func TestRapidCredentialTransport_InheritsBaseNetworkTransport(t *testing.T) {
 
 	u, _ := url.Parse(server.URL)
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: transport})
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	resp, err := c.Object.Get(context.Background(), "test.txt", nil)
 	if err != nil {
@@ -939,7 +981,7 @@ func TestRapidCredentialTransport_GetCredential_DelegatesToBase(t *testing.T) {
 
 func TestRapidCredentialTransport_RoundTrip_NilBase(t *testing.T) {
 	tr := &RapidCredentialTransport{}
-	req, _ := http.NewRequest(http.MethodGet, "https://zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com/a.txt", nil)
+	req, _ := http.NewRequest(http.MethodGet, "https://zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com/a.txt", nil)
 	if _, err := tr.RoundTrip(req); err == nil || !strings.Contains(err.Error(), "base transport is nil") {
 		t.Fatalf("RoundTrip err = %v, want base transport is nil", err)
 	}
@@ -1036,7 +1078,7 @@ func TestRapidCredentialTransport_SessionRequestWithBareBaseTransport(t *testing
 	tr := NewRapidCredentialTransport(&bareBaseTransport{ak: "AKIDBASE", sk: "sk"})
 	u, _ := url.Parse(server.URL)
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: tr})
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	resp, err := c.Object.Get(context.Background(), "test.txt", nil)
 	if err != nil {
@@ -1056,8 +1098,8 @@ func TestCreateSessionProvider_BaseTransportNil(t *testing.T) {
 		t.Fatal("baseSecretID() != empty, want empty when base is nil")
 	}
 	// createSession: base 为 nil -> 报错
-	u, _ := url.Parse("https://zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com")
-	if _, err := p.createSession(context.Background(), u, "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com", ""); err == nil || !strings.Contains(err.Error(), "base transport is nil") {
+	u, _ := url.Parse("https://zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com")
+	if _, err := p.createSession(context.Background(), u, "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com", ""); err == nil || !strings.Contains(err.Error(), "base transport is nil") {
 		t.Fatalf("createSession err = %v, want base transport is nil", err)
 	}
 }
@@ -1073,7 +1115,7 @@ func TestCreateSessionProvider_CreateSession_NilURL(t *testing.T) {
 // --- RenameObject 参数校验 ---
 
 func TestObjectService_RenameObject_EmptyArgs(t *testing.T) {
-	u, _ := url.Parse("https://zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com")
+	u, _ := url.Parse("https://zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com")
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: NewRapidCredentialTransport(&AuthorizationTransport{SecretID: "AKID", SecretKey: "sk"})})
 
 	if _, err := c.Object.RenameObject(context.Background(), "", "src", nil); err == nil || !strings.Contains(err.Error(), "empty object name") {
@@ -1114,7 +1156,7 @@ func TestCreateSessionProvider_FreshCredential_ShortLifetime(t *testing.T) {
 
 	base := &AuthorizationTransport{SecretID: "AKID", SecretKey: "sk"}
 	p := newCreateSessionProvider(NewRapidCredentialTransport(base))
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	u, _ := url.Parse(server.URL)
 	_, _, err := p.freshCredential(context.Background(), u, host, 10*time.Minute, "")
 	if err == nil || !strings.Contains(err.Error(), "shorter than required") {
@@ -1229,7 +1271,7 @@ func TestPresignRequiredLifetime_KeyEndTimeWins(t *testing.T) {
 // --- GetSessionPresignedURL: name 为空 / provider 为 nil / host 从 BucketURL 取 ---
 
 func TestGetSessionPresignedURL_EmptyName(t *testing.T) {
-	u, _ := url.Parse("https://zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com")
+	u, _ := url.Parse("https://zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com")
 	c := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: NewRapidCredentialTransport(&AuthorizationTransport{SecretID: "AKID", SecretKey: "sk"})})
 	if _, err := c.Object.GetSessionPresignedURL(context.Background(), http.MethodGet, "", time.Minute, nil); err == nil || !strings.Contains(err.Error(), "object key is empty") {
 		t.Fatalf("err = %v, want object key is empty", err)
@@ -1242,7 +1284,7 @@ func TestGetSessionPresignedURL_HostFromBucketURL(t *testing.T) {
 	defer server.Close()
 	u, _ := url.Parse(server.URL)
 	// 让 BucketURL.Host 本身是rapid bucket域名。
-	u.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	u.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	base := &AuthorizationTransport{SecretID: "AKID", SecretKey: "sk"}
 	tr := NewRapidCredentialTransport(base)
 	// 用真实 server 发 CreateSession：把 BucketURL 指到 server，但 host 名保持桶域名做识别。
@@ -1259,11 +1301,8 @@ func TestGetSessionPresignedURL_HostFromBucketURL(t *testing.T) {
 	_ = u
 }
 
-// --- RoundTrip: req.Host 为空时经 req.URL.Hostname() 识别rapid bucket并触发 session 鉴权 ---
-// (回归 review 问题1：SDK 常规用法只设 BucketURL、不设 Client.Host，req.Host 为空，
-//  必须靠 URL.Hostname() 识别，否则 session 鉴权静默退化成基础凭证。)
-
-func TestRapidCredentialTransport_RoundTrip_HostFromURL(t *testing.T) {
+// 显式清空 req.Host 仅覆盖 SDK 回退分支，不是常规调用方式。
+func TestRapidCredentialTransport_RoundTrip_EmptyHostSDKBoundaryOnly(t *testing.T) {
 	// 底层探针：应答 CreateSession(?session)，并记录数据请求最终带的 Authorization。
 	var dataAuth string
 	probe := &sessionAnsweringTransport{
@@ -1273,7 +1312,7 @@ func TestRapidCredentialTransport_RoundTrip_HostFromURL(t *testing.T) {
 
 	// URL 的 host 是rapid bucket域名，但 req.Host 显式置空，只能靠 URL.Hostname() 识别。
 	req, _ := http.NewRequest(http.MethodGet,
-		"https://zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com/a.txt", nil)
+		"https://zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com/a.txt", nil)
 	req.Host = ""
 	req = req.WithContext(withSessionAuth(req.Context()))
 
@@ -1320,7 +1359,7 @@ func TestRapidCredentialTransport_RoundTrip_CreateSessionError(t *testing.T) {
 	su, _ := url.Parse(server.URL)
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/a.txt", nil)
 	// Host 用rapid bucket域名以触发 session 鉴权；网络仍打到 server(httptest client 按 req.URL 连接)。
-	req.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	req.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	req = req.WithContext(withSessionAuth(req.Context()))
 	_ = su
 	if _, err := tr.RoundTrip(req); err == nil {
@@ -1340,7 +1379,7 @@ func TestCreateSessionProvider_ReusesUnexpiredCredentialWhenRefreshFails(t *test
 
 	u, _ := url.Parse(server.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "sk", "")
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	bucketName := parseBucketNameFromHost(host)
 
 	// 预置一份"已跌破提前刷新窗口(默认 1min)但尚未真正过期"的旧凭证:
@@ -1378,7 +1417,7 @@ func TestCreateSessionProvider_ReturnsErrorWhenRefreshFailsAndCredentialExpired(
 
 	u, _ := url.Parse(server.URL)
 	_, _, provider := newSessionTestClient(u, "AKIDBASE", "sk", "")
-	host := "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	host := "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 	bucketName := parseBucketNameFromHost(host)
 
 	// 旧凭证已过真过期线, 刷新又失败 -> 不能拿废凭证顶, 必须报错。
@@ -1414,7 +1453,7 @@ func TestRapidCredentialTransport_RoundTrip_RewritesExpiredTokenToUnavailable(t 
 
 	u, _ := url.Parse(server.URL)
 	c, _, provider := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/a.txt", nil)
 	req.Host = c.Host
@@ -1465,7 +1504,7 @@ func TestRapidCredentialTransport_RoundTrip_DoesNotRetryOnOtherError(t *testing.
 
 	u, _ := url.Parse(server.URL)
 	c, _, _ := newSessionTestClient(u, "AKIDBASE", "base-secret", "")
-	c.Host = "zlb-normal-x--251433186.cos-rapid.ap-guangzhou.tencentcos.com"
+	c.Host = "zlb-normal-x--251433186.cosrapid.ap-guangzhou.myqcloud.com"
 
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/a.txt", nil)
 	req.Host = c.Host

@@ -28,7 +28,7 @@ import (
 // 运行前请设置环境变量 SECRETID / SECRETKEY, 并把下面的 BucketURL 换成你自己的
 // rapid bucket域名(形如 http://<bucket>-x--<appid>.cosrapid.<region>.myqcloud.com)。
 // 网关负载均衡只在 HTTP, 无显式端口, URL 目标不是 IP 且未配置代理时介入;
-// 不满足条件时会原样透传, 不会阻断请求。
+// 显式 Host 与 URL.Host 不同时也原样透传, 保留调用方的连接目标。
 func main() {
 	u, _ := url.Parse("http://example-x--1259654469.cosrapid.ap-guangzhou.myqcloud.com")
 	b := &cos.BaseURL{BucketURL: u}

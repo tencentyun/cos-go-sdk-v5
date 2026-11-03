@@ -308,8 +308,12 @@ func (t *rapidGatewayLBTransport) RoundTrip(req *http.Request) (*http.Response, 
 	return resp, err
 }
 
-// eligible 判定本次请求是否满足传输门禁，四条与 Python SDK 的传输类门禁一一对应。
+// eligible 判断本次请求是否允许 Gateway LB 改写连接目标。
 func (t *rapidGatewayLBTransport) eligible(req *http.Request) bool {
+	if req.Host != "" && req.Host != req.URL.Host {
+		// 连接地址与逻辑 Host 分离时，保留调用方的连接目标。
+		return false
+	}
 	if req.URL.Scheme != "http" {
 		// 改写为裸 IP 会同时改变 TLS SNI 与证书校验用的 ServerName，导致 HTTPS 必然失败。
 		return false

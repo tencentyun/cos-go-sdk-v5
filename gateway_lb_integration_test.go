@@ -803,6 +803,396 @@ func TestNewRapidCredentialTransportIntegrationSessionAndDataUseGatewayLB(t *tes
 	}
 }
 
+func TestGatewayLBIntegrationHostMismatchPreservesSessionAndDataTarget(t *testing.T) {
+	for _, endpoint := range []string{
+		"service.cosrapid.ap-guangzhou.myqcloud.com",
+		"endpoint.example.com",
+	} {
+		t.Run(endpoint, func(t *testing.T) {
+			host := rapidTestHost("hostmismatch")
+			resetGatewayLBEntry(host)
+			defer resetGatewayLBEntry(host)
+			seedGatewayLBEntry(host, net.ParseIP(nodeIPA))
+			router := newGatewayRouter()
+			defer router.closeIdleConnections()
+
+			var sessionCalls, dataCalls int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Host != host {
+					t.Errorf("Host = %q, want %q", r.Host, host)
+				}
+				auth := r.Header.Get("Authorization")
+				switch {
+				case r.URL.Path == "/" && r.URL.RawQuery == "session":
+					atomic.AddInt32(&sessionCalls, 1)
+					if !strings.Contains(auth, "q-ak=AKIDBASE&") {
+						t.Error("CreateSession did not use base credentials")
+					}
+					fmt.Fprint(w, sessionResponseXML("SKIDSESSION", "session-secret", "session-token", time.Now().Add(time.Hour)))
+				case r.URL.Path == "/key":
+					atomic.AddInt32(&dataCalls, 1)
+					if !strings.Contains(auth, "q-ak=SKIDSESSION&") {
+						t.Error("data request did not use session credentials")
+					}
+					if r.Header.Get("x-cos-security-token") != "session-token" {
+						t.Error("data request has incorrect session token")
+					}
+					fmt.Fprint(w, "data")
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+			router.route(t, net.JoinHostPort(endpoint, "80"), &fakeGateway{server: server})
+			router.route(t, nodeAddr(nodeIPA), &fakeGateway{server: server})
+
+			bucketURL, err := url.Parse("http://" + endpoint)
+			if err != nil {
+				t.Fatal(err)
+			}
+			base := &AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret", Transport: router.transport()}
+			client := NewClient(&BaseURL{BucketURL: bucketURL}, &http.Client{
+				Transport: NewRapidCredentialTransport(base),
+				Timeout:   5 * time.Second,
+			})
+			client.Host = host
+			client.Conf.RetryOpt.Count = 0
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			for i := 0; i < 2; i++ {
+				resp, err := client.Object.Get(ctx, "key", nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				body, err := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				if err != nil || string(body) != "data" {
+					t.Fatalf("response = (%q, %v), want data", body, err)
+				}
+			}
+			if got := atomic.LoadInt32(&sessionCalls); got != 1 {
+				t.Errorf("CreateSession requests = %d, want 1", got)
+			}
+			if got := atomic.LoadInt32(&dataCalls); got != 2 {
+				t.Errorf("data requests = %d, want 2", got)
+			}
+			addrs := router.dialedAddrs()
+			if len(addrs) == 0 {
+				t.Fatal("no connection was made")
+			}
+			for _, addr := range addrs {
+				if addr != net.JoinHostPort(endpoint, "80") {
+					t.Errorf("dial target = %q, want original endpoint %q", addr, endpoint)
+				}
+			}
+			if client.BaseURL.BucketURL.Host != endpoint || client.Host != host {
+				t.Error("request modified the client endpoint or Host")
+			}
+		})
+	}
+}
+
+// verifyGatewayControlAuthorization 用线上请求的签名头重算基础凭证签名。
+func verifyGatewayControlAuthorization(r *http.Request, secretID, secretKey string) error {
+	auth := r.Header.Get("Authorization")
+	fields, err := url.ParseQuery(strings.ReplaceAll(auth, ";", "%3B"))
+	if err != nil || fields.Get("q-ak") != secretID {
+		return fmt.Errorf("control request did not use base credentials")
+	}
+	var signStart, signEnd, keyStart, keyEnd int64
+	if _, err := fmt.Sscanf(fields.Get("q-sign-time"), "%d;%d", &signStart, &signEnd); err != nil {
+		return err
+	}
+	if _, err := fmt.Sscanf(fields.Get("q-key-time"), "%d;%d", &keyStart, &keyEnd); err != nil {
+		return err
+	}
+	signed := cloneRequest(r)
+	signed.Header = make(http.Header)
+	hasHost := false
+	for _, name := range strings.Split(fields.Get("q-header-list"), ";") {
+		if name == "host" {
+			hasHost = true
+			continue
+		}
+		if values := r.Header.Values(name); len(values) > 0 {
+			signed.Header[http.CanonicalHeaderKey(name)] = append([]string(nil), values...)
+		}
+	}
+	if !hasHost {
+		return fmt.Errorf("control request did not sign Host")
+	}
+	authTime := &AuthTime{
+		SignStartTime: time.Unix(signStart, 0), SignEndTime: time.Unix(signEnd, 0),
+		KeyStartTime: time.Unix(keyStart, 0), KeyEndTime: time.Unix(keyEnd, 0),
+	}
+	if newAuthorization(secretID, secretKey, signed, authTime, true) != auth {
+		return fmt.Errorf("control request signature does not match the wire Host and headers")
+	}
+	return nil
+}
+
+func TestGatewayLBIntegrationControlRequestsPreserveTarget(t *testing.T) {
+	const endpoint = "service.cosrapid.ap-guangzhou.myqcloud.com"
+	networkHeaders := http.Header{}
+	networkHeaders.Set("x-cos-vpc-id", "vpc-test-001")
+	networkHeaders.Set("x-cos-subnet-id", "subnet-test-001")
+	networkHeaders.Set("x-cos-zone", "ap-guangzhou-1")
+	sessionXML := sessionResponseXML("SKIDSESSION", "session-secret", "session-token", time.Now().Add(time.Hour))
+	operations := []struct {
+		name         string
+		method       string
+		query        string
+		body         string
+		responseBody string
+		status       int
+		noRetry      bool
+		invoke       func(context.Context, *Client) (*Response, error)
+	}{
+		{
+			name: "Put", method: http.MethodPut, status: http.StatusOK,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) {
+				return c.Bucket.Put(ctx, &BucketPutOptions{XOptionHeader: &networkHeaders})
+			},
+		},
+		{
+			name: "PutWithConfiguration", method: http.MethodPut, status: http.StatusOK,
+			body: "<CreateBucketConfiguration><BucketAZConfig>MAZ</BucketAZConfig></CreateBucketConfiguration>",
+			invoke: func(ctx context.Context, c *Client) (*Response, error) {
+				return c.Bucket.Put(ctx, &BucketPutOptions{
+					XOptionHeader:             &networkHeaders,
+					CreateBucketConfiguration: &CreateBucketConfiguration{BucketAZConfig: "MAZ"},
+				})
+			},
+		},
+		{
+			name: "Delete", method: http.MethodDelete, status: http.StatusNoContent,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) { return c.Bucket.Delete(ctx) },
+		},
+		{
+			name: "Head", method: http.MethodHead, status: http.StatusOK,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) { return c.Bucket.Head(ctx) },
+		},
+		{
+			name: "CreateSession", method: http.MethodGet, query: "session", status: http.StatusOK,
+			responseBody: sessionXML,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) {
+				result, resp, err := c.Bucket.CreateSession(ctx)
+				if err == nil && (result == nil || result.Credentials.SecretID != "SKIDSESSION" || result.Credentials.SessionToken != "session-token") {
+					return resp, fmt.Errorf("unexpected CreateSession credentials")
+				}
+				return resp, err
+			},
+		},
+		{
+			name: "PutPolicy", method: http.MethodPut, query: "policy", status: http.StatusNoContent, noRetry: true,
+			body: `{"version":"2.0"}`,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) {
+				return c.Bucket.PutPolicy(ctx, &BucketPutPolicyOptions{Version: "2.0"})
+			},
+		},
+		{
+			name: "GetPolicy", method: http.MethodGet, query: "policy", status: http.StatusOK,
+			responseBody: `{"version":"2.0"}`,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) {
+				result, resp, err := c.Bucket.GetPolicy(ctx)
+				if err == nil && (result == nil || result.Version != "2.0") {
+					return resp, fmt.Errorf("unexpected GetPolicy result")
+				}
+				return resp, err
+			},
+		},
+		{
+			name: "DeletePolicy", method: http.MethodDelete, query: "policy", status: http.StatusNoContent,
+			invoke: func(ctx context.Context, c *Client) (*Response, error) { return c.Bucket.DeletePolicy(ctx) },
+		},
+	}
+	for _, wrapped := range []bool{false, true} {
+		for _, op := range operations {
+			for _, scenario := range []struct {
+				name       string
+				failStatus int
+				failCount  int
+			}{
+				{name: "success"},
+				{name: "retry-503", failStatus: http.StatusServiceUnavailable, failCount: 1},
+				{name: "exhaust-503", failStatus: http.StatusServiceUnavailable, failCount: 3},
+				{name: "no-retry-403", failStatus: http.StatusForbidden, failCount: 1},
+				{name: "no-retry-404", failStatus: http.StatusNotFound, failCount: 1},
+			} {
+				t.Run(fmt.Sprintf("wrapped=%t/%s/%s", wrapped, op.name, scenario.name), func(t *testing.T) {
+					host := rapidTestHost("control" + strings.ToLower(op.name))
+					resetGatewayLBEntry(host)
+					defer resetGatewayLBEntry(host)
+					entry := seedGatewayLBEntry(host, net.ParseIP(nodeIPA))
+					router := newGatewayRouter()
+					defer router.closeIdleConnections()
+					var calls int32
+					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						attempt := int(atomic.AddInt32(&calls, 1))
+						if r.Method != op.method || r.URL.Path != "/" || r.URL.RawQuery != op.query || r.Host != host {
+							t.Errorf("unexpected request: %s %s Host=%s", r.Method, r.RequestURI, r.Host)
+						}
+						if err := verifyGatewayControlAuthorization(r, "AKIDBASE", "base-secret"); err != nil {
+							t.Error(err)
+						}
+						if r.Header.Get("x-cos-security-token") != "base-token" {
+							t.Error("control request did not preserve the base token")
+						}
+						wantRetry := ""
+						if attempt > 1 {
+							wantRetry = "true"
+						}
+						if r.Header.Get("x-cos-sdk-retry") != wantRetry {
+							t.Errorf("attempt %d: incorrect retry header", attempt)
+						}
+						body, err := io.ReadAll(r.Body)
+						if err != nil || string(body) != op.body {
+							t.Errorf("attempt %d: body = (%q, %v), want %q", attempt, body, err, op.body)
+						}
+						if op.method == http.MethodPut && op.query == "" {
+							for name, values := range networkHeaders {
+								if r.Header.Get(name) != values[0] {
+									t.Errorf("missing create-bucket header %s", name)
+								}
+							}
+						}
+						w.Header().Set("X-Cos-Request-Id", "control-test-request")
+						if attempt <= scenario.failCount {
+							w.WriteHeader(scenario.failStatus)
+							if r.Method != http.MethodHead {
+								fmt.Fprint(w, `<Error><Code>ControlTestError</Code><Message>test failure</Message></Error>`)
+							}
+							return
+						}
+						w.WriteHeader(op.status)
+						fmt.Fprint(w, op.responseBody)
+					}))
+					defer server.Close()
+					router.route(t, net.JoinHostPort(endpoint, "80"), &fakeGateway{server: server})
+					gateway := startFakeGateway(t, "must-not-receive-control")
+					router.route(t, nodeAddr(nodeIPA), gateway)
+
+					u, err := url.Parse("http://" + endpoint)
+					if err != nil {
+						t.Fatal(err)
+					}
+					base := &AuthorizationTransport{
+						SecretID: "AKIDBASE", SecretKey: "base-secret", SessionToken: "base-token", Transport: router.transport(),
+					}
+					var transport http.RoundTripper = base
+					if wrapped {
+						transport = NewRapidCredentialTransport(base)
+					}
+					client := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: transport, Timeout: 5 * time.Second})
+					client.Host = host
+					client.Conf.RetryOpt.Count = 3
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					resp, err := op.invoke(ctx, client)
+
+					wantCalls, wantStatus := 1, op.status
+					if scenario.failCount > 0 {
+						wantStatus = scenario.failStatus
+						if !op.noRetry && scenario.failStatus >= 500 {
+							wantCalls = scenario.failCount + 1
+							if wantCalls > 3 {
+								wantCalls = 3
+							} else {
+								wantStatus = op.status
+							}
+						}
+					}
+					if (err != nil) != (wantStatus >= 400) {
+						t.Errorf("error = %v, want HTTP %d", err, wantStatus)
+					}
+					if resp == nil || resp.StatusCode != wantStatus {
+						t.Fatalf("response = %v, want HTTP %d", resp, wantStatus)
+					}
+					if wantStatus >= 400 {
+						var responseErr *ErrorResponse
+						if !errors.As(err, &responseErr) {
+							t.Errorf("error type = %T, want *ErrorResponse", err)
+						} else if op.method != http.MethodHead && responseErr.Code != "ControlTestError" {
+							t.Errorf("error code = %q, want ControlTestError", responseErr.Code)
+						}
+					}
+					if got := atomic.LoadInt32(&calls); got != int32(wantCalls) {
+						t.Errorf("requests = %d, want %d", got, wantCalls)
+					}
+					if resp.Header.Get("X-Cos-Request-Id") != "control-test-request" {
+						t.Error("response headers were not preserved")
+					}
+					if gateway.requestCount() != 0 {
+						t.Error("control request reached a Gateway node")
+					}
+					addrs := router.dialedAddrs()
+					if len(addrs) == 0 {
+						t.Error("no connection was made")
+					}
+					for _, addr := range addrs {
+						if addr != net.JoinHostPort(endpoint, "80") {
+							t.Errorf("dial target = %q, want service endpoint", addr)
+						}
+					}
+					if client.BaseURL.BucketURL != u || u.Host != endpoint || client.Host != host {
+						t.Error("control request changed the client URL or Host")
+					}
+					entry.mu.Lock()
+					defer entry.mu.Unlock()
+					if len(entry.cooldown) != 0 || len(entry.failStreak) != 0 || len(entry.lastFailAt) != 0 || entry.resolving {
+						t.Error("control request changed Gateway health or DNS state")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestGatewayLBIntegrationCreateBucketWithoutGatewayDNS(t *testing.T) {
+	const endpoint = "service.cosrapid.ap-guangzhou.myqcloud.com"
+	host := rapidTestHost("unregistered")
+	resetGatewayLBEntry(host)
+	defer resetGatewayLBEntry(host)
+	dns := startFakeDNS(t)
+	installFakeDNS(t, dns)
+	router := newGatewayRouter()
+	defer router.closeIdleConnections()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || r.URL.Path != "/" || r.Host != host {
+			t.Errorf("unexpected create-bucket request: %s %s Host=%s", r.Method, r.RequestURI, r.Host)
+		}
+		if err := verifyGatewayControlAuthorization(r, "AKIDBASE", "base-secret"); err != nil {
+			t.Error(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	router.route(t, net.JoinHostPort(endpoint, "80"), &fakeGateway{server: server})
+	u, err := url.Parse("http://" + endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := &AuthorizationTransport{SecretID: "AKIDBASE", SecretKey: "base-secret", Transport: router.transport()}
+	client := NewClient(&BaseURL{BucketURL: u}, &http.Client{Transport: NewRapidCredentialTransport(base)})
+	client.Host = host
+	client.Conf.RetryOpt.Count = 0
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := client.Bucket.Put(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := gatewayLBRegistry.Load(canonicalHost(host)); exists {
+		t.Error("create-bucket request registered a Gateway DNS entry")
+	}
+	if queries := dns.queriesFor(host); len(queries) != 0 {
+		t.Errorf("create-bucket request queried the unregistered bucket domain: %v", queries)
+	}
+	if addrs := router.dialedAddrs(); len(addrs) != 1 || addrs[0] != net.JoinHostPort(endpoint, "80") {
+		t.Errorf("dial targets = %v, want service endpoint only", addrs)
+	}
+}
+
 func TestGatewayLBIntegrationDistributesAcrossNodes(t *testing.T) {
 	host := rapidTestHost("spread")
 	_, router, client, entry := setupGatewayLB(t, host, nodeIPA, nodeIPB)

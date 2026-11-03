@@ -185,18 +185,11 @@ func parsePresignOptions(opt interface{}) presignOptions {
 	return p
 }
 
-// presignURL 是所有预签名入口的公共实现。name 须已编码，host 非空时覆盖 ObjectURL 的 Host，token 非空时把 x-cos-security-token 加入 query 参与签名。
-func (s *ObjectService) presignURL(ctx context.Context, httpMethod, encodedName, ak, sk, token, host string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
-	baseURL := s.client.BaseURL.BucketURL
-	if host != "" && baseURL != nil {
-		bucketURL := *baseURL
-		bucketURL.Host = host
-		baseURL = &bucketURL
-	}
-
+// presignURL 统一使用 BucketURL 构造 URL，token 非空时加入 query 参与签名。
+func (s *ObjectService) presignURL(ctx context.Context, httpMethod, encodedName, ak, sk, token string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
 	po := parsePresignOptions(opt)
 	sendOpt := sendOptions{
-		baseURL:   baseURL,
+		baseURL:   s.client.BaseURL.BucketURL,
 		uri:       "/" + encodedName,
 		method:    httpMethod,
 		optQuery:  opt,
@@ -257,7 +250,7 @@ func (s *ObjectService) GetPresignedURL(ctx context.Context, httpMethod, name, a
 	if name == "" {
 		return nil, fmt.Errorf("object key is empty.")
 	}
-	return s.presignURL(ctx, httpMethod, encodePresignName(name), ak, sk, "", "", expired, opt, signHost...)
+	return s.presignURL(ctx, httpMethod, encodePresignName(name), ak, sk, "", expired, opt, signHost...)
 }
 
 func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
@@ -268,7 +261,7 @@ func (s *ObjectService) GetPresignedURL2(ctx context.Context, httpMethod, name s
 	if cred == nil {
 		return nil, fmt.Errorf("GetCredential failed")
 	}
-	return s.presignURL(ctx, httpMethod, encodePresignName(name), cred.SecretID, cred.SecretKey, cred.SessionToken, "", expired, opt, signHost...)
+	return s.presignURL(ctx, httpMethod, encodePresignName(name), cred.SecretID, cred.SecretKey, cred.SessionToken, expired, opt, signHost...)
 }
 
 func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name string, expired time.Duration, opt interface{}, signHost ...bool) (*url.URL, error) {
@@ -291,7 +284,7 @@ func (s *ObjectService) GetPresignedURL3(ctx context.Context, httpMethod, name s
 	if cred == nil {
 		return nil, fmt.Errorf("GetCredential failed")
 	}
-	return s.presignURL(ctx, httpMethod, name, cred.SecretID, cred.SecretKey, cred.SessionToken, "", expired, opt, signHost...)
+	return s.presignURL(ctx, httpMethod, name, cred.SecretID, cred.SecretKey, cred.SessionToken, expired, opt, signHost...)
 }
 
 // presignRequiredLifetime 计算本次预签名 URL 所需 token 覆盖的最短剩余寿命，显式指定 AuthTime 时以其签名结束时间为准，否则取 expired。
@@ -338,7 +331,7 @@ func (s *ObjectService) GetSessionPresignedURL(ctx context.Context, httpMethod, 
 	if !ok {
 		return nil, fmt.Errorf("session credentials are not available")
 	}
-	return s.presignURL(ctx, httpMethod, encodePresignName(name), cred.SecretID, cred.SecretKey, cred.SessionToken, s.client.Host, expired, opt, signHost...)
+	return s.presignURL(ctx, httpMethod, encodePresignName(name), cred.SecretID, cred.SecretKey, cred.SessionToken, expired, opt, signHost...)
 }
 
 func (s *ObjectService) GetSignature(ctx context.Context, httpMethod, name, ak, sk string, expired time.Duration, opt *PresignedURLOptions, signHost ...bool) string {
