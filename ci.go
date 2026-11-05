@@ -1660,8 +1660,8 @@ func (s *CIService) DetectCar(ctx context.Context, obj string) (*DetectCarResult
 }
 
 type CIServiceResult struct {
-	XMLName  xml.Name `xml:"CIStatus"`
-	CIStatus string   `xml:",chardata"`
+	XMLName  xml.Name `xml:"CIStatus" json:"-"`
+	CIStatus string   `xml:",chardata" json:"CIStatus,omitempty"`
 }
 
 func (s *CIService) OpenCIService(ctx context.Context) (*Response, error) {
@@ -1676,13 +1676,25 @@ func (s *CIService) OpenCIService(ctx context.Context) (*Response, error) {
 
 func (s *CIService) GetCIService(ctx context.Context) (*CIServiceResult, *Response, error) {
 	var res CIServiceResult
+	var buf bytes.Buffer
 	sendOpt := &sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
 		method:  http.MethodGet,
 		uri:     "/",
-		result:  &res,
+		result:  &buf,
 	}
 	resp, err := s.client.send(ctx, sendOpt)
+	if err != nil {
+		return &res, resp, err
+	}
+	// 服务端可能返回 JSON({"CIStatus":"on"})，也可能返回 XML(<CIStatus>on</CIStatus>)，优先按 JSON 解析，失败再回退 XML
+	if body := bytes.TrimSpace(buf.Bytes()); len(body) > 0 {
+		if jsonErr := json.Unmarshal(body, &res); jsonErr != nil {
+			if xmlErr := xml.Unmarshal(body, &res); xmlErr != nil {
+				err = jsonErr
+			}
+		}
+	}
 	return &res, resp, err
 }
 

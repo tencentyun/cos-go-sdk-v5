@@ -1931,6 +1931,77 @@ func TestCIService_GetCIService(t *testing.T) {
 	}
 }
 
+func TestCIService_GetCIServiceWithJsonResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"CIStatus":"on"}`)
+	})
+
+	want := &CIServiceResult{
+		CIStatus: "on",
+	}
+
+	res, _, err := client.CI.GetCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetCIService returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetCIService failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_GetCIServiceWithEmptyResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	res, _, err := client.CI.GetCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetCIService returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, &CIServiceResult{}) {
+		t.Errorf("CI.GetCIService failed, return:%+v, want:%+v", res, &CIServiceResult{})
+	}
+}
+
+func TestCIService_GetCIServiceWithInvalidResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, `not json and not xml`)
+	})
+
+	_, _, err := client.CI.GetCIService(context.Background())
+	if err == nil {
+		t.Errorf("CI.GetCIService expected error, got nil")
+	}
+}
+
+func TestCIService_GetCIServiceWithErrorResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, `<Error><Code>AccessDenied</Code></Error>`)
+	})
+
+	_, _, err := client.CI.GetCIService(context.Background())
+	if err == nil {
+		t.Errorf("CI.GetCIService expected error, got nil")
+	}
+}
+
 func TestCIService_CloseCIService(t *testing.T) {
 	setup()
 	defer teardown()
