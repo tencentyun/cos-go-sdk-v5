@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -1928,6 +1929,260 @@ func TestCIService_GetCIService(t *testing.T) {
 	}
 	if !reflect.DeepEqual(res, want) {
 		t.Errorf("CI.GetCIService failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_GetCIServiceWithJsonResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"CIStatus":"on"}`)
+	})
+
+	want := &CIServiceResult{
+		CIStatus: "on",
+	}
+
+	res, _, err := client.CI.GetCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetCIService returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, want) {
+		t.Errorf("CI.GetCIService failed, return:%+v, want:%+v", res, want)
+	}
+}
+
+func TestCIService_GetCIServiceWithEmptyResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+	})
+
+	res, _, err := client.CI.GetCIService(context.Background())
+	if err != nil {
+		t.Fatalf("CI.GetCIService returned error: %v", err)
+	}
+	if !reflect.DeepEqual(res, &CIServiceResult{}) {
+		t.Errorf("CI.GetCIService failed, return:%+v, want:%+v", res, &CIServiceResult{})
+	}
+}
+
+func TestCIService_GetCIServiceWithInvalidResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	body := `not json and not xml`
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, body)
+	})
+
+	_, _, err := client.CI.GetCIService(context.Background())
+	if err == nil {
+		t.Fatalf("CI.GetCIService expected error, got nil")
+	}
+	// 错误信息需同时包含 json/xml 两次解析的错误及原始响应体，便于定位问题
+	for _, keyword := range []string{"json error", "xml error", body} {
+		if !strings.Contains(err.Error(), keyword) {
+			t.Errorf("CI.GetCIService error should contain %q, got: %v", keyword, err)
+		}
+	}
+}
+
+// 解析不依赖 Content-Type：服务端声明与实际格式不符时仍能正确解析
+// （实测 ci 域名返回 JSON 却声明 application/xml）
+func TestCIService_GetCIServiceIgnoresContentType(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		contentType string
+		body        string
+	}{
+		{"json body with xml content-type", "application/xml", `{"CIStatus":"on"}`},
+		{"xml body with json content-type", "application/json", `<CIStatus>on</CIStatus>`},
+		{"json body without content-type", "", `{"CIStatus":"on"}`},
+		{"json body with leading space", "application/xml", `  {"CIStatus":"on"}`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			setup()
+			defer teardown()
+
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodGet)
+				if tt.contentType != "" {
+					w.Header().Set("Content-Type", tt.contentType)
+				}
+				fmt.Fprint(w, tt.body)
+			})
+
+			res, _, err := client.CI.GetCIService(context.Background())
+			if err != nil {
+				t.Fatalf("CI.GetCIService returned error: %v", err)
+			}
+			if res.CIStatus != "on" {
+				t.Errorf("CI.GetCIService CIStatus = %q, want %q", res.CIStatus, "on")
+			}
+		})
+	}
+}
+
+// 解析失败时不应返回被部分赋值污染的结果
+func TestCIService_GetCIServiceResultNotPollutedOnError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// XML 前缀合法但结构不完整，xml.Unmarshal 会先写入字段再报错
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.Header().Set("Content-Type", "application/xml")
+		fmt.Fprint(w, `<CIStatus>on`)
+	})
+
+	res, _, err := client.CI.GetCIService(context.Background())
+	if err == nil {
+		t.Fatalf("CI.GetCIService expected error, got nil")
+	}
+	if !reflect.DeepEqual(res, &CIServiceResult{}) {
+		t.Errorf("CI.GetCIService should return zero value on error, got: %+v", res)
+	}
+}
+
+func TestCIService_GetCIServiceWithLongInvalidResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	body := strings.Repeat("x", ciServiceBodyLimit+100)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		fmt.Fprint(w, body)
+	})
+
+	_, _, err := client.CI.GetCIService(context.Background())
+	if err == nil {
+		t.Fatalf("CI.GetCIService expected error, got nil")
+	}
+	// 超长响应体需被截断，避免错误信息过长
+	if !strings.Contains(err.Error(), "...(truncated)") {
+		t.Errorf("CI.GetCIService error should be truncated, got: %v", err)
+	}
+	if strings.Contains(err.Error(), body) {
+		t.Errorf("CI.GetCIService error should not contain full body, got length: %v", len(err.Error()))
+	}
+}
+
+func TestCIService_GetCIServiceWithErrorResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, `<Error><Code>AccessDenied</Code></Error>`)
+	})
+
+	_, _, err := client.CI.GetCIService(context.Background())
+	if err == nil {
+		t.Errorf("CI.GetCIService expected error, got nil")
+	}
+}
+
+// 直接覆盖解析函数的各条分支
+func TestDecodeCIServiceResult(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		body    string
+		want    string
+		wantErr bool
+	}{
+		{"json first hit", `{"CIStatus":"on"}`, "on", false},
+		{"xml first hit", `<CIStatus>off</CIStatus>`, "off", false},
+		{"json body fallback to xml", `{bad json}`, "", true},
+		// 以 '<' 开头优先 XML，解析失败后回退 JSON 仍失败
+		{"xml like body fallback to json", `<not valid xml`, "", true},
+		{"unbinding status", `{"CIStatus":"unbinding"}`, "unbinding", false},
+		// 带 XML 声明头，首字符为 '<' 走 XML 优先
+		{"xml with declaration", `<?xml version="1.0" encoding="UTF-8"?><CIStatus>on</CIStatus>`, "on", false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := decodeCIServiceResult([]byte(tt.body))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("decodeCIServiceResult(%q) expected error, got nil", tt.body)
+				}
+				if !reflect.DeepEqual(res, CIServiceResult{}) {
+					t.Errorf("decodeCIServiceResult(%q) should return zero value on error, got: %+v", tt.body, res)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("decodeCIServiceResult(%q) returned error: %v", tt.body, err)
+			}
+			if res.CIStatus != tt.want {
+				t.Errorf("decodeCIServiceResult(%q) CIStatus = %q, want %q", tt.body, res.CIStatus, tt.want)
+			}
+		})
+	}
+}
+
+// 首选解析器失败后回退到另一种格式仍能解析成功
+func TestDecodeCIServiceResultFallbackSucceeds(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		body string
+		want string
+	}{
+		// 不以 '<' 开头，JSON 优先失败，回退 XML 成功
+		{"json first then xml", "\uFEFF<CIStatus>on</CIStatus>", "on"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := decodeCIServiceResult([]byte(tt.body))
+			if err != nil {
+				t.Fatalf("decodeCIServiceResult(%q) returned error: %v", tt.body, err)
+			}
+			if res.CIStatus != tt.want {
+				t.Errorf("decodeCIServiceResult(%q) CIStatus = %q, want %q", tt.body, res.CIStatus, tt.want)
+			}
+		})
+	}
+}
+
+// 以 '<' 开头时优先 XML，XML 失败后可回退 JSON 成功
+func TestDecodeCIServiceResultXmlFirstFallbackToJson(t *testing.T) {
+	// 构造一个以 '<' 开头、XML 解析失败但 JSON 解析成功的响应体：
+	// json.Unmarshal 在 struct 上会跳过无法匹配的键，此处借助 json 允许的前导字符差异无法实现，
+	// 故直接验证 XML 优先路径失败后错误信息中 xml 在前、json 在后
+	_, err := decodeCIServiceResult([]byte(`<not valid xml`))
+	if err == nil {
+		t.Fatalf("decodeCIServiceResult expected error, got nil")
+	}
+	xmlIdx := strings.Index(err.Error(), "xml error")
+	jsonIdx := strings.Index(err.Error(), "json error")
+	if xmlIdx < 0 || jsonIdx < 0 {
+		t.Fatalf("error should contain both decoder errors, got: %v", err)
+	}
+	// '<' 开头时 XML 为首选解析器，错误信息中应排在 json 之前
+	if xmlIdx > jsonIdx {
+		t.Errorf("xml should be the first decoder for '<' prefixed body, got: %v", err)
+	}
+}
+
+// 不以 '<' 开头时 JSON 为首选解析器
+func TestDecodeCIServiceResultJsonFirstOnError(t *testing.T) {
+	_, err := decodeCIServiceResult([]byte(`not json and not xml`))
+	if err == nil {
+		t.Fatalf("decodeCIServiceResult expected error, got nil")
+	}
+	xmlIdx := strings.Index(err.Error(), "xml error")
+	jsonIdx := strings.Index(err.Error(), "json error")
+	if xmlIdx < 0 || jsonIdx < 0 {
+		t.Fatalf("error should contain both decoder errors, got: %v", err)
+	}
+	if jsonIdx > xmlIdx {
+		t.Errorf("json should be the first decoder for non '<' prefixed body, got: %v", err)
 	}
 }
 
