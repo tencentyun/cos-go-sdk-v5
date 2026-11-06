@@ -1660,8 +1660,52 @@ func (s *CIService) DetectCar(ctx context.Context, obj string) (*DetectCarResult
 }
 
 type CIServiceResult struct {
-	XMLName  xml.Name `xml:"CIStatus"`
-	CIStatus string   `xml:",chardata"`
+	XMLName  xml.Name `xml:"CIStatus" json:"-"`
+	CIStatus string   `xml:",chardata" json:"CIStatus,omitempty"`
+}
+
+// ciServiceBodyLimit 解析失败时错误信息中携带的响应体最大长度，避免异常响应导致错误信息过长
+const ciServiceBodyLimit = 256
+
+// formatCIServiceBody 截断过长的响应体，用于拼接解析失败的错误信息
+func formatCIServiceBody(body []byte) string {
+	if len(body) > ciServiceBodyLimit {
+		return string(body[:ciServiceBodyLimit]) + "...(truncated)"
+	}
+	return string(body)
+}
+
+// ciServiceDecoder 查询数据万象服务状态响应体的解码器
+type ciServiceDecoder struct {
+	name   string
+	decode func(data []byte, v interface{}) error
+}
+
+// decodeCIServiceResult 解析查询数据万象服务状态的响应体。
+// 服务端返回格式与域名相关：ci 域名返回 JSON，pic 域名返回 XML，
+// 每次解析均使用独立的临时变量，避免 Unmarshal 部分赋值污染结果。
+func decodeCIServiceResult(body []byte) (CIServiceResult, error) {
+	first := ciServiceDecoder{name: "json", decode: json.Unmarshal}
+	second := ciServiceDecoder{name: "xml", decode: xml.Unmarshal}
+	if body[0] == '<' {
+		first, second = second, first
+	}
+
+	var primary CIServiceResult
+	firstErr := first.decode(body, &primary)
+	if firstErr == nil {
+		return primary, nil
+	}
+
+	var fallback CIServiceResult
+	secondErr := second.decode(body, &fallback)
+	if secondErr == nil {
+		return fallback, nil
+	}
+
+	// 两种格式均解析失败，合并错误并附带响应体，便于定位服务端返回的真实内容
+	return CIServiceResult{}, fmt.Errorf("failed to decode response, %s error: %w, %s error: %v, body: %s",
+		first.name, firstErr, second.name, secondErr, formatCIServiceBody(body))
 }
 
 func (s *CIService) OpenCIService(ctx context.Context) (*Response, error) {
@@ -1676,13 +1720,20 @@ func (s *CIService) OpenCIService(ctx context.Context) (*Response, error) {
 
 func (s *CIService) GetCIService(ctx context.Context) (*CIServiceResult, *Response, error) {
 	var res CIServiceResult
+	var buf bytes.Buffer
 	sendOpt := &sendOptions{
 		baseURL: s.client.BaseURL.CIURL,
 		method:  http.MethodGet,
 		uri:     "/",
-		result:  &res,
+		result:  &buf,
 	}
 	resp, err := s.client.send(ctx, sendOpt)
+	if err != nil {
+		return &res, resp, err
+	}
+	if body := bytes.TrimSpace(buf.Bytes()); len(body) > 0 {
+		res, err = decodeCIServiceResult(body)
+	}
 	return &res, resp, err
 }
 
