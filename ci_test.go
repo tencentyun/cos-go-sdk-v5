@@ -3992,3 +3992,307 @@ func TestCIService_CreateAIImageAnalysis_RequestBodyXMLSchema(t *testing.T) {
 		t.Fatalf("CI.CreateAIImageAnalysis returned error: %v", err)
 	}
 }
+
+// ============================================================
+// TestCIService_CreateAIMediaAnalysis_*  大模型视频分析
+// 接口: POST /?ci-process=AIMediaAnalysis （走 CIURL）
+// ============================================================
+
+// #1: Description + FTM 模板 + 完整 LabelDetail + MediaInfo 反序列化
+func TestCIService_CreateAIMediaAnalysis_DescriptionFTM_Success(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		if got := r.URL.Query().Get("ci-process"); got != "AIMediaAnalysis" {
+			t.Errorf("ci-process = %q, want AIMediaAnalysis", got)
+		}
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Description</Type>`+
+			`<DescriptionResult>`+
+			`<Description>一段户外运动视频</Description>`+
+			`<LabelDetail>`+
+			`<LabelInfos>`+
+			`<ConfidenceLevel>high</ConfidenceLevel>`+
+			`<LabelInfo><LabelName>category</LabelName><LabelValue>运动</LabelValue></LabelInfo>`+
+			`</LabelInfos>`+
+			`</LabelDetail>`+
+			`</DescriptionResult>`+
+			`<MediaInfo>`+
+			`<Duration>15.5</Duration>`+
+			`<Fps>1</Fps>`+
+			`<BilledFrameCount>16</BilledFrameCount>`+
+			`</MediaInfo>`+
+			`</AnalysisResult>`+
+			`<RequestId>req-media-001</RequestId>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIMediaAnalysisOptions{
+		Input: &AIMediaAnalysisInput{
+			Message: &AIMediaAnalysisMessage{
+				Content: &AIMediaAnalysisContent{
+					Part: []AIMediaAnalysisPart{
+						{Type: "Video", ObjectKey: "media/drama_clip.mp4", Fps: 1},
+					},
+				},
+			},
+		},
+		Conf: &AIMediaAnalysisConf{Type: "Description", TemplateName: "FTM"},
+	}
+
+	res, _, err := client.CI.CreateAIMediaAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIMediaAnalysis returned error: %v", err)
+	}
+	if res.State != "Success" {
+		t.Errorf("State = %q, want Success", res.State)
+	}
+	if res.RequestId != "req-media-001" {
+		t.Errorf("RequestId = %q, want req-media-001", res.RequestId)
+	}
+	if res.AnalysisResult == nil {
+		t.Fatal("AnalysisResult is nil")
+	}
+	dr := res.AnalysisResult.DescriptionResult
+	if dr == nil {
+		t.Fatal("DescriptionResult is nil")
+	}
+	if dr.Description != "一段户外运动视频" {
+		t.Errorf("Description = %q", dr.Description)
+	}
+	if dr.LabelDetail == nil || len(dr.LabelDetail.LabelInfos) != 1 {
+		t.Fatal("LabelDetail or LabelInfos unexpected")
+	}
+	if dr.LabelDetail.LabelInfos[0].ConfidenceLevel != "high" {
+		t.Errorf("ConfidenceLevel = %q, want high", dr.LabelDetail.LabelInfos[0].ConfidenceLevel)
+	}
+	if len(dr.LabelDetail.LabelInfos[0].LabelInfo) != 1 {
+		t.Fatalf("len(LabelInfo) = %d, want 1", len(dr.LabelDetail.LabelInfos[0].LabelInfo))
+	}
+	li := dr.LabelDetail.LabelInfos[0].LabelInfo[0]
+	if li.LabelName != "category" || li.LabelValue != "运动" {
+		t.Errorf("LabelInfo = %+v, want {category, 运动}", li)
+	}
+	mi := res.AnalysisResult.MediaInfo
+	if mi == nil {
+		t.Fatal("MediaInfo is nil")
+	}
+	if mi.Duration != 15.5 {
+		t.Errorf("Duration = %v, want 15.5", mi.Duration)
+	}
+	if mi.Fps != 1 {
+		t.Errorf("Fps = %v, want 1", mi.Fps)
+	}
+	if mi.BilledFrameCount != 16 {
+		t.Errorf("BilledFrameCount = %d, want 16", mi.BilledFrameCount)
+	}
+}
+
+// #2: Custom 模式 + 视频 Url + Text Prompt
+func TestCIService_CreateAIMediaAnalysis_Custom_Success(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := `<Request>` +
+		`<Input><Message><Content>` +
+		`<Part><Type>Video</Type><Url>https://example.com/warehouse.mp4</Url><Fps>0.5</Fps></Part>` +
+		`<Part><Type>Text</Type><Text>请统计视频中人物数量</Text></Part>` +
+		`</Content></Message></Input>` +
+		`<Conf><Type>Custom</Type></Conf>` +
+		`</Request>`
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		testBody(t, r, wantBody)
+		if got := r.URL.Query().Get("ci-process"); got != "AIMediaAnalysis" {
+			t.Errorf("ci-process = %q, want AIMediaAnalysis", got)
+		}
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Custom</Type>`+
+			`<CustomResult>`+
+			`<CustomOutput>视频中出现了3个人物，分别穿着蓝色、红色和白色的工装。</CustomOutput>`+
+			`</CustomResult>`+
+			`<MediaInfo>`+
+			`<Duration>30</Duration>`+
+			`<Fps>0.5</Fps>`+
+			`<BilledFrameCount>15</BilledFrameCount>`+
+			`</MediaInfo>`+
+			`</AnalysisResult>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIMediaAnalysisOptions{
+		Input: &AIMediaAnalysisInput{
+			Message: &AIMediaAnalysisMessage{
+				Content: &AIMediaAnalysisContent{
+					Part: []AIMediaAnalysisPart{
+						{Type: "Video", Url: "https://example.com/warehouse.mp4", Fps: 0.5},
+						{Type: "Text", Text: "请统计视频中人物数量"},
+					},
+				},
+			},
+		},
+		Conf: &AIMediaAnalysisConf{Type: "Custom"},
+	}
+
+	res, _, err := client.CI.CreateAIMediaAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIMediaAnalysis returned error: %v", err)
+	}
+	if res.AnalysisResult == nil || res.AnalysisResult.CustomResult == nil {
+		t.Fatal("CustomResult nil")
+	}
+	if res.AnalysisResult.Type != "Custom" {
+		t.Errorf("Type = %q, want Custom", res.AnalysisResult.Type)
+	}
+	if res.AnalysisResult.CustomResult.CustomOutput != "视频中出现了3个人物，分别穿着蓝色、红色和白色的工装。" {
+		t.Errorf("CustomOutput = %q", res.AnalysisResult.CustomResult.CustomOutput)
+	}
+	if res.AnalysisResult.DescriptionResult != nil {
+		t.Errorf("DescriptionResult should be nil in Custom mode")
+	}
+	mi := res.AnalysisResult.MediaInfo
+	if mi == nil {
+		t.Fatal("MediaInfo nil")
+	}
+	if mi.Duration != 30 {
+		t.Errorf("Duration = %v, want 30", mi.Duration)
+	}
+	if mi.Fps != 0.5 {
+		t.Errorf("Fps = %v, want 0.5", mi.Fps)
+	}
+	if mi.BilledFrameCount != 15 {
+		t.Errorf("BilledFrameCount = %d, want 15", mi.BilledFrameCount)
+	}
+}
+
+// #3: Description 模式无标签（LabelDetail 缺失）
+func TestCIService_CreateAIMediaAnalysis_DescriptionOnly_NoLabelDetail(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		fmt.Fprint(w, `<Response>`+
+			`<State>Success</State>`+
+			`<AnalysisResult>`+
+			`<Type>Description</Type>`+
+			`<DescriptionResult>`+
+			`<Description>仅描述文本</Description>`+
+			`</DescriptionResult>`+
+			`<MediaInfo><Duration>10</Duration><Fps>1</Fps><BilledFrameCount>10</BilledFrameCount></MediaInfo>`+
+			`</AnalysisResult>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIMediaAnalysisOptions{
+		Input: &AIMediaAnalysisInput{
+			Message: &AIMediaAnalysisMessage{
+				Content: &AIMediaAnalysisContent{
+					Part: []AIMediaAnalysisPart{
+						{Type: "Video", ObjectKey: "test/video.mp4"},
+					},
+				},
+			},
+		},
+		Conf: &AIMediaAnalysisConf{Type: "Description"},
+	}
+
+	res, _, err := client.CI.CreateAIMediaAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIMediaAnalysis returned error: %v", err)
+	}
+	dr := res.AnalysisResult.DescriptionResult
+	if dr == nil {
+		t.Fatal("DescriptionResult nil")
+	}
+	if dr.Description != "仅描述文本" {
+		t.Errorf("Description = %q", dr.Description)
+	}
+	if dr.LabelDetail != nil {
+		t.Errorf("LabelDetail should be nil")
+	}
+}
+
+// #4: 错误响应（State=Failed）SDK 透传到 Result
+func TestCIService_CreateAIMediaAnalysis_ErrorResponse_PassThrough(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		fmt.Fprint(w, `<Response>`+
+			`<Code>NoMediaProvided</Code>`+
+			`<Message>未包含视频类型的 Part</Message>`+
+			`<State>Failed</State>`+
+			`<RequestId>req-media-err</RequestId>`+
+			`</Response>`)
+	})
+
+	opt := &CreateAIMediaAnalysisOptions{
+		Conf: &AIMediaAnalysisConf{Type: "Description"},
+	}
+
+	res, _, err := client.CI.CreateAIMediaAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIMediaAnalysis returned error: %v", err)
+	}
+	if res.Code != "NoMediaProvided" {
+		t.Errorf("Code = %q, want NoMediaProvided", res.Code)
+	}
+	if res.State != "Failed" {
+		t.Errorf("State = %q, want Failed", res.State)
+	}
+	if res.AnalysisResult != nil {
+		t.Errorf("AnalysisResult should be nil on failure")
+	}
+}
+
+// #5: ObjectKey 的视频 + Description 请求体 XML 完整匹配
+func TestCIService_CreateAIMediaAnalysis_RequestBodyXMLSchema(t *testing.T) {
+	setup()
+	defer teardown()
+
+	wantBody := `<Request>` +
+		`<Input><Message><Content>` +
+		`<Part><Type>Video</Type><ObjectKey>media/clip.mp4</ObjectKey><Fps>2</Fps></Part>` +
+		`</Content></Message></Input>` +
+		`<Conf><Type>Description</Type><TemplateName>FTM</TemplateName></Conf>` +
+		`</Request>`
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		testHeader(t, r, "Content-Type", "application/xml")
+		if got := r.URL.Query().Get("ci-process"); got != "AIMediaAnalysis" {
+			t.Errorf("ci-process = %q, want AIMediaAnalysis", got)
+		}
+		testBody(t, r, wantBody)
+		fmt.Fprint(w, `<Response><State>Success</State><AnalysisResult><Type>Description</Type></AnalysisResult></Response>`)
+	})
+
+	opt := &CreateAIMediaAnalysisOptions{
+		Input: &AIMediaAnalysisInput{
+			Message: &AIMediaAnalysisMessage{
+				Content: &AIMediaAnalysisContent{
+					Part: []AIMediaAnalysisPart{
+						{Type: "Video", ObjectKey: "media/clip.mp4", Fps: 2},
+					},
+				},
+			},
+		},
+		Conf: &AIMediaAnalysisConf{Type: "Description", TemplateName: "FTM"},
+	}
+
+	_, _, err := client.CI.CreateAIMediaAnalysis(context.Background(), opt)
+	if err != nil {
+		t.Fatalf("CI.CreateAIMediaAnalysis returned error: %v", err)
+	}
+}
