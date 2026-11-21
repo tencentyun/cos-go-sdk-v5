@@ -1970,6 +1970,15 @@ func (s *ObjectService) Download(ctx context.Context, name string, filepath stri
 			cpfile = fmt.Sprintf("%s.cosresumabletask", filepath)
 		}
 		resumableInfo, resumableFlag = s.checkDownloadedParts(cpInfo, cpfile, chunks)
+		// checkpoint 有效，但已下载的本地文件不存在（例如失败后被删除），只能重新下载整个文件
+		if resumableFlag {
+			if _, serr := os.Stat(filepath); serr != nil && os.IsNotExist(serr) {
+				for i, _ := range chunks {
+					chunks[i].Done = false
+				}
+				resumableInfo, resumableFlag = cpInfo, false
+			}
+		}
 		cpfd, err = os.OpenFile(cpfile, os.O_RDWR, 0660)
 		if err != nil {
 			return nil, fmt.Errorf("Open CheckPoint File[%v] Failed:%v", cpfile, err)

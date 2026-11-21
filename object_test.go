@@ -3838,6 +3838,85 @@ func TestObjectService_Download_CheckPointUpdatedAfterSync(t *testing.T) {
 	}
 }
 
+// TestObjectService_Download_CheckPointFileRemoved 验证：第一次下载部分失败后，下载文件被删除但
+// checkpoint 文件仍在时，再次 Download 应重新下载整个文件，而不是因为打开不存在的文件而失败。
+func TestObjectService_Download_CheckPointFileRemoved(t *testing.T) {
+	setup()
+	defer teardown()
+
+	totalBytes := int64(1024*1024*4 + 567)
+	b := make([]byte, totalBytes)
+	rand.Read(b)
+	tb := crc64.MakeTable(crc64.ECMA)
+	localcrc := strconv.FormatUint(crc64.Update(0, tb, b), 10)
+	partSize := 1024 * 1024
+
+	oddok := false
+	var evencount int32
+	mux.HandleFunc("/test.download.cp.removed", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.Header().Add("Content-Length", strconv.FormatInt(totalBytes, 10))
+			w.Header().Add("x-cos-hash-crc64ecma", localcrc)
+			return
+		}
+		strRange := r.Header.Get("Range")
+		slice1 := strings.Split(strRange, "=")
+		slice2 := strings.Split(slice1[1], "-")
+		start, _ := strconv.ParseInt(slice2[0], 10, 64)
+		end, _ := strconv.ParseInt(slice2[1], 10, 64)
+		if (start/int64(partSize))%2 == 1 && !oddok {
+			// 奇数块截断，第一次下载失败
+			io.Copy(w, bytes.NewBuffer(b[start:end]))
+			return
+		}
+		if (start/int64(partSize))%2 == 0 {
+			atomic.AddInt32(&evencount, 1)
+		}
+		io.Copy(w, bytes.NewBuffer(b[start:end+1]))
+	})
+
+	downPath := "down.cp.removed." + time.Now().Format(time.RFC3339)
+	cpPath := downPath + ".cosresumabletask"
+	defer os.Remove(downPath)
+	defer os.Remove(cpPath)
+
+	opt := &MultiDownloadOptions{
+		ThreadPoolSize: 2,
+		PartSize:       int64(partSize / (1024 * 1024)),
+		CheckPoint:     true,
+	}
+	_, err := client.Object.Download(context.Background(), "test.download.cp.removed", downPath, opt)
+	if err == nil {
+		t.Fatalf("First download should fail when odd parts are truncated")
+	}
+	if _, statErr := os.Stat(cpPath); os.IsNotExist(statErr) {
+		t.Fatalf("Checkpoint file should be kept after failed download")
+	}
+
+	// 下载文件被删除，checkpoint 仍记录着偶数块
+	os.Remove(downPath)
+	evenBefore := atomic.LoadInt32(&evencount)
+	oddok = true
+	_, err = client.Object.Download(context.Background(), "test.download.cp.removed", downPath, opt)
+	if err != nil {
+		t.Fatalf("Download after removing the partial file should succeed, got error: %v", err)
+	}
+	// 偶数块需要重新下载
+	if atomic.LoadInt32(&evencount) == evenBefore {
+		t.Fatalf("Even parts should be downloaded again after the partial file was removed")
+	}
+	gotData, readErr := os.ReadFile(downPath)
+	if readErr != nil {
+		t.Fatalf("Read downloaded file failed: %v", readErr)
+	}
+	if !bytes.Equal(gotData, b) {
+		t.Fatalf("Downloaded file content mismatch")
+	}
+	if _, statErr := os.Stat(cpPath); !os.IsNotExist(statErr) {
+		t.Fatalf("Checkpoint file should be deleted after successful download")
+	}
+}
+
 // ==================== copyChunkToFileAt 单元测试 ====================
 
 // 辅助：创建临时文件，用完自动删除
